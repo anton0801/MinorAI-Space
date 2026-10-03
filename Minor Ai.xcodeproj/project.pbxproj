@@ -1,0 +1,946 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1005A3229AC52A25E9545005 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E68D90BEC4E60A20546E81 /* WidgetKit.framework */; };
+		5734B6B49A5039F6B3080A56 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ED0742B52B1B92FD9D43FAB1 /* Foundation.framework */; };
+		5F8A59B3AEC46220FB60FC29 /* MinorShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 627D5F58AF68B200837BC523 /* MinorShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		62F2C245A6C36DF9AE2688E4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FBC80650B93913CD6038C89B /* SwiftUI.framework */; };
+		76AB65287E11B1B8D9259BF6 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB24707EC74AB4A454303FC5 /* UniformTypeIdentifiers.framework */; };
+		7709C49C702461954A5BFE40 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C300F9775F0CA4DACD321D7 /* ShareViewController.swift */; };
+		8F20094130713F470018F533 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F20094030713F470018F533 /* StoreKit.framework */; };
+		A151F1206F0205261D4BDBD3 /* SharedContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880FED883AA93E91692D5810 /* SharedContainer.swift */; };
+		A664F993A4A2B9C96E50CD20 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ED0742B52B1B92FD9D43FAB1 /* Foundation.framework */; };
+		B2AB4B8257598CC62B807E6E /* SharedContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880FED883AA93E91692D5810 /* SharedContainer.swift */; };
+		C254543890663DB0A0223934 /* MinorWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B3508F0204D3899946305 /* MinorWidgets.swift */; };
+		D050CD0097DECA6C8851E42D /* SharedContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880FED883AA93E91692D5810 /* SharedContainer.swift */; };
+		FEEC9B9EE310F6289635989F /* MinorWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 349E7880B3512EAB27346F65 /* MinorWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3C0510F5C8421D96899C4F8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7B51E79D2D74BD8200991DF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B05FA165231B4B729D0C2868;
+			remoteInfo = MinorWidgets;
+		};
+		4C7224D967A11E929B879CF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7B51E79D2D74BD8200991DF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 61776F525AA83BBFDA3BBA30;
+			remoteInfo = MinorShare;
+		};
+		7B51E7BC2D74BD8500991DF1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7B51E79D2D74BD8200991DF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7B51E7A42D74BD8200991DF1;
+			remoteInfo = "Minor Ai";
+		};
+		7B51E7C62D74BD8500991DF1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7B51E79D2D74BD8200991DF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7B51E7A42D74BD8200991DF1;
+			remoteInfo = "Minor Ai";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		20ECD8A1D123DA4CD993F3D0 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FEEC9B9EE310F6289635989F /* MinorWidgets.appex in Embed Foundation Extensions */,
+				5F8A59B3AEC46220FB60FC29 /* MinorShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		349E7880B3512EAB27346F65 /* MinorWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinorWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C300F9775F0CA4DACD321D7 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		43C35E4AB25AC3882FEDD4A2 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		46E68D90BEC4E60A20546E81 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		627D5F58AF68B200837BC523 /* MinorShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinorShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A66946ABAED9B7569D5B1AF /* MinorWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = MinorWidgets.entitlements; sourceTree = "<group>"; };
+		7B51E7A52D74BD8200991DF1 /* Minor Ai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Minor Ai.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B51E7BB2D74BD8500991DF1 /* Minor AiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Minor AiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B51E7C52D74BD8500991DF1 /* Minor AiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Minor AiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		859B3508F0204D3899946305 /* MinorWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MinorWidgets.swift; sourceTree = "<group>"; };
+		880FED883AA93E91692D5810 /* SharedContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedContainer.swift; sourceTree = "<group>"; };
+		8F20094030713F470018F533 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		AB24707EC74AB4A454303FC5 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		CE135291E93F8F41940576E3 /* MinorShare.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = MinorShare.entitlements; sourceTree = "<group>"; };
+		ED0742B52B1B92FD9D43FAB1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		FA27147E792ED44B6A20D03B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FBC80650B93913CD6038C89B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7B51E7CD2D74BD8500991DF1 /* Exceptions for "Minor Ai" folder in "Minor Ai" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7B51E7A42D74BD8200991DF1 /* Minor Ai */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		7B51E7A72D74BD8200991DF1 /* Minor Ai */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7B51E7CD2D74BD8500991DF1 /* Exceptions for "Minor Ai" folder in "Minor Ai" target */,
+			);
+			path = "Minor Ai";
+			sourceTree = "<group>";
+		};
+		7B51E7BE2D74BD8500991DF1 /* Minor AiTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Minor AiTests";
+			sourceTree = "<group>";
+		};
+		7B51E7C82D74BD8500991DF1 /* Minor AiUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Minor AiUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		15E39301D1237A5B65E7CF3A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A664F993A4A2B9C96E50CD20 /* Foundation.framework in Frameworks */,
+				76AB65287E11B1B8D9259BF6 /* UniformTypeIdentifiers.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		62B9C2E6E74AE020725EE1A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5734B6B49A5039F6B3080A56 /* Foundation.framework in Frameworks */,
+				1005A3229AC52A25E9545005 /* WidgetKit.framework in Frameworks */,
+				62F2C245A6C36DF9AE2688E4 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7A22D74BD8200991DF1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F20094130713F470018F533 /* StoreKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7B82D74BD8500991DF1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7C22D74BD8500991DF1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		182272612913C22D2DD0A584 /* MinorShare */ = {
+			isa = PBXGroup;
+			children = (
+				3C300F9775F0CA4DACD321D7 /* ShareViewController.swift */,
+				FA27147E792ED44B6A20D03B /* Info.plist */,
+				CE135291E93F8F41940576E3 /* MinorShare.entitlements */,
+			);
+			path = MinorShare;
+			sourceTree = "<group>";
+		};
+		20B084A525BD1F44321D4EB8 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				ED0742B52B1B92FD9D43FAB1 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		7B51E79C2D74BD8200991DF1 = {
+			isa = PBXGroup;
+			children = (
+				7B51E7A72D74BD8200991DF1 /* Minor Ai */,
+				7B51E7BE2D74BD8500991DF1 /* Minor AiTests */,
+				7B51E7C82D74BD8500991DF1 /* Minor AiUITests */,
+				8F20093F30713F470018F533 /* Frameworks */,
+				7B51E7A62D74BD8200991DF1 /* Products */,
+				BF85726B1C6990D16C9BF22C /* Shared */,
+				EA6C1A72DC7FEF1207A209D0 /* MinorWidgets */,
+				182272612913C22D2DD0A584 /* MinorShare */,
+			);
+			sourceTree = "<group>";
+		};
+		7B51E7A62D74BD8200991DF1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7B51E7A52D74BD8200991DF1 /* Minor Ai.app */,
+				7B51E7BB2D74BD8500991DF1 /* Minor AiTests.xctest */,
+				7B51E7C52D74BD8500991DF1 /* Minor AiUITests.xctest */,
+				349E7880B3512EAB27346F65 /* MinorWidgets.appex */,
+				627D5F58AF68B200837BC523 /* MinorShare.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8F20093F30713F470018F533 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8F20094030713F470018F533 /* StoreKit.framework */,
+				20B084A525BD1F44321D4EB8 /* iOS */,
+				46E68D90BEC4E60A20546E81 /* WidgetKit.framework */,
+				FBC80650B93913CD6038C89B /* SwiftUI.framework */,
+				AB24707EC74AB4A454303FC5 /* UniformTypeIdentifiers.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		BF85726B1C6990D16C9BF22C /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				880FED883AA93E91692D5810 /* SharedContainer.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		EA6C1A72DC7FEF1207A209D0 /* MinorWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				859B3508F0204D3899946305 /* MinorWidgets.swift */,
+				43C35E4AB25AC3882FEDD4A2 /* Info.plist */,
+				7A66946ABAED9B7569D5B1AF /* MinorWidgets.entitlements */,
+			);
+			path = MinorWidgets;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		61776F525AA83BBFDA3BBA30 /* MinorShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A728A0A80131E798D4C281A7 /* Build configuration list for PBXNativeTarget "MinorShare" */;
+			buildPhases = (
+				0D28DDB6E8D9D9ADB780C1DE /* Sources */,
+				15E39301D1237A5B65E7CF3A /* Frameworks */,
+				661D9DBEAC0D3793468A9458 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MinorShare;
+			productName = MinorShare;
+			productReference = 627D5F58AF68B200837BC523 /* MinorShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		7B51E7A42D74BD8200991DF1 /* Minor Ai */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B51E7CE2D74BD8500991DF1 /* Build configuration list for PBXNativeTarget "Minor Ai" */;
+			buildPhases = (
+				7B51E7A12D74BD8200991DF1 /* Sources */,
+				7B51E7A22D74BD8200991DF1 /* Frameworks */,
+				7B51E7A32D74BD8200991DF1 /* Resources */,
+				20ECD8A1D123DA4CD993F3D0 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ECA0F0F8D9582C1361E2C722 /* PBXTargetDependency */,
+				F8D6B20B04FE4CDAA8C6B72F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7B51E7A72D74BD8200991DF1 /* Minor Ai */,
+			);
+			name = "Minor Ai";
+			productName = "Minor Ai";
+			productReference = 7B51E7A52D74BD8200991DF1 /* Minor Ai.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7B51E7BA2D74BD8500991DF1 /* Minor AiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B51E7D32D74BD8500991DF1 /* Build configuration list for PBXNativeTarget "Minor AiTests" */;
+			buildPhases = (
+				7B51E7B72D74BD8500991DF1 /* Sources */,
+				7B51E7B82D74BD8500991DF1 /* Frameworks */,
+				7B51E7B92D74BD8500991DF1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7B51E7BD2D74BD8500991DF1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7B51E7BE2D74BD8500991DF1 /* Minor AiTests */,
+			);
+			name = "Minor AiTests";
+			productName = "Minor AiTests";
+			productReference = 7B51E7BB2D74BD8500991DF1 /* Minor AiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		7B51E7C42D74BD8500991DF1 /* Minor AiUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B51E7D62D74BD8500991DF1 /* Build configuration list for PBXNativeTarget "Minor AiUITests" */;
+			buildPhases = (
+				7B51E7C12D74BD8500991DF1 /* Sources */,
+				7B51E7C22D74BD8500991DF1 /* Frameworks */,
+				7B51E7C32D74BD8500991DF1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7B51E7C72D74BD8500991DF1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7B51E7C82D74BD8500991DF1 /* Minor AiUITests */,
+			);
+			name = "Minor AiUITests";
+			productName = "Minor AiUITests";
+			productReference = 7B51E7C52D74BD8500991DF1 /* Minor AiUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		B05FA165231B4B729D0C2868 /* MinorWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F564A3E5F3668F2C29EBB8BF /* Build configuration list for PBXNativeTarget "MinorWidgets" */;
+			buildPhases = (
+				46167C2D0B2F00CE91DD652B /* Sources */,
+				62B9C2E6E74AE020725EE1A1 /* Frameworks */,
+				59D97780AE9881065F02C7B6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MinorWidgets;
+			productName = MinorWidgets;
+			productReference = 349E7880B3512EAB27346F65 /* MinorWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7B51E79D2D74BD8200991DF1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					7B51E7A42D74BD8200991DF1 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					7B51E7BA2D74BD8500991DF1 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 7B51E7A42D74BD8200991DF1;
+					};
+					7B51E7C42D74BD8500991DF1 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 7B51E7A42D74BD8200991DF1;
+					};
+				};
+			};
+			buildConfigurationList = 7B51E7A02D74BD8200991DF1 /* Build configuration list for PBXProject "Minor Ai" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				ru,
+			);
+			mainGroup = 7B51E79C2D74BD8200991DF1;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 7B51E7A62D74BD8200991DF1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7B51E7A42D74BD8200991DF1 /* Minor Ai */,
+				7B51E7BA2D74BD8500991DF1 /* Minor AiTests */,
+				7B51E7C42D74BD8500991DF1 /* Minor AiUITests */,
+				B05FA165231B4B729D0C2868 /* MinorWidgets */,
+				61776F525AA83BBFDA3BBA30 /* MinorShare */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		59D97780AE9881065F02C7B6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		661D9DBEAC0D3793468A9458 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7A32D74BD8200991DF1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7B92D74BD8500991DF1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7C32D74BD8500991DF1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0D28DDB6E8D9D9ADB780C1DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7709C49C702461954A5BFE40 /* ShareViewController.swift in Sources */,
+				D050CD0097DECA6C8851E42D /* SharedContainer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		46167C2D0B2F00CE91DD652B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C254543890663DB0A0223934 /* MinorWidgets.swift in Sources */,
+				A151F1206F0205261D4BDBD3 /* SharedContainer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7A12D74BD8200991DF1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2AB4B8257598CC62B807E6E /* SharedContainer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7B72D74BD8500991DF1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B51E7C12D74BD8500991DF1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7B51E7BD2D74BD8500991DF1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7B51E7A42D74BD8200991DF1 /* Minor Ai */;
+			targetProxy = 7B51E7BC2D74BD8500991DF1 /* PBXContainerItemProxy */;
+		};
+		7B51E7C72D74BD8500991DF1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7B51E7A42D74BD8200991DF1 /* Minor Ai */;
+			targetProxy = 7B51E7C62D74BD8500991DF1 /* PBXContainerItemProxy */;
+		};
+		ECA0F0F8D9582C1361E2C722 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = MinorWidgets;
+			target = B05FA165231B4B729D0C2868 /* MinorWidgets */;
+			targetProxy = 3C0510F5C8421D96899C4F8C /* PBXContainerItemProxy */;
+		};
+		F8D6B20B04FE4CDAA8C6B72F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = MinorShare;
+			target = 61776F525AA83BBFDA3BBA30 /* MinorShare */;
+			targetProxy = 4C7224D967A11E929B879CF2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		2F7F34D6288031ADB3A6CEC6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = MinorShare/MinorShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinorShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.Share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		45B1DBB3493D1DC08A3F8995 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = MinorWidgets/MinorWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinorWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7B51E7CF2D74BD8500991DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Minor Ai/MinorAi.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Minor Ai/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Minor listens while you dictate a message or talk through an idea for a mind map.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Minor saves the mind map images you export to your photo library.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Minor turns your voice into text on your iPhone. The text is sent to AI only when you send a message or build a map.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7B51E7D02D74BD8500991DF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Minor Ai/MinorAi.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Minor Ai/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Minor listens while you dictate a message or talk through an idea for a mind map.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Minor saves the mind map images you export to your photo library.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Minor turns your voice into text on your iPhone. The text is sent to AI only when you send a message or build a map.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		7B51E7D12D74BD8500991DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 2.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		7B51E7D22D74BD8500991DF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 2.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7B51E7D42D74BD8500991DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Minor Ai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Minor Ai";
+			};
+			name = Debug;
+		};
+		7B51E7D52D74BD8500991DF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Minor Ai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Minor Ai";
+			};
+			name = Release;
+		};
+		7B51E7D72D74BD8500991DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Minor Ai";
+			};
+			name = Debug;
+		};
+		7B51E7D82D74BD8500991DF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Minor Ai";
+			};
+			name = Release;
+		};
+		B16C7C73796474A91445C6C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = MinorShare/MinorShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinorShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.Share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		CB9003EA0B0D2320B978F5AF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = MinorWidgets/MinorWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinorWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.minorailifegroup.MinorAI.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7B51E7A02D74BD8200991DF1 /* Build configuration list for PBXProject "Minor Ai" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7B51E7D12D74BD8500991DF1 /* Debug */,
+				7B51E7D22D74BD8500991DF1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7B51E7CE2D74BD8500991DF1 /* Build configuration list for PBXNativeTarget "Minor Ai" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7B51E7CF2D74BD8500991DF1 /* Debug */,
+				7B51E7D02D74BD8500991DF1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7B51E7D32D74BD8500991DF1 /* Build configuration list for PBXNativeTarget "Minor AiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7B51E7D42D74BD8500991DF1 /* Debug */,
+				7B51E7D52D74BD8500991DF1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7B51E7D62D74BD8500991DF1 /* Build configuration list for PBXNativeTarget "Minor AiUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7B51E7D72D74BD8500991DF1 /* Debug */,
+				7B51E7D82D74BD8500991DF1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A728A0A80131E798D4C281A7 /* Build configuration list for PBXNativeTarget "MinorShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2F7F34D6288031ADB3A6CEC6 /* Release */,
+				B16C7C73796474A91445C6C3 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F564A3E5F3668F2C29EBB8BF /* Build configuration list for PBXNativeTarget "MinorWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				45B1DBB3493D1DC08A3F8995 /* Release */,
+				CB9003EA0B0D2320B978F5AF /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7B51E79D2D74BD8200991DF1 /* Project object */;
+}

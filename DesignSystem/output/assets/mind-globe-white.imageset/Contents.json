@@ -1,0 +1,23 @@
+{
+  "images": [
+    {
+      "filename": "mind-globe-white.png",
+      "idiom": "universal",
+      "scale": "1x"
+    },
+    {
+      "filename": "mind-globe-white@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "filename": "mind-globe-white@3x.png",
+      "idiom": "universal",
+      "scale": "3x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

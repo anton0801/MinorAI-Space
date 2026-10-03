@@ -1,0 +1,8 @@
+[ v3_int ]
+basicConstraints=critical,CA:TRUE
+1.2.840.113635.100.6.2.1=DER:05:00
+[ v3_leaf ]
+basicConstraints=critical,CA:FALSE
+1.2.840.113635.100.6.11.1=DER:05:00
+[ v3_leaf_nomarker ]
+basicConstraints=critical,CA:FALSE

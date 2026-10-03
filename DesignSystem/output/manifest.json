@@ -1,0 +1,152 @@
+[
+  {
+    "file": "01-home",
+    "title": "Home \u00b7 First Map",
+    "group": "Home"
+  },
+  {
+    "file": "02-create",
+    "title": "Start a Map",
+    "group": "Create"
+  },
+  {
+    "file": "02-create-limit",
+    "title": "Start a Map \u00b7 Free Limit",
+    "group": "Create"
+  },
+  {
+    "file": "02-create-offline",
+    "title": "Start a Map \u00b7 Offline",
+    "group": "Create"
+  },
+  {
+    "file": "02-create-voice",
+    "title": "Start a Map \u00b7 Listening",
+    "group": "Create"
+  },
+  {
+    "file": "02-create-youtube",
+    "title": "Start a Map \u00b7 YouTube",
+    "group": "Create"
+  },
+  {
+    "file": "03-generating",
+    "title": "Building Your Map",
+    "group": "Generate"
+  },
+  {
+    "file": "03-generating-error",
+    "title": "Building Your Map \u00b7 Error",
+    "group": "Generate"
+  },
+  {
+    "file": "04-editor",
+    "title": "Launch plan \u00b7 Overview",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-40-plus-nodes",
+    "title": "Launch plan \u00b7 43 Nodes",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-editing",
+    "title": "Launch plan \u00b7 Editing",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-expanding",
+    "title": "Launch plan \u00b7 Expanding",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-focus",
+    "title": "Launch plan \u00b7 Focus",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-node-selected",
+    "title": "Launch plan \u00b7 Node Selected",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-outline",
+    "title": "Launch plan \u00b7 List",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-search",
+    "title": "Launch plan \u00b7 Search",
+    "group": "Editor"
+  },
+  {
+    "file": "04-editor-zoomed-out",
+    "title": "Launch plan \u00b7 40%",
+    "group": "Editor"
+  },
+  {
+    "file": "05-node-card",
+    "title": "Pricing \u00b7 Node Card",
+    "group": "Details"
+  },
+  {
+    "file": "06-node-chat",
+    "title": "Pricing \u00b7 Chat",
+    "group": "Details"
+  },
+  {
+    "file": "07-your-maps",
+    "title": "Your Maps",
+    "group": "Library"
+  },
+  {
+    "file": "07-your-maps-empty",
+    "title": "Your Maps \u00b7 Empty",
+    "group": "Library"
+  },
+  {
+    "file": "08-export",
+    "title": "Export Map",
+    "group": "Export"
+  },
+  {
+    "file": "09-paywall",
+    "title": "Minor Plus \u00b7 Mind Map",
+    "group": "Subscription"
+  },
+  {
+    "file": "10-sign-in",
+    "title": "Save Your Maps",
+    "group": "Account"
+  },
+  {
+    "file": "11-onboarding-1",
+    "title": "Think in Maps",
+    "group": "Onboarding"
+  },
+  {
+    "file": "11-onboarding-2",
+    "title": "Start From Anything",
+    "group": "Onboarding"
+  },
+  {
+    "file": "11-onboarding-3",
+    "title": "Go Deeper With AI",
+    "group": "Onboarding"
+  },
+  {
+    "file": "12-settings",
+    "title": "Settings",
+    "group": "Settings"
+  },
+  {
+    "file": "12-settings-delete",
+    "title": "Settings \u00b7 Delete Account",
+    "group": "Settings"
+  },
+  {
+    "file": "13-launch",
+    "title": "Launch",
+    "group": "Launch"
+  }
+]

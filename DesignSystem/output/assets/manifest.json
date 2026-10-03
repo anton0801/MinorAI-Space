@@ -1,0 +1,158 @@
+[
+  {
+    "name": "app-icon-classic",
+    "width": 1024,
+    "height": 1024,
+    "description": "1024pt app icon, opaque square; original mark traced from alpha"
+  },
+  {
+    "name": "app-icon-glow",
+    "width": 1024,
+    "height": 1024,
+    "description": "1024pt app icon, opaque square; original mark traced from alpha"
+  },
+  {
+    "name": "app-icon-cosmos",
+    "width": 1024,
+    "height": 1024,
+    "description": "1024pt app icon, opaque square; original mark traced from alpha"
+  },
+  {
+    "name": "menu-white",
+    "width": 25,
+    "height": 25,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "menu-gray",
+    "width": 25,
+    "height": 25,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "mind-globe-white",
+    "width": 30,
+    "height": 30,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "mind-globe-gray",
+    "width": 30,
+    "height": 30,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "star-white",
+    "width": 20,
+    "height": 20,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "star-gray",
+    "width": 15,
+    "height": 15,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "bulb-white",
+    "width": 20,
+    "height": 20,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "bulb-gray",
+    "width": 15,
+    "height": 15,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "rocket-white",
+    "width": 20,
+    "height": 20,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "rocket-gray",
+    "width": 15,
+    "height": 15,
+    "description": "Optical line reconstruction of supplied PNG; SF Regular weight"
+  },
+  {
+    "name": "particle-node-white-15",
+    "width": 15,
+    "height": 15,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-node-white-20",
+    "width": 20,
+    "height": 20,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-node-gray-15",
+    "width": 15,
+    "height": 15,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-node-gray-20",
+    "width": 20,
+    "height": 20,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-branch-white-15",
+    "width": 15,
+    "height": 15,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-branch-white-20",
+    "width": 20,
+    "height": 20,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-branch-gray-15",
+    "width": 15,
+    "height": 15,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-branch-gray-20",
+    "width": 20,
+    "height": 20,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-spark-white-15",
+    "width": 15,
+    "height": 15,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-spark-white-20",
+    "width": 20,
+    "height": 20,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-spark-gray-15",
+    "width": 15,
+    "height": 15,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "particle-spark-gray-20",
+    "width": 20,
+    "height": 20,
+    "description": "Paywall mind-map particle"
+  },
+  {
+    "name": "no-maps-yet",
+    "width": 160,
+    "height": 120,
+    "description": "Six branch colors, transparent background, no text"
+  }
+]

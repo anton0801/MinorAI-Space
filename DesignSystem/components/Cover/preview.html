@@ -1,0 +1,53 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="ru" data-theme="classic">
+<head><link rel="stylesheet" href="../../tokens.css"><link rel="stylesheet" href="../bundle.css"><script src="../bundle.js"></script><script>try{var t=new URLSearchParams(location.search).get("theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<meta charset="utf-8">
+<title>Minor Ai</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text-primary); font-family: var(--font-sans); overflow: hidden; }
+  .cover { position: relative; width: 960px; height: 288px; overflow: hidden; }
+  .art { position: absolute; top: 0; left: 480px; width: 480px; height: 288px; overflow: hidden; }
+  .art svg { display: block; width: 480px; height: 288px; }
+  .root { fill: var(--node-root); }
+  .glow { fill: var(--glow-solid); }
+  .lilac { fill: var(--branch-lilac); }
+  .sun { fill: var(--branch-sun); }
+  .sky { fill: var(--branch-sky); }
+  .r16 { rx: var(--radius-16); }
+  .link { fill: none; stroke-width: var(--connector-1); stroke-linecap: round; }
+  .l-glow { stroke: var(--glow-solid); } .l-lilac { stroke: var(--branch-lilac); } .l-sun { stroke: var(--branch-sun); } .l-sky { stroke: var(--branch-sky); }
+  .words { position: absolute; left: 40px; bottom: 36px; max-width: 440px; }
+  .name { margin: 0; font-size: 88px; line-height: .92; font-weight: 700; letter-spacing: -.02em; color: var(--text-primary); }
+  .tag { margin: 12px 0 0 3px; font-size: 14px; line-height: 20px; color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      node-root 128x64 (the white root, the one white thing) · glow-solid 248x152 bled off the top and right (the theme glow, largest) · branch-lilac 216x52 · branch-sun 152x44 · branch-sky 216x52 bled off the bottom; about a quarter of 960x288
+  arrangement one root on the left, a column of branches on the right, the way a map grows rightward
+  pattern     four connector curves (literal motif: the map's own links), from "colour belongs to ideas": root right-middle to each block's left-middle, controls at mid-gap
+  scales      gap map-level-gap 56 x ~1.7; corners radius-16, pills half their height; strokes connector-1 2px
+-->
+<path class="link l-glow" d="M152 166 C192 166 192 60 232 60"/>
+<path class="link l-lilac" d="M152 166 C192 166 192 166 232 166"/>
+<path class="link l-sun" d="M152 166 C192 166 192 226 232 226"/>
+<path class="link l-sky" d="M152 166 C192 166 192 276 232 276"/>
+<rect class="glow r16" x="232" y="-24" width="248" height="152" rx="16"/>
+<rect class="lilac" x="232" y="140" width="216" height="52" rx="26"/>
+<rect class="sun" x="232" y="204" width="152" height="44" rx="22"/>
+<rect class="sky" x="232" y="250" width="216" height="52" rx="26"/>
+<rect class="root r16" x="24" y="134" width="128" height="64" rx="16"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Minor Ai</h1>
+<p class="tag">Тёмная сцена. Белое — главное. Цвет — у идей.</p>
+</div>
+</div>
+</body>
+</html>

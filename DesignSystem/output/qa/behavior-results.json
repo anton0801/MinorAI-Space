@@ -1,0 +1,17 @@
+{
+  "themeChecks": 132,
+  "checks": [
+    "43 node count",
+    "23 node LOD count",
+    "LOD hides grid",
+    "focus dimming",
+    "topic submit",
+    "cancel generation",
+    "Add to Map → Added",
+    "yearly prices",
+    "PRO preselection from export",
+    "reduced motion",
+    "gallery theme, width, filtering"
+  ],
+  "pass": true
+}

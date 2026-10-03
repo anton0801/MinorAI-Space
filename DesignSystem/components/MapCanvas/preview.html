@@ -1,0 +1,23 @@
+<!-- @dsCard group="Mind Map" height=560 -->
+<!doctype html>
+<html lang="en" data-theme="classic">
+<head><link rel="stylesheet" href="../../tokens.css"><link rel="stylesheet" href="../bundle.css"><script src="../bundle.js"></script><script>try{var t=new URLSearchParams(location.search).get("theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script><meta charset="utf-8"><title>MapCanvas</title></head>
+<body>
+<div class="mn-stage top">
+<div class="mn-spec"><div class="mn-canvas" style="width:300px;height:220px;border-radius:16px;box-shadow:0 0 0 1px var(--stroke)">
+<svg class="mn-links" width="300" height="220"><path class="mn-link l1 s-mint" d="M112 110 C138 110 138 52 164 52"/><path class="mn-link l1 s-sky" d="M112 110 C138 110 138 110 164 110"/><path class="mn-link l1 s-lilac" d="M112 110 C138 110 138 168 164 168"/></svg>
+<span class="mn-node root mn-abs" style="left:24px;top:84px;width:88px">Topic</span>
+<span class="mn-node lv1 b-mint mn-abs" style="left:164px;top:32px">Ideas</span>
+<span class="mn-node lv1 b-sky mn-abs" style="left:164px;top:90px">Goals</span>
+<span class="mn-node lv1 b-lilac mn-abs" style="left:164px;top:148px">Risks</span>
+<span class="mn-zoom mn-abs" style="left:12px;bottom:12px">100%</span></div><span class="mn-cap">Холст: bg + точки canvas-dot с шагом 24, индикатор масштаба</span></div>
+<div class="mn-spec"><div class="mn-canvas lod" style="width:300px;height:220px;border-radius:16px;box-shadow:0 0 0 1px var(--stroke)">
+<svg width="300" height="220" style="display:block"><g fill="none" stroke-linecap="round"><path class="mn-link l1 s-mint" d="M60 110 C80 110 80 60 100 60"/><path class="mn-link l1 s-sky" d="M60 110 C80 110 80 110 100 110"/><path class="mn-link l1 s-lilac" d="M60 110 C80 110 80 160 100 160"/>
+<path class="mn-link l2 s-mint-line" d="M150 60 C165 60 165 46 180 46M150 60 C165 60 165 74 180 74"/><path class="mn-link l2 s-sky-line" d="M150 110 C165 110 165 100 180 100M150 110 C165 110 165 120 180 120"/><path class="mn-link l2 s-lilac-line" d="M150 160 C165 160 165 150 180 150M150 160 C165 160 165 172 180 172"/></g>
+<rect class="f-root" x="16" y="98" width="44" height="24" rx="8"/><rect class="f-mint" x="100" y="52" width="50" height="16" rx="6" opacity=".55"/><rect class="f-sky" x="100" y="102" width="50" height="16" rx="6" opacity=".55"/><rect class="f-lilac" x="100" y="152" width="50" height="16" rx="6" opacity=".55"/>
+<g opacity=".5"><rect class="f-mint" x="180" y="43" width="58" height="6" rx="3"/><rect class="f-mint" x="180" y="71" width="44" height="6" rx="3"/><rect class="f-sky" x="180" y="97" width="52" height="6" rx="3"/><rect class="f-sky" x="180" y="117" width="38" height="6" rx="3"/><rect class="f-lilac" x="180" y="147" width="60" height="6" rx="3"/><rect class="f-lilac" x="180" y="169" width="46" height="6" rx="3"/></g></svg>
+<span class="mn-zoom mn-abs" style="left:12px;bottom:12px">40%</span></div><span class="mn-cap">Масштаб ниже 50%: без сетки, листья становятся полосками</span></div>
+</div>
+<script>window.Minor && Minor.hydrate();</script>
+</body>
+</html>
