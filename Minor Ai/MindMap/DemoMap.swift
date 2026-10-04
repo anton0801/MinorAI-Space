@@ -170,6 +170,9 @@ enum DemoMap {
         var table = SlideElement.new(.table)
         table.rows = [[demoText("Plan", "Тариф"), demoText("Price", "Цена")], ["Free", "$0"], ["Plus", "$12.99"]]
         table.x = 700; table.y = 260; table.w = 500; table.h = 240
+        // Short points on the left, the table on the right (the template's two columns would sit under it).
+        deck.slides[4].layout = .bullets
+        deck.slides[4].bullets = [demoText("Free to start", "Бесплатный старт"), demoText("Plus and PRO plans", "Тарифы Plus и PRO")]
         deck.slides[4].elements = [table]
         deck.brand = DeckBrand(logo: nil, corner: .topRight, size: 64, onCover: true, footer: "Minor AI · 2026", showNumbers: true)
         return deck

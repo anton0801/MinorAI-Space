@@ -167,12 +167,15 @@ enum XML {
 }
 
 // One slide: its shapes, pictures, background, transition and what comes in on each tap.
+// Text and shapes go where the app's own slide puts them (measured from SlideView), with sizes
+// fitted in the font PowerPoint uses, so the file looks like the slide in the app and the PDF.
 @MainActor
 private final class SlideWriter {
     let deck: Deck
     let slide: Slide
     let index: Int
     let style: SlideStyle
+    private let probe: SlideLayoutProbe
 
     private(set) var rels = ""
     private(set) var media: [(String, Data)] = []
@@ -193,7 +196,25 @@ private final class SlideWriter {
         self.deck = deck
         self.slide = slide
         self.index = index
-        self.style = deck.style(for: slide)
+        let style = deck.style(for: slide)
+        self.style = style
+        probe = Self.measure(deck: deck, slide: slide, index: index, style: style)
+    }
+
+    // Lays the slide out off screen and reads where each part landed.
+    private static func measure(deck: Deck, slide: Slide, index: Int, style: SlideStyle) -> SlideLayoutProbe {
+        let probe = SlideLayoutProbe()
+        let view = SlideView(slide: slide, style: style, index: index, total: deck.slides.count, deckTitle: deck.title,
+                             sectionNumber: SlideCanvas.sectionNumber(of: index, in: deck), brand: deck.brand, showElements: false, probe: probe)
+        let renderer = ImageRenderer(content: view)
+        renderer.proposedSize = ProposedViewSize(SlideView.size)
+        renderer.render { _, draw in
+            if let context = CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) {
+                draw(context)
+            }
+        }
+        return probe
     }
 
     // MARK: Units and colors
@@ -205,6 +226,7 @@ private final class SlideWriter {
     private var secondaryHex: String { hex(style.secondary) }
     private var accentHex: String { hex(style.accent) }
     private func paletteHex(_ i: Int) -> String { hex(style.palette[i % max(style.palette.count, 1)]) }
+    private var palette: [String] { (0..<max(style.palette.count, 1)).map(paletteHex) }
 
     private func newID() -> Int { defer { nextID += 1 }; return nextID }
 
@@ -222,44 +244,193 @@ private final class SlideWriter {
         return "<a:xfrm\(rot)><a:off x=\"\(e(x))\" y=\"\(e(y))\"/><a:ext cx=\"\(e(max(w, 1)))\" cy=\"\(e(max(h, 1)))\"/></a:xfrm>"
     }
 
+    // A preset outline; a rounded rectangle gets the corner radius the slide draws.
+    private func geometryXML(_ geometry: String, radius: CGFloat?, w: CGFloat, h: CGFloat) -> String {
+        guard geometry == "roundRect", let radius else { return "<a:prstGeom prst=\"\(geometry)\"><a:avLst/></a:prstGeom>" }
+        let adj = Int(min(50000, max(0, radius / max(min(w, h), 1) * 100000)))
+        return "<a:prstGeom prst=\"roundRect\"><a:avLst><a:gd name=\"adj\" fmla=\"val \(adj)\"/></a:avLst></a:prstGeom>"
+    }
+
+    private func fillXML(_ fill: String?, alpha: Double = 1, gradient: [String]? = nil, angle: Double = 0) -> String {
+        if let gradient, gradient.count > 1 {
+            let stops = gradient.enumerated().map { i, color in "<a:gs pos=\"\(i * 100000 / (gradient.count - 1))\"><a:srgbClr val=\"\(color)\"/></a:gs>" }.joined()
+            return "<a:gradFill rotWithShape=\"1\"><a:gsLst>\(stops)</a:gsLst><a:lin ang=\"\(Int(angle * 60000))\" scaled=\"0\"/></a:gradFill>"
+        }
+        guard let fill else { return "<a:noFill/>" }
+        let alphaXML = alpha < 1 ? "<a:alpha val=\"\(Int(alpha * 100000))\"/>" : ""
+        return "<a:solidFill><a:srgbClr val=\"\(fill)\">\(alphaXML)</a:srgbClr></a:solidFill>"
+    }
+
     // MARK: Text
 
-    private func run(_ text: String, size: CGFloat, color: String, bold: Bool = false, italic: Bool = false, font: DeckFont? = nil, alpha: Double = 1) -> String {
+    private func run(_ text: String, size: CGFloat, color: String, bold: Bool = false, italic: Bool = false, font: DeckFont? = nil, alpha: Double = 1,
+                     tracking: CGFloat = 0, gradient: [String]? = nil, gradientAngle: Double = 90) -> String {
         let typeface = XML.escape((font ?? style.bodyFont).officeName)
         let alphaXML = alpha < 1 ? "<a:alpha val=\"\(Int(alpha * 100000))\"/>" : ""
-        return "<a:r><a:rPr lang=\"en-US\" sz=\"\(pt(size))\" b=\"\(bold ? 1 : 0)\" i=\"\(italic ? 1 : 0)\" dirty=\"0\"><a:solidFill><a:srgbClr val=\"\(color)\">\(alphaXML)</a:srgbClr></a:solidFill><a:latin typeface=\"\(typeface)\"/><a:cs typeface=\"\(typeface)\"/></a:rPr><a:t>\(XML.escape(text))</a:t></a:r>"
+        // Letter spacing in hundredths of a point, as the slide's tracking.
+        let spacing = tracking == 0 ? "" : " spc=\"\(Int((tracking * 75).rounded()))\""
+        let fill = gradient != nil ? fillXML(nil, gradient: gradient, angle: gradientAngle) : "<a:solidFill><a:srgbClr val=\"\(color)\">\(alphaXML)</a:srgbClr></a:solidFill>"
+        return "<a:r><a:rPr lang=\"en-US\" sz=\"\(pt(size))\" b=\"\(bold ? 1 : 0)\" i=\"\(italic ? 1 : 0)\"\(spacing) dirty=\"0\">\(fill)<a:latin typeface=\"\(typeface)\"/><a:cs typeface=\"\(typeface)\"/></a:rPr><a:t>\(XML.escape(text))</a:t></a:r>"
     }
 
-    private func titleRun(_ text: String, size: CGFloat, color: String? = nil) -> String {
-        run(text, size: size, color: color ?? textHex, bold: true, font: style.titleFont)
+    // Lines broken where they break in this font and width, joined with line breaks: viewers
+    // that wrap text in shapes their own way (iOS Quick Look ignores the padding) show the same lines.
+    private func brokenRuns(_ text: String, width: CGFloat, size: CGFloat, color: String, bold: Bool = false, italic: Bool = false, font: DeckFont? = nil) -> (runs: String, width: CGFloat) {
+        let font = font ?? style.bodyFont
+        let storage = NSTextStorage(string: text, attributes: [.font: officeFont(font, size, bold: bold, italic: italic)])
+        let manager = NSLayoutManager()
+        storage.addLayoutManager(manager)
+        let container = NSTextContainer(size: CGSize(width: max(width, 1), height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        manager.addTextContainer(container)
+        var lines: [String] = []
+        var widest: CGFloat = 0
+        manager.enumerateLineFragments(forGlyphRange: manager.glyphRange(for: container)) { _, used, _, glyphs, _ in
+            let range = manager.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+            lines.append((text as NSString).substring(with: range).trimmingCharacters(in: .whitespacesAndNewlines))
+            widest = max(widest, used.width)
+        }
+        let runs = (lines.isEmpty ? [text] : lines).map { run($0, size: size, color: color, bold: bold, italic: italic, font: font) }.joined(separator: "<a:br/>")
+        return (runs, widest)
     }
 
-    private func paragraph(_ runs: String, align: String = "l", bullet: String? = nil, spaceAfter: Int = 0) -> String {
-        let bulletXML = bullet.map { "<a:buClr><a:srgbClr val=\"\($0)\"/></a:buClr><a:buFont typeface=\"Arial\"/><a:buChar char=\"•\"/>" } ?? "<a:buNone/>"
-        let margin = bullet == nil ? "" : " marL=\"\(e(34))\" indent=\"-\(e(34))\""
-        return "<a:p><a:pPr algn=\"\(align)\"\(margin)><a:spcAft><a:spcPts val=\"\(spaceAfter * 100)\"/></a:spcAft>\(bulletXML)</a:pPr>\(runs)</a:p>"
+    // The height of a line in the font the app draws the slide with.
+    private func lineHeight(_ font: DeckFont, _ size: CGFloat, bold: Bool) -> CGFloat {
+        switch font {
+        case .system, .rounded, .serif, .mono: return UIFont.systemFont(ofSize: size, weight: bold ? .bold : .regular).lineHeight
+        default: return officeFont(font, size, bold: bold, italic: false).lineHeight
+        }
+    }
+
+    // `lineHeight` sets lines exactly as far apart as the slide's own font does.
+    private func paragraph(_ runs: String, align: String = "l", bullet: String? = nil, indent: CGFloat = 34, spaceBefore: CGFloat = 0, lineHeight: CGFloat? = nil) -> String {
+        let bulletXML = bullet.map { "<a:buClr><a:srgbClr val=\"\($0)\"/></a:buClr><a:buSzPct val=\"140000\"/><a:buFont typeface=\"Arial\"/><a:buChar char=\"•\"/>" } ?? "<a:buNone/>"
+        let margin = bullet == nil ? "" : " marL=\"\(e(indent))\" indent=\"-\(e(indent))\""
+        let spacing = lineHeight.map { "<a:lnSpc><a:spcPts val=\"\(Int(($0 * 75).rounded()))\"/></a:lnSpc>" } ?? ""
+        let before = spaceBefore > 0 ? "<a:spcBef><a:spcPts val=\"\(Int((spaceBefore * 75).rounded()))\"/></a:spcBef>" : ""
+        return "<a:p><a:pPr algn=\"\(align)\"\(margin)>\(spacing)\(before)\(bulletXML)</a:pPr>\(runs)</a:p>"
     }
 
     @discardableResult
     private func textBox(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, paragraphs: [String], anchor: String = "t", fill: String? = nil, fillAlpha: Double = 1,
-                         geometry: String = "rect", line: String? = nil, lineWidth: CGFloat = 2, rotation: Double = 0) -> Int {
+                         gradient: [String]? = nil, gradientAngle: Double = 0, geometry: String = "rect", radius: CGFloat? = nil,
+                         line: String? = nil, lineWidth: CGFloat = 2, rotation: Double = 0, inset: CGSize = .zero, wrap: Bool = true) -> Int {
         let id = newID()
-        let alphaXML = fillAlpha < 1 ? "<a:alpha val=\"\(Int(fillAlpha * 100000))\"/>" : ""
-        let fillXML = fill.map { "<a:solidFill><a:srgbClr val=\"\($0)\">\(alphaXML)</a:srgbClr></a:solidFill>" } ?? "<a:noFill/>"
         let lineXML = line.map { "<a:ln w=\"\(e(lineWidth))\"><a:solidFill><a:srgbClr val=\"\($0)\"/></a:solidFill></a:ln>" } ?? "<a:ln><a:noFill/></a:ln>"
-        let inset = fill == nil && line == nil ? 0 : e(18)
-        // A shape with its own geometry is a shape that holds text, not a plain text box.
-        let kind = fill == nil && line == nil ? "<p:cNvSpPr txBox=\"1\"/>" : "<p:cNvSpPr/>"
-        shapes += "<p:sp><p:nvSpPr><p:cNvPr id=\"\(id)\" name=\"Text \(id)\"/>\(kind)<p:nvPr/></p:nvSpPr><p:spPr>\(xfrm(x, y, w, h, rotation: rotation))<a:prstGeom prst=\"\(geometry)\"><a:avLst/></a:prstGeom>\(fillXML)\(lineXML)</p:spPr><p:txBody><a:bodyPr wrap=\"square\" lIns=\"\(inset)\" tIns=\"\(inset)\" rIns=\"\(inset)\" bIns=\"\(inset)\" anchor=\"\(anchor)\"><a:normAutofit/></a:bodyPr><a:lstStyle/>\(paragraphs.isEmpty ? "<a:p><a:endParaRPr lang=\"en-US\"/></a:p>" : paragraphs.joined())</p:txBody></p:sp>"
+        let plain = fill == nil && gradient == nil && line == nil
+        // A shape with its own outline is a shape that holds text, not a plain text box.
+        let kind = plain ? "<p:cNvSpPr txBox=\"1\"/>" : "<p:cNvSpPr/>"
+        let body = paragraphs.isEmpty ? "<a:p><a:endParaRPr lang=\"en-US\"/></a:p>" : paragraphs.joined()
+        shapes += "<p:sp><p:nvSpPr><p:cNvPr id=\"\(id)\" name=\"Text \(id)\"/>\(kind)<p:nvPr/></p:nvSpPr><p:spPr>\(xfrm(x, y, w, h, rotation: rotation))\(geometryXML(geometry, radius: radius, w: w, h: h))\(fillXML(fill, alpha: fillAlpha, gradient: gradient, angle: gradientAngle))\(lineXML)</p:spPr><p:txBody><a:bodyPr wrap=\"\(wrap ? "square" : "none")\" lIns=\"\(e(inset.width))\" tIns=\"\(e(inset.height))\" rIns=\"\(e(inset.width))\" bIns=\"\(e(inset.height))\" anchor=\"\(anchor)\"><a:normAutofit/></a:bodyPr><a:lstStyle/>\(body)</p:txBody></p:sp>"
         textShapes.insert(id)
         return id
     }
 
+    // The font PowerPoint and Keynote will draw with, to size text the way it will look there.
+    private func officeFont(_ font: DeckFont, _ size: CGFloat, bold: Bool, italic: Bool) -> UIFont {
+        var traits: UIFontDescriptor.SymbolicTraits = []
+        if bold { traits.insert(.traitBold) }
+        if italic { traits.insert(.traitItalic) }
+        let family = UIFontDescriptor(fontAttributes: [.family: font.officeName])
+        return UIFont(descriptor: family.withSymbolicTraits(traits) ?? family, size: size)
+    }
+
+    // The font the app draws the slide with, to know how many lines a text takes there.
+    private func appFont(_ font: DeckFont, _ size: CGFloat, bold: Bool) -> UIFont {
+        let system = UIFont.systemFont(ofSize: size, weight: bold ? .bold : .regular)
+        switch font {
+        case .system: return system
+        case .rounded, .serif, .mono:
+            let design: UIFontDescriptor.SystemDesign = font == .rounded ? .rounded : font == .serif ? .serif : .monospaced
+            return system.fontDescriptor.withDesign(design).map { UIFont(descriptor: $0, size: size) } ?? system
+        default: return officeFont(font, size, bold: bold, italic: false)
+        }
+    }
+
+    private func lineCount(_ text: String, _ font: UIFont, width: CGFloat, kern: CGFloat = 0) -> Int {
+        let storage = NSTextStorage(string: text, attributes: [.font: font, .kern: kern])
+        let manager = NSLayoutManager()
+        storage.addLayoutManager(manager)
+        let container = NSTextContainer(size: CGSize(width: max(width, 1), height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        manager.addTextContainer(container)
+        var count = 0
+        manager.enumerateLineFragments(forGlyphRange: manager.glyphRange(for: container)) { _, _, _, _, _ in count += 1 }
+        return max(count, 1)
+    }
+
+    // The largest size up to `size` at which the text fits the box in that font, in no more lines
+    // than the app's font takes, the way the slide shrinks text that doesn't fit.
+    private func fitted(_ text: String, font: DeckFont, size: CGFloat, bold: Bool, italic: Bool = false, tracking: CGFloat = 0, in box: CGSize) -> CGFloat {
+        guard !text.isEmpty, box.width > 4, box.height > 4 else { return size }
+        let words = text.split(whereSeparator: \.isWhitespace).map(String.init)
+        let appLines = lineCount(text, appFont(font, size, bold: bold), width: box.width, kern: tracking)
+        var s = size
+        while s > size * 0.4 {
+            let office = officeFont(font, s, bold: bold, italic: italic)
+            let kern = tracking * s / size
+            let attributes: [NSAttributedString.Key: Any] = [.font: office, .kern: kern]
+            let height = (text as NSString).boundingRect(with: CGSize(width: box.width, height: .greatestFiniteMagnitude),
+                                                         options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes, context: nil).height
+            let widest = words.map { ($0 as NSString).size(withAttributes: attributes).width }.max() ?? 0
+            if height <= box.height * 1.08 && widest <= box.width && lineCount(text, office, width: box.width, kern: kern) <= appLines { return s }
+            s -= max(0.5, size * 0.03)
+        }
+        return size * 0.4
+    }
+
+    // An editable text box where the slide draws this text: the measured frame, widened to `room`
+    // for a font that runs a little wider, with the size fitted to it.
     @discardableResult
-    private func rect(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, fill: String, geometry: String = "rect", alpha: Double = 1, rotation: Double = 0) -> Int {
+    private func placedText(_ key: String, _ text: String, size: CGFloat, font: DeckFont? = nil, bold: Bool = false, italic: Bool = false, color: String? = nil,
+                            align: String = "l", tracking: CGFloat = 0, room: CGFloat? = nil, fit: Bool = true, gradient: [String]? = nil, gradientAngle: Double = 90, fallback: CGRect) -> Int? {
+        guard !text.isEmpty else { return nil }
+        let font = font ?? style.bodyFont
+        var frame = probe[key] ?? fallback
+        if let room, room > frame.width {
+            let extra = room - frame.width
+            if align == "ctr" { frame.origin.x -= extra / 2 } else if align == "r" { frame.origin.x -= extra }
+            frame.size.width = room
+        }
+        let lines = text.components(separatedBy: "\n")
+        let s = fit ? fitted(text, font: font, size: size, bold: bold, italic: italic, tracking: tracking, in: frame.size) : size
+        let spacing = lineHeight(font, s, bold: bold)
+        let paragraphs = lines.map {
+            paragraph(run($0, size: s, color: color ?? textHex, bold: bold, italic: italic, font: font, tracking: tracking * s / size, gradient: gradient, gradientAngle: gradientAngle), align: align, lineHeight: spacing)
+        }
+        return textBox(x: frame.minX, y: frame.minY, w: frame.width, h: frame.height + 6, paragraphs: paragraphs)
+    }
+
+    // A list as one text box with real bullets, lined up with the slide's own list.
+    @discardableResult
+    private func bulletBox(_ key: String, items: [String], size: CGFloat, dots: [String], right: CGFloat, fallback: CGRect) -> Int? {
+        guard !items.isEmpty else { return nil }
+        let indent = size * 0.42 + 22               // the dot and the gap before the text
+        let frames = items.indices.compactMap { probe["\(key).text.\($0)"] }
+        guard frames.count == items.count, let first = frames.first, let last = frames.last else {
+            let paragraphs = items.enumerated().map { i, item in
+                paragraph(run(item, size: size, color: textHex), bullet: dots[i % dots.count], indent: indent, spaceBefore: i == 0 ? 0 : size * 0.5)
+            }
+            return textBox(x: fallback.minX, y: fallback.minY, w: fallback.width, h: fallback.height, paragraphs: paragraphs)
+        }
+        let x = first.minX - indent
+        let w = max(right - x, (frames.map(\.maxX).max() ?? right) - x)
+        let paragraphs = items.enumerated().map { i, item -> String in
+            let s = fitted(item, font: style.bodyFont, size: size, bold: false, in: CGSize(width: w - indent, height: frames[i].height))
+            let gap = i == 0 ? 0 : max(0, frames[i].minY - frames[i - 1].maxY)
+            return paragraph(run(item, size: s, color: textHex), bullet: dots[i % dots.count], indent: indent, spaceBefore: gap, lineHeight: lineHeight(style.bodyFont, s, bold: false))
+        }
+        return textBox(x: x, y: first.minY, w: w, h: last.maxY - first.minY + size * 0.4, paragraphs: paragraphs)
+    }
+
+    // MARK: Shapes and pictures
+
+    @discardableResult
+    private func shape(_ frame: CGRect, geometry: String = "rect", radius: CGFloat? = nil, fill: String? = nil, alpha: Double = 1, gradient: [String]? = nil,
+                       angle: Double = 0, line: String? = nil, lineWidth: CGFloat = 0, rotation: Double = 0) -> Int {
         let id = newID()
-        let alphaXML = alpha < 1 ? "<a:alpha val=\"\(Int(alpha * 100000))\"/>" : ""
-        shapes += "<p:sp><p:nvSpPr><p:cNvPr id=\"\(id)\" name=\"Shape \(id)\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>\(xfrm(x, y, w, h, rotation: rotation))<a:prstGeom prst=\"\(geometry)\"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val=\"\(fill)\">\(alphaXML)</a:srgbClr></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>"
+        let lineXML = line.map { "<a:ln w=\"\(e(lineWidth))\"><a:solidFill><a:srgbClr val=\"\($0)\"/></a:solidFill></a:ln>" } ?? "<a:ln><a:noFill/></a:ln>"
+        shapes += "<p:sp><p:nvSpPr><p:cNvPr id=\"\(id)\" name=\"Shape \(id)\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>\(xfrm(frame.minX, frame.minY, frame.width, frame.height, rotation: rotation))\(geometryXML(geometry, radius: radius, w: frame.width, h: frame.height))\(fillXML(fill, alpha: alpha, gradient: gradient, angle: angle))\(lineXML)</p:spPr></p:sp>"
         return id
     }
 
@@ -272,31 +443,58 @@ private final class SlideWriter {
         return id
     }
 
-    @discardableResult
-    private func picture(rel: String, x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, rounded: Bool = true, rotation: Double = 0, alpha: Double = 1) -> Int {
-        let id = newID()
-        let geometry = rounded ? "<a:prstGeom prst=\"roundRect\"><a:avLst><a:gd name=\"adj\" fmla=\"val 7000\"/></a:avLst></a:prstGeom>" : "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>"
-        let alphaXML = alpha < 1 ? "<a:alphaModFix amt=\"\(Int(alpha * 100000))\"/>" : ""
-        shapes += "<p:pic><p:nvPicPr><p:cNvPr id=\"\(id)\" name=\"Picture \(id)\"/><p:cNvPicPr><a:picLocks noChangeAspect=\"1\"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed=\"\(rel)\">\(alphaXML)</a:blip><a:srcRect/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>\(xfrm(x, y, w, h, rotation: rotation))\(geometry)</p:spPr></p:pic>"
-        return id
+    // Pictures fill their frame and are cropped, never stretched, as on the slide.
+    private func cover(_ image: CGSize, _ box: CGSize) -> String {
+        guard image.width > 0, image.height > 0, box.width > 0, box.height > 0 else { return "<a:srcRect/>" }
+        let imageAspect = image.width / image.height, boxAspect = box.width / box.height
+        if abs(imageAspect - boxAspect) < 0.01 { return "<a:srcRect/>" }
+        if imageAspect > boxAspect {
+            let side = Int((1 - boxAspect / imageAspect) / 2 * 100000)
+            return "<a:srcRect l=\"\(side)\" r=\"\(side)\"/>"
+        }
+        let side = Int((1 - imageAspect / boxAspect) / 2 * 100000)
+        return "<a:srcRect t=\"\(side)\" b=\"\(side)\"/>"
     }
 
     @discardableResult
-    private func table(rows: [[String]], x: CGFloat, y: CGFloat, w: CGFloat, rowHeight: CGFloat? = nil, size: CGFloat? = nil) -> Int {
+    private func picture(rel: String, frame: CGRect, radius: CGFloat = 0, crop: String = "<a:srcRect/>", rotation: Double = 0, alpha: Double = 1) -> Int {
+        let id = newID()
+        let alphaXML = alpha < 1 ? "<a:alphaModFix amt=\"\(Int(alpha * 100000))\"/>" : ""
+        let geometry = geometryXML(radius > 0 ? "roundRect" : "rect", radius: radius, w: frame.width, h: frame.height)
+        shapes += "<p:pic><p:nvPicPr><p:cNvPr id=\"\(id)\" name=\"Picture \(id)\"/><p:cNvPicPr><a:picLocks noChangeAspect=\"1\"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed=\"\(rel)\">\(alphaXML)</a:blip>\(crop)<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>\(xfrm(frame.minX, frame.minY, frame.width, frame.height, rotation: rotation))\(geometry)</p:spPr></p:pic>"
+        return id
+    }
+
+    // A user's picture from the map store, cropped to the frame.
+    @discardableResult
+    private func photo(_ id: UUID, frame: CGRect, radius: CGFloat, rotation: Double = 0, alpha: Double = 1) -> Int? {
+        guard let data = MapStore.shared.imageData(id) else { return nil }
+        let size = MapStore.shared.image(id)?.size ?? frame.size
+        return picture(rel: addMedia(data, ext: "jpeg"), frame: frame, radius: radius, crop: cover(size, frame.size), rotation: rotation, alpha: alpha)
+    }
+
+    @discardableResult
+    private func table(rows: [[String]], frame: CGRect, heights: [CGFloat], size: CGFloat, padding: CGFloat, firstColumnBold: Bool = true) -> Int {
         let id = newID()
         let columns = max(rows.map(\.count).max() ?? 1, 1)
-        let colWidth = e(w / CGFloat(columns))
-        let height = e(rowHeight ?? (rows.count > 5 ? 64 : 76))
-        var xml = "<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id=\"\(id)\" name=\"Table \(id)\"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp=\"1\"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x=\"\(e(x))\" y=\"\(e(y))\"/><a:ext cx=\"\(e(w))\" cy=\"\(height * rows.count)\"/></p:xfrm><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/table\"><a:tbl><a:tblPr firstRow=\"1\"/><a:tblGrid>"
+        let colWidth = e(frame.width / CGFloat(columns))
+        let total = heights.reduce(0, +)
+        var xml = "<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id=\"\(id)\" name=\"Table \(id)\"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp=\"1\"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x=\"\(e(frame.minX))\" y=\"\(e(frame.minY))\"/><a:ext cx=\"\(e(frame.width))\" cy=\"\(e(total))\"/></p:xfrm><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/table\"><a:tbl><a:tblPr firstRow=\"1\"/><a:tblGrid>"
         xml += String(repeating: "<a:gridCol w=\"\(colWidth)\"/>", count: columns) + "</a:tblGrid>"
-        let header = hex(style.accent.opacity(style.isLight ? 0.14 : 0.2))
+        let header = hex(style.accent.opacity(style.isLight ? 0.14 : 0.18))
         let stripe = hex(style.card)
+        func edge(_ side: String, _ width: CGFloat) -> String { "<a:\(side) w=\"\(e(width))\"><a:solidFill><a:srgbClr val=\"\(hex(style.line))\"/></a:solidFill></a:\(side)>" }
         for (r, row) in rows.enumerated() {
+            let height = e(r < heights.count ? heights[r] : heights.last ?? 76)
             xml += "<a:tr h=\"\(height)\">"
             for c in 0..<columns {
                 let text = c < row.count ? row[c] : ""
-                let fill = r == 0 ? header : (r % 2 == 0 ? stripe : hex(style.background.first))
-                xml += "<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>\(paragraph(run(text, size: size ?? (rows.count > 5 ? 24 : 28), color: textHex, bold: r == 0 || c == 0)))</a:txBody><a:tcPr marL=\"\(e(22))\" marR=\"\(e(22))\" anchor=\"ctr\"><a:solidFill><a:srgbClr val=\"\(fill)\"/></a:solidFill></a:tcPr></a:tc>"
+                let fill = r == 0 ? fillXML(header) : (r % 2 == 0 ? fillXML(stripe) : "<a:noFill/>")
+                let bold = r == 0 || (firstColumnBold && c == 0)
+                let cell = paragraph(run(text, size: size, color: textHex, bold: bold))
+                // A line under each row and around the table, as on the slide.
+                let borders = (c == 0 ? edge("lnL", 1.5) : "") + (c == columns - 1 ? edge("lnR", 1.5) : "") + (r == 0 ? edge("lnT", 1.5) : "") + edge("lnB", r == rows.count - 1 ? 1.5 : 1)
+                xml += "<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>\(cell)</a:txBody><a:tcPr marL=\"\(e(padding))\" marR=\"\(e(padding))\" marT=\"0\" marB=\"0\" anchor=\"ctr\">\(borders)\(fill)</a:tcPr></a:tc>"
             }
             xml += "</a:tr>"
         }
@@ -304,7 +502,7 @@ private final class SlideWriter {
         return id
     }
 
-    // Something drawn by the app (icon, chart, QR code) as a sharp picture.
+    // Something drawn by the app (icon, chart, picture placeholder) as a sharp picture.
     private func rendered<V: View>(_ view: V, size: CGSize) -> String? {
         let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height))
         renderer.scale = 2
@@ -331,21 +529,18 @@ private final class SlideWriter {
 
     private func backgroundXML() -> String {
         let bg = style.background
-        let fill: String
-        switch bg.kind {
-        case .solid:
-            fill = "<a:solidFill><a:srgbClr val=\"\(hex(bg.first))\"/></a:solidFill>"
-        case .gradient:
-            fill = gradient(bg)
-        case .image:
-            if let id = bg.image, let data = MapStore.shared.imageData(id) {
+        // The fill with the soft light in the corners (or a photo with its shade) as one picture,
+        // drawn by the app: PowerPoint has no blur to make that light itself.
+        if bg.kind == .image || style.glow {
+            let renderer = ImageRenderer(content: SlideBackdrop(slide: slide, style: style))
+            renderer.proposedSize = ProposedViewSize(SlideView.size)
+            renderer.scale = 1.5
+            if let data = renderer.uiImage?.jpegData(compressionQuality: 0.85) {
                 let rel = addMedia(data, ext: "jpeg")
-                fill = "<a:blipFill dpi=\"0\" rotWithShape=\"1\"><a:blip r:embed=\"\(rel)\"/><a:srcRect/><a:stretch><a:fillRect/></a:stretch></a:blipFill>"
-                if bg.dim > 0 { rect(x: 0, y: 0, w: 1280, h: 720, fill: "000000", alpha: bg.dim) }
-            } else {
-                fill = gradient(bg)
+                return "<p:bg><p:bgPr><a:blipFill dpi=\"0\" rotWithShape=\"1\"><a:blip r:embed=\"\(rel)\"/><a:srcRect/><a:stretch><a:fillRect/></a:stretch></a:blipFill><a:effectLst/></p:bgPr></p:bg>"
             }
         }
+        let fill = bg.kind == .solid ? "<a:solidFill><a:srgbClr val=\"\(hex(bg.first))\"/></a:solidFill>" : gradient(bg)
         return "<p:bg><p:bgPr>\(fill)<a:effectLst/></p:bgPr></p:bg>"
     }
 
@@ -354,103 +549,139 @@ private final class SlideWriter {
     }
 
     private func layout() {
-        // The box id isn't needed for titles (they don't build in), so the result is dropped here.
-        let title = { (size: CGFloat, y: CGFloat, h: CGFloat) in
-            _ = self.textBox(x: self.pad, y: y, w: self.width - self.pad * 2, h: h, paragraphs: [self.paragraph(self.titleRun(self.slide.title, size: size))])
-        }
-        let bulletParagraphs = { (items: [String], size: CGFloat) -> [String] in
-            items.enumerated().map { i, item in self.paragraph(self.run(item, size: size, color: self.textHex), bullet: self.paletteHex(i), spaceAfter: Int(size * 0.5)) }
+        let full = width - pad * 2
+        let second = style.palette.count > 1 ? paletteHex(1) : accentHex
+        func title(_ size: CGFloat, top: CGFloat, height: CGFloat) {
+            placedText("title", slide.title, size: size, font: style.titleFont, bold: true, tracking: -1, room: full, fallback: CGRect(x: pad, y: top, width: full, height: height))
         }
 
         switch slide.layout {
         case .cover:
-            rect(x: pad + 10, y: 230, w: 96, h: 10, fill: accentHex, geometry: "roundRect")
-            textBox(x: pad + 10, y: 262, w: 1040, h: 220, paragraphs: [paragraph(titleRun(slide.title, size: 92))], anchor: "b")
-            if !slide.subtitle.isEmpty {
-                textBox(x: pad + 10, y: 500, w: 1040, h: 120, paragraphs: [paragraph(run(slide.subtitle, size: 34, color: secondaryHex))])
-            }
+            shape(probe["bar"] ?? CGRect(x: pad + 10, y: 230, width: 96, height: 10), geometry: "roundRect", radius: 5, fill: accentHex)
+            placedText("title", slide.title, size: 92, font: style.titleFont, bold: true, tracking: -2.5, room: 1000, fallback: CGRect(x: pad + 10, y: 262, width: 1000, height: 220))
+            placedText("subtitle", slide.subtitle, size: 34, color: secondaryHex, room: 1000, fallback: CGRect(x: pad + 10, y: 500, width: 1000, height: 120))
         case .section:
             let number = String(format: "%02d", SlideCanvas.sectionNumber(of: index, in: deck))
-            textBox(x: pad + 10, y: 220, w: 300, h: 260, paragraphs: [paragraph(titleRun(number, size: 200, color: accentHex))], anchor: "ctr")
-            textBox(x: 420, y: 250, w: 780, h: 160, paragraphs: [paragraph(titleRun(slide.title, size: 72))], anchor: "b")
-            if !slide.subtitle.isEmpty {
-                textBox(x: 420, y: 420, w: 780, h: 100, paragraphs: [paragraph(run(slide.subtitle, size: 30, color: secondaryHex))])
-            }
+            placedText("number", number, size: 200, font: style.titleFont, bold: true, color: accentHex, fit: false, gradient: [accentHex, second], fallback: CGRect(x: pad + 10, y: 220, width: 300, height: 260))
+            let room = probe["title"].map { width - pad - 10 - $0.minX }
+            placedText("title", slide.title, size: 72, font: style.titleFont, bold: true, tracking: -1.5, room: room, fallback: CGRect(x: 420, y: 250, width: 780, height: 160))
+            placedText("subtitle", slide.subtitle, size: 30, color: secondaryHex, room: room, fallback: CGRect(x: 420, y: 420, width: 780, height: 100))
         case .bullets:
-            title(56, 76, 140)
-            let size: CGFloat = slide.bullets.count > 4 ? 32 : 40
-            let box = textBox(x: pad, y: 240, w: width - pad * 2, h: 380, paragraphs: bulletParagraphs(slide.bullets, size))
-            for i in slide.bullets.indices { step([.paragraph(box, i)]) }
+            title(56, top: 76, height: 140)
+            placedText("subtitle", slide.subtitle, size: 26, color: secondaryHex, room: full, fallback: CGRect(x: pad, y: 160, width: full, height: 40))
+            if let box = bulletBox("b", items: slide.bullets, size: slide.bullets.count > 4 ? 32 : 40, dots: palette, right: width - pad, fallback: CGRect(x: pad, y: 240, width: full, height: 380)) {
+                for i in slide.bullets.indices { step([.paragraph(box, i)]) }
+            }
         case .twoColumns:
-            title(52, 70, 120)
+            title(52, top: 70, height: 120)
             let columns = Array(slide.columns.prefix(3))
             let gap: CGFloat = 28
-            let w = (width - pad * 2 - gap * CGFloat(max(columns.count - 1, 0))) / CGFloat(max(columns.count, 1))
+            let w = (full - gap * CGFloat(max(columns.count - 1, 0))) / CGFloat(max(columns.count, 1))
             for (i, column) in columns.enumerated() {
-                let x = pad + CGFloat(i) * (w + gap)
-                let card = rect(x: x, y: 210, w: w, h: 410, fill: hex(style.card), geometry: "roundRect")
-                let bar = rect(x: x + 32, y: 242, w: 56, h: 8, fill: paletteHex(i), geometry: "roundRect")
-                let text = textBox(x: x + 32, y: 266, w: w - 64, h: 330, paragraphs: [paragraph(titleRun(column.title, size: 38), spaceAfter: 12)] + bulletParagraphs(column.bullets, 28))
-                step([.shape(card), .shape(bar), .shape(text)])
+                let card = probe["col.\(i)"] ?? CGRect(x: pad + CGFloat(i) * (w + gap), y: 210, width: w, height: 410)
+                let color = paletteHex(i)
+                var ids = [shape(card, geometry: "roundRect", radius: 30, fill: hex(style.card), line: hex(style.line), lineWidth: 1.5)]
+                ids.append(shape(probe["col.\(i).bar"] ?? CGRect(x: card.minX + 32, y: card.minY + 32, width: 56, height: 8), geometry: "roundRect", radius: 4, fill: color))
+                if let text = placedText("col.\(i).title", column.title, size: 38, font: style.titleFont, bold: true, room: card.width - 64,
+                                         fallback: CGRect(x: card.minX + 32, y: card.minY + 60, width: card.width - 64, height: 100)) {
+                    ids.append(text)
+                }
+                if let list = bulletBox("col.\(i)", items: column.bullets, size: column.bullets.count > 4 ? 26 : 30, dots: [color], right: card.maxX - 32,
+                                        fallback: CGRect(x: card.minX + 32, y: card.minY + 170, width: card.width - 64, height: card.height - 200)) {
+                    ids.append(list)
+                }
+                step(ids.map { .shape($0) })
             }
         case .imageText:
-            if let image = slide.image, let data = MapStore.shared.imageData(image.id) {
-                picture(rel: addMedia(data, ext: "jpeg"), x: pad, y: 80, w: 520, h: 560)
+            let frame = probe["image"] ?? CGRect(x: pad, y: 80, width: 520, height: 560)
+            if let image = slide.image, photo(image.id, frame: frame, radius: 36) != nil {
+                // The picture is in.
             } else {
-                rect(x: pad, y: 80, w: 520, h: 560, fill: hex(style.accent.opacity(0.3)), geometry: "roundRect")
+                // Room for a picture, as the slide shows it.
+                let placeholder = ZStack {
+                    LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        .opacity(0.3)
+                    Image(systemName: "sparkles").font(style.body(80, .light)).foregroundColor(style.text.opacity(0.6))
+                }
+                // Corners cut into the picture itself: not every viewer rounds a picture's outline.
+                if let rel = rendered(placeholder.clipShape(RoundedRectangle(cornerRadius: 36)), size: frame.size) { picture(rel: rel, frame: frame, radius: 36) }
             }
-            let box = textBox(x: 660, y: 120, w: 540, h: 480, paragraphs: [paragraph(titleRun(slide.title, size: 52), spaceAfter: 18)] + bulletParagraphs(slide.bullets, 28), anchor: "ctr")
-            for i in slide.bullets.indices { step([.paragraph(box, i + 1)]) }
+            let right = width - pad
+            placedText("title", slide.title, size: 52, font: style.titleFont, bold: true, tracking: -1, room: probe["title"].map { right - $0.minX },
+                       fallback: CGRect(x: 660, y: 120, width: 540, height: 140))
+            if let box = bulletBox("b", items: slide.bullets, size: 28, dots: palette, right: right, fallback: CGRect(x: 660, y: 280, width: 540, height: 320)) {
+                for i in slide.bullets.indices { step([.paragraph(box, i)]) }
+            }
         case .bigNumber:
-            if !slide.title.isEmpty {
-                textBox(x: pad, y: 130, w: width - pad * 2, h: 70, paragraphs: [paragraph(run(slide.title, size: 34, color: secondaryHex, bold: true), align: "ctr")])
-            }
-            textBox(x: pad, y: 200, w: width - pad * 2, h: 260, paragraphs: [paragraph(titleRun(slide.stat?.value ?? "", size: 230, color: accentHex), align: "ctr")], anchor: "ctr")
-            textBox(x: 190, y: 470, w: 900, h: 130, paragraphs: [paragraph(run(slide.stat?.label ?? "", size: 36, color: textHex), align: "ctr")])
+            placedText("title", slide.title, size: 34, bold: true, color: secondaryHex, align: "ctr", room: full, fallback: CGRect(x: pad, y: 130, width: full, height: 70))
+            placedText("stat", slide.stat?.value ?? "", size: 230, font: style.titleFont, bold: true, color: accentHex, align: "ctr", tracking: -6, room: full,
+                       gradient: [accentHex, second], gradientAngle: 0, fallback: CGRect(x: pad, y: 200, width: full, height: 260))
+            placedText("label", slide.stat?.label ?? "", size: 36, align: "ctr", room: 900, fallback: CGRect(x: 190, y: 470, width: 900, height: 130))
         case .quote:
-            textBox(x: pad + 20, y: 90, w: 300, h: 200, paragraphs: [paragraph(titleRun("“", size: 260, color: accentHex))])
-            textBox(x: pad + 20, y: 260, w: 1060, h: 280, paragraphs: [paragraph(run(slide.quote?.text ?? slide.title, size: 54, color: textHex, bold: true, italic: true))])
+            // The mark is set taller than its frame on the slide, so it isn't shrunk to fit.
+            let mark = probe["mark"] ?? CGRect(x: pad + 20, y: 90, width: 200, height: 170)
+            placedText("mark", "“", size: 260, font: style.titleFont, bold: true, color: accentHex, fit: false, fallback: mark)
+            placedText("quote", slide.quote?.text ?? slide.title, size: 54, bold: true, italic: true, tracking: -0.8, room: 1060, fallback: CGRect(x: pad + 20, y: 260, width: 1060, height: 280))
             if let author = slide.quote?.author, !author.isEmpty {
-                textBox(x: pad + 20, y: 560, w: 1000, h: 60, paragraphs: [paragraph(run("— \(author)", size: 30, color: secondaryHex))])
+                placedText("author", "— \(author)", size: 30, color: secondaryHex, room: 1060, fallback: CGRect(x: pad + 20, y: 560, width: 1000, height: 60))
             }
         case .timeline:
-            title(52, 76, 120)
+            title(52, top: 76, height: 120)
             let items = Array(slide.items.prefix(6))
-            rect(x: pad, y: 330, w: width - pad * 2, h: 6, fill: accentHex)
+            let line = probe["line"] ?? CGRect(x: pad, y: 330, width: full, height: 6)
+            shape(line, geometry: "roundRect", radius: 3, gradient: Array(palette.prefix(max(items.count, 2))))
             let gap: CGFloat = 24
-            let w = (width - pad * 2 - gap * CGFloat(max(items.count - 1, 0))) / CGFloat(max(items.count, 1))
+            let w = (full - gap * CGFloat(max(items.count - 1, 0))) / CGFloat(max(items.count, 1))
             for (i, item) in items.enumerated() {
                 let x = pad + CGFloat(i) * (w + gap)
-                let dot = rect(x: x, y: 315, w: 36, h: 36, fill: paletteHex(i), geometry: "ellipse")
-                var paragraphs = [paragraph(titleRun(item.title, size: items.count > 4 ? 28 : 34), spaceAfter: 8)]
-                if !item.detail.isEmpty { paragraphs.append(paragraph(run(item.detail, size: items.count > 4 ? 22 : 26, color: secondaryHex))) }
-                let text = textBox(x: x, y: 370, w: w, h: 250, paragraphs: paragraphs)
-                step([.shape(dot), .shape(text)])
+                var ids = [shape(probe["t.\(i).dot"] ?? CGRect(x: x, y: line.midY - 18, width: 36, height: 36), geometry: "ellipse", fill: paletteHex(i),
+                                 line: hex(style.background.first), lineWidth: 6)]
+                let titleFrame = probe["t.\(i).title"] ?? CGRect(x: x, y: line.maxY + 40, width: w, height: 90)
+                if let text = placedText("t.\(i).title", item.title, size: items.count > 4 ? 28 : 34, font: style.titleFont, bold: true, room: w, fallback: titleFrame) {
+                    ids.append(text)
+                }
+                if let detail = placedText("t.\(i).detail", item.detail, size: items.count > 4 ? 22 : 26, color: secondaryHex, room: w,
+                                           fallback: CGRect(x: x, y: titleFrame.maxY + 16, width: w, height: 160)) {
+                    ids.append(detail)
+                }
+                step(ids.map { .shape($0) })
             }
         case .table:
-            title(52, 70, 120)
-            table(rows: Array(slide.table.prefix(6)), x: pad, y: 210, w: width - pad * 2)
+            title(52, top: 70, height: 120)
+            let rows = Array(slide.table.prefix(6))
+            let rowHeight: CGFloat = rows.count > 5 ? 64 : 76
+            let frame = probe["table"] ?? CGRect(x: pad, y: 210, width: full, height: rowHeight * CGFloat(rows.count))
+            let heights = rows.indices.map { probe["row.\($0)"]?.height ?? rowHeight }
+            table(rows: rows, frame: frame, heights: heights, size: rows.count > 5 ? 24 : 28, padding: 26)
         case .diagram:
-            title(48, 60, 100)
+            title(48, top: 60, height: 100)
             let nodes = Array((slide.diagram?.nodes ?? []).prefix(6))
-            let center = CGPoint(x: 640, y: 420)
-            let positions: [CGPoint] = nodes.indices.map { i in
+            let center = probe["center"] ?? CGRect(x: 640 - 115, y: 420 - 115, width: 230, height: 230)
+            let middle = CGPoint(x: center.midX, y: center.midY)
+            let frames: [CGRect] = nodes.indices.map { i in
+                if let frame = probe["node.\(i)"] { return frame }
                 let angle = -Double.pi / 2 + Double(i) * 2 * Double.pi / Double(max(nodes.count, 1))
-                return CGPoint(x: center.x + CGFloat(cos(angle)) * 420, y: center.y + CGFloat(sin(angle)) * 210)
+                return CGRect(x: 640 + CGFloat(cos(angle)) * 420 - 150, y: 420 + CGFloat(sin(angle)) * 210 - 36, width: 300, height: 72)
             }
-            let lines = positions.map { line(from: center, to: $0, color: hex(style.line)) }
-            textBox(x: center.x - 115, y: center.y - 115, w: 230, h: 230, paragraphs: [paragraph(run(slide.diagram?.center ?? slide.title, size: 30, color: hex(style.onAccent), bold: true, font: style.titleFont), align: "ctr")], anchor: "ctr", fill: accentHex, geometry: "ellipse")
+            let lines = frames.map { line(from: middle, to: CGPoint(x: $0.midX, y: $0.midY), color: hex(style.line)) }
+            let label = slide.diagram?.center ?? slide.title
+            let labelSize = fitted(label, font: style.titleFont, size: 30, bold: true, in: center.insetBy(dx: 26, dy: 26).size)
+            let labelLines = brokenRuns(label, width: center.width - 52, size: labelSize, color: hex(style.onAccent), bold: true, font: style.titleFont)
+            textBox(x: center.minX, y: center.minY, w: center.width, h: center.height,
+                    paragraphs: [paragraph(labelLines.runs, align: "ctr", lineHeight: lineHeight(style.titleFont, labelSize, bold: true))],
+                    anchor: "ctr", gradient: [accentHex, second], gradientAngle: 45, geometry: "ellipse", wrap: false)
             for (i, node) in nodes.enumerated() {
-                let p = positions[i]
-                let box = textBox(x: p.x - 150, y: p.y - 36, w: 300, h: 72, paragraphs: [paragraph(run(node, size: 25, color: textHex, bold: true), align: "ctr")], anchor: "ctr", fill: style.isLight ? "FFFFFF" : "1D1A20", geometry: "roundRect", line: paletteHex(i))
+                let frame = frames[i]
+                let size = fitted(node, font: style.bodyFont, size: 25, bold: true, in: CGSize(width: frame.width - 48, height: frame.height - 22))
+                let label = brokenRuns(node, width: frame.width - 48, size: size, color: textHex, bold: true)
+                let box = textBox(x: frame.minX, y: frame.minY, w: frame.width, h: frame.height, paragraphs: [paragraph(label.runs, align: "ctr", lineHeight: lineHeight(style.bodyFont, size, bold: true))], anchor: "ctr",
+                                  fill: style.isLight ? "FFFFFF" : "1D1A20", geometry: "roundRect", radius: frame.height / 2, line: paletteHex(i), lineWidth: 3, wrap: false)
                 step([.shape(lines[i]), .shape(box)])
             }
         case .closing:
-            textBox(x: 120, y: 200, w: 1040, h: 200, paragraphs: [paragraph(titleRun(slide.title, size: 84), align: "ctr")], anchor: "b")
-            rect(x: 570, y: 420, w: 140, h: 10, fill: accentHex, geometry: "roundRect")
-            if !slide.subtitle.isEmpty {
-                textBox(x: 120, y: 450, w: 1040, h: 120, paragraphs: [paragraph(run(slide.subtitle, size: 34, color: secondaryHex), align: "ctr")])
-            }
+            placedText("title", slide.title, size: 84, font: style.titleFont, bold: true, align: "ctr", tracking: -2, room: 1040, fallback: CGRect(x: 120, y: 200, width: 1040, height: 200))
+            shape(probe["bar"] ?? CGRect(x: 570, y: 420, width: 140, height: 10), geometry: "roundRect", radius: 5, gradient: [accentHex, second])
+            placedText("subtitle", slide.subtitle, size: 34, color: secondaryHex, align: "ctr", room: 1040, fallback: CGRect(x: 120, y: 450, width: 1040, height: 120))
         }
     }
 
@@ -458,9 +689,10 @@ private final class SlideWriter {
         let brand = deck.brand
         if slide.layout != .cover && slide.layout != .closing && deck.slides.count > 1 {
             let footer = brand.map { $0.footer.isEmpty ? deck.title : $0.footer } ?? deck.title
-            textBox(x: pad, y: 656, w: 600, h: 30, paragraphs: [paragraph(run(footer, size: 18, color: secondaryHex))])
+            let color = hex(style.secondary.opacity(0.8))
+            placedText("footer", footer, size: 18, color: color, room: 800, fallback: CGRect(x: pad, y: 656, width: 800, height: 30))
             if brand?.showNumbers != false {
-                textBox(x: 900, y: 656, w: 300, h: 30, paragraphs: [paragraph(run("\(index + 1) / \(deck.slides.count)", size: 18, color: secondaryHex), align: "r")])
+                placedText("page", "\(index + 1) / \(deck.slides.count)", size: 18, color: color, align: "r", room: 200, fallback: CGRect(x: width - pad - 200, y: 656, width: 200, height: 30))
             }
         }
         guard let brand, let logo = brand.logo, slide.layout != .cover || brand.onCover,
@@ -471,7 +703,7 @@ private final class SlideWriter {
         let top = brand.corner == .topLeft || brand.corner == .topRight
         let x = left ? 48 : 1280 - 48 - width
         let y = top ? 40 : 720 - 70 - height
-        picture(rel: addMedia(data, ext: "png"), x: x, y: y, w: width, h: height, rounded: false)
+        picture(rel: addMedia(data, ext: "png"), frame: CGRect(x: x, y: y, width: width, height: height))
     }
 
     // MARK: Free elements
@@ -485,13 +717,15 @@ private final class SlideWriter {
 
     private func write(_ el: SlideElement) -> [Int]? {
         let x = CGFloat(el.x), y = CGFloat(el.y), w = CGFloat(el.w), h = CGFloat(el.h)
+        let frame = CGRect(x: x, y: y, width: w, height: h)
         let align = el.align == .center ? "ctr" : el.align == .trailing ? "r" : "l"
         let font = el.titleFont ? style.titleFont : style.bodyFont
         switch el.kind {
         case .text:
             let color = el.color.map { hex(Color(hex: $0)) } ?? textHex
+            let size = fitted(el.text, font: font, size: CGFloat(el.fontSize), bold: el.bold, italic: el.italic, in: frame.size)
             let paragraphs = el.text.components(separatedBy: "\n").map {
-                paragraph(run($0, size: CGFloat(el.fontSize), color: color, bold: el.bold, italic: el.italic, font: font, alpha: el.opacity), align: align)
+                paragraph(run($0, size: size, color: color, bold: el.bold, italic: el.italic, font: font, alpha: el.opacity), align: align)
             }
             return [textBox(x: x, y: y, w: w, h: h, paragraphs: paragraphs, anchor: "ctr", rotation: el.rotation)]
         case .shape:
@@ -513,31 +747,39 @@ private final class SlideWriter {
             case .line: geometry = "line"
             }
             let textColor = el.color.map { hex(Color(hex: $0)) } ?? (el.fill == nil ? hex(style.onAccent) : textHex)
-            let paragraphs = el.text.isEmpty ? [] : el.text.components(separatedBy: "\n").map {
-                paragraph(run($0, size: CGFloat(el.fontSize), color: textColor, bold: el.bold, italic: el.italic, font: font), align: align)
+            let size = fitted(el.text, font: font, size: CGFloat(el.fontSize), bold: el.bold, italic: el.italic, in: CGSize(width: w - 48, height: h))
+            var block: CGFloat = 0
+            let paragraphs = el.text.isEmpty ? [] : el.text.components(separatedBy: "\n").map { line -> String in
+                let broken = brokenRuns(line, width: w - 48, size: size, color: textColor, bold: el.bold, italic: el.italic, font: font)
+                block = max(block, broken.width)
+                return paragraph(broken.runs, align: align, lineHeight: lineHeight(font, size, bold: el.bold))
             }
+            // On the slide the text is a block in the middle of the shape, its lines aligned inside it.
+            let side = align == "ctr" ? 24 : max(24, (w - block) / 2)
             return [textBox(x: x, y: y, w: w, h: h, paragraphs: paragraphs, anchor: "ctr", fill: fill, fillAlpha: el.fillOpacity * el.opacity, geometry: geometry,
-                            line: el.strokeWidth > 0 ? (el.stroke.map { hex(Color(hex: $0)) } ?? textHex) : nil, lineWidth: CGFloat(el.strokeWidth), rotation: el.rotation)]
+                            radius: min(w, h) * 0.18, line: el.strokeWidth > 0 ? (el.stroke.map { hex(Color(hex: $0)) } ?? textHex) : nil,
+                            lineWidth: CGFloat(el.strokeWidth), rotation: el.rotation, inset: CGSize(width: side, height: 0), wrap: false)]
         case .icon:
             let color = el.fill.map { Color(hex: $0) } ?? style.accent
             let view = Image(systemName: el.symbol).resizable().scaledToFit().foregroundColor(color.opacity(el.fillOpacity))
-            guard let rel = rendered(view, size: CGSize(width: w, height: h)) else { return nil }
-            return [picture(rel: rel, x: x, y: y, w: w, h: h, rounded: false, rotation: el.rotation, alpha: el.opacity)]
+            guard let rel = rendered(view, size: frame.size) else { return nil }
+            return [picture(rel: rel, frame: frame, rotation: el.rotation, alpha: el.opacity)]
         case .image:
-            guard let id = el.image, let data = MapStore.shared.imageData(id) else { return nil }
-            return [picture(rel: addMedia(data, ext: "jpeg"), x: x, y: y, w: w, h: h, rotation: el.rotation, alpha: el.opacity)]
+            guard let id = el.image, let picture = photo(id, frame: frame, radius: 24, rotation: el.rotation, alpha: el.opacity) else { return nil }
+            return [picture]
         case .table:
             guard !el.rows.isEmpty else { return nil }
-            return [table(rows: el.rows, x: x, y: y, w: w, rowHeight: h / CGFloat(el.rows.count), size: min(CGFloat(el.fontSize), 30))]
+            let heights = Array(repeating: h / CGFloat(el.rows.count), count: el.rows.count)
+            return [table(rows: el.rows, frame: frame, heights: heights, size: min(CGFloat(el.fontSize), 30), padding: 18, firstColumnBold: false)]
         case .chart:
             let view = ChartView(spec: el.chart ?? ChartSpec(), style: style)
-            guard let rel = rendered(view, size: CGSize(width: w, height: h)) else { return nil }
-            return [picture(rel: rel, x: x, y: y, w: w, h: h, rounded: false, rotation: el.rotation, alpha: el.opacity)]
+            guard let rel = rendered(view, size: frame.size) else { return nil }
+            return [picture(rel: rel, frame: frame, rotation: el.rotation, alpha: el.opacity)]
         case .qr:
             guard let image = QRImage.image(el.link, scale: 16), let data = image.pngData() else { return nil }
             let inset = w * 0.06
-            let card = rect(x: x, y: y, w: w, h: h, fill: "FFFFFF", geometry: "roundRect", rotation: el.rotation)
-            let code = picture(rel: addMedia(data, ext: "png"), x: x + inset, y: y + inset, w: w - inset * 2, h: h - inset * 2, rounded: false, rotation: el.rotation)
+            let card = shape(frame, geometry: "roundRect", radius: 16, fill: "FFFFFF", rotation: el.rotation)
+            let code = picture(rel: addMedia(data, ext: "png"), frame: frame.insetBy(dx: inset, dy: inset), rotation: el.rotation)
             return [card, code]
         }
     }

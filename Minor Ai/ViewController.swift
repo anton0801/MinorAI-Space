@@ -197,7 +197,8 @@ struct ContentView: View {
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Your Maps and Chats")
-            .position(x: UIScreen.main.bounds.width / 2 - 160, y: 40)
+            // At the left edge as on a 393-pt iPhone, not drifting inward on wider screens.
+            .position(x: min(UIScreen.main.bounds.width / 2 - 160, 36.5), y: 40)
             .offset(y: minorPlusOffsetY)
             .offset(y: isMindActive ? -40 : 0)
             .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
@@ -310,6 +311,10 @@ struct ContentView: View {
                         }
                         .offset(x: 30, y: 2)
                     }
+                    // The paddings above were set on a 393-pt iPhone, where the content is 28 pt
+                    // wider than the card; pinning it to that keeps it inside the card on Plus,
+                    // Pro Max and SE screens too.
+                    .frame(width: chatWidth + 28)
                 }
                 .overlay(alignment: .top) {
                     homeAccessory

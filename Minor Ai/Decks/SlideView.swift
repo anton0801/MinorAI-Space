@@ -18,6 +18,7 @@ struct SlideView: View {
     var brand: DeckBrand? = nil
     var reveal: Int? = nil          // presenting: how many build steps are shown (nil: all)
     var showElements = true         // the element editor draws them itself
+    var probe: SlideLayoutProbe? = nil  // PowerPoint export: where each part lands
 
     static let size = CGSize(width: 1280, height: 720)
     private let pad: CGFloat = 80
@@ -45,6 +46,7 @@ struct SlideView: View {
         }
         .frame(width: Self.size.width, height: Self.size.height)
         .clipped()
+        .coordinateSpace(name: SlideLayoutProbe.space)
         .foregroundColor(style.text)
         .environment(\.colorScheme, style.isLight ? .light : .dark)
         // A slide is a fixed 1280×720 picture: its text mustn't grow with the phone's text size
@@ -70,25 +72,7 @@ struct SlideView: View {
 
     private func unit(_ i: Int) -> Reveal { Reveal(effect: slide.buildBullets, shown: shown(i)) }
 
-    @ViewBuilder
-    private var fill: some View {
-        let bg = style.background
-        switch bg.kind {
-        case .solid:
-            bg.first
-        case .gradient:
-            LinearGradient(colors: [bg.first, bg.last], startPoint: bg.points.0, endPoint: bg.points.1)
-        case .image:
-            if let id = bg.image {
-                NodePicture(id: id)
-                    .frame(width: Self.size.width, height: Self.size.height)
-                    .clipped()
-                    .overlay(Color.black.opacity(bg.dim))
-            } else {
-                LinearGradient(colors: [bg.first, bg.last], startPoint: bg.points.0, endPoint: bg.points.1)
-            }
-        }
-    }
+    private var background: some View { SlideBackdrop(slide: slide, style: style) }
 
     private func logoView(_ id: UUID) -> some View {
         let size = CGFloat(brand?.size ?? 64)
@@ -105,35 +89,16 @@ struct SlideView: View {
         .frame(width: Self.size.width, height: Self.size.height, alignment: alignment)
     }
 
-    private var background: some View {
-        ZStack {
-            fill
-            // Soft light in the corners; stronger on title slides.
-            let strong = slide.layout == .cover || slide.layout == .closing || slide.layout == .section
-            if style.glow && style.background.kind != .image {
-            Circle()
-                .fill(style.accent.opacity(style.isLight ? 0.10 : (strong ? 0.22 : 0.10)))
-                .frame(width: 760, height: 760)
-                .blur(radius: 140)
-                .offset(x: 520, y: -300)
-            Circle()
-                .fill((style.palette.dropFirst().first ?? style.accent).opacity(style.isLight ? 0.08 : (strong ? 0.18 : 0.07)))
-                .frame(width: 640, height: 640)
-                .blur(radius: 140)
-                .offset(x: -520, y: 340)
-            }
-        }
-        .frame(width: Self.size.width, height: Self.size.height)
-    }
-
     private var footer: some View {
         HStack {
             Text(brand.map { $0.footer.isEmpty ? deckTitle : $0.footer } ?? deckTitle)
                 .lineLimit(1)
+                .probed("footer", probe)
             Spacer()
             if brand?.showNumbers != false {
                 Text("\(index + 1) / \(total)")
                     .monospacedDigit()
+                    .probed("page", probe)
             }
         }
         .font(style.body(18, .medium))
@@ -150,9 +115,11 @@ struct SlideView: View {
             .lineLimit(2)
             .minimumScaleFactor(0.6)
             .fixedSize(horizontal: false, vertical: true)
+            .probed("title", probe)
     }
 
-    private func bulletList(_ items: [String], size: CGFloat = 32, spacing: CGFloat = 22, dot: Color? = nil, builds: Bool = true) -> some View {
+    // `key` names the list for the PowerPoint export ("b.text.0", "col.1.text.2"…).
+    private func bulletList(_ items: [String], size: CGFloat = 32, spacing: CGFloat = 22, dot: Color? = nil, builds: Bool = true, key: String = "b") -> some View {
         VStack(alignment: .leading, spacing: spacing) {
             ForEach(Array(items.enumerated()), id: \.offset) { i, item in
                 HStack(alignment: .firstTextBaseline, spacing: 22) {
@@ -165,6 +132,7 @@ struct SlideView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
                         .fixedSize(horizontal: false, vertical: true)
+                        .probed("\(key).text.\(i)", probe)
                 }
                 .modifier(builds ? unit(i) : Reveal(effect: .none, shown: true))
             }
@@ -193,17 +161,20 @@ struct SlideView: View {
     private var cover: some View {
         VStack(alignment: .leading, spacing: 28) {
             Capsule().fill(style.accent).frame(width: 96, height: 10)
+                .probed("bar", probe)
             Text(slide.title)
                 .font(style.title(92, .heavy))
                 .tracking(-2.5)
                 .lineLimit(3)
                 .minimumScaleFactor(0.5)
+                .probed("title", probe)
             if !slide.subtitle.isEmpty {
                 Text(slide.subtitle)
                     .font(style.body(34, .medium))
                     .foregroundColor(style.secondary)
                     .lineLimit(3)
                     .minimumScaleFactor(0.7)
+                    .probed("subtitle", probe)
             }
         }
         .frame(maxWidth: 1000, alignment: .leading)
@@ -216,18 +187,21 @@ struct SlideView: View {
             Text(String(format: "%02d", sectionNumber))
                 .font(style.title(200, .heavy).monospacedDigit())
                 .foregroundStyle(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .top, endPoint: .bottom))
+                .probed("number", probe)
             VStack(alignment: .leading, spacing: 18) {
                 Text(slide.title)
                     .font(style.title(72, .bold))
                     .tracking(-1.5)
                     .lineLimit(3)
                     .minimumScaleFactor(0.55)
+                    .probed("title", probe)
                 if !slide.subtitle.isEmpty {
                     Text(slide.subtitle)
                         .font(style.body(30))
                         .foregroundColor(style.secondary)
                         .lineLimit(3)
                         .minimumScaleFactor(0.7)
+                        .probed("subtitle", probe)
                 }
             }
         }
@@ -239,7 +213,7 @@ struct SlideView: View {
         VStack(alignment: .leading, spacing: 44) {
             titleText(slide.title)
             if !slide.subtitle.isEmpty {
-                Text(slide.subtitle).font(style.body(26)).foregroundColor(style.secondary).lineLimit(2).padding(.top, -26)
+                Text(slide.subtitle).font(style.body(26)).foregroundColor(style.secondary).lineLimit(2).probed("subtitle", probe).padding(.top, -26)
             }
             bulletList(slide.bullets, size: slide.bullets.count > 4 ? 32 : 40, spacing: slide.bullets.count > 4 ? 22 : 34)
             Spacer(minLength: 0)
@@ -257,15 +231,18 @@ struct SlideView: View {
                     let color = style.palette[i % style.palette.count]
                     VStack(alignment: .leading, spacing: 20) {
                         Capsule().fill(color).frame(width: 56, height: 8)
+                            .probed("col.\(i).bar", probe)
                         Text(column.title)
                             .font(style.title(38, .bold))
                             .lineLimit(2)
                             .minimumScaleFactor(0.7)
-                        bulletList(column.bullets, size: column.bullets.count > 4 ? 26 : 30, spacing: 18, dot: color, builds: false)
+                            .probed("col.\(i).title", probe)
+                        bulletList(column.bullets, size: column.bullets.count > 4 ? 26 : 30, spacing: 18, dot: color, builds: false, key: "col.\(i)")
                         Spacer(minLength: 0)
                     }
                     .padding(32)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .probed("col.\(i)", probe)
                     .background(RoundedRectangle(cornerRadius: 30).fill(style.card))
                     .overlay(RoundedRectangle(cornerRadius: 30).stroke(style.line, lineWidth: 1.5))
                     .modifier(unit(i))
@@ -285,7 +262,9 @@ struct SlideView: View {
                 } else {
                     // Room for a picture: the AI can draw one from the slide's description.
                     ZStack {
-                        LinearGradient(colors: [style.accent.opacity(0.35), (style.palette.dropFirst().first ?? style.accent).opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        // Transparent as a whole, not in the colors: PDF drops a gradient's own transparency.
+                        LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            .opacity(0.3)
                         Image(systemName: "sparkles")
                             .font(style.body(80, .light))
                             .foregroundColor(style.text.opacity(0.6))
@@ -294,6 +273,7 @@ struct SlideView: View {
             }
             .frame(width: 520, height: 560)
             .clipShape(RoundedRectangle(cornerRadius: 36))
+            .probed("image", probe)
             VStack(alignment: .leading, spacing: 36) {
                 titleText(slide.title, size: 52)
                 bulletList(slide.bullets, size: 28, spacing: 18)
@@ -312,6 +292,7 @@ struct SlideView: View {
                     .foregroundColor(style.secondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
+                    .probed("title", probe)
             }
             Text(slide.stat?.value ?? "")
                 .font(style.title(230, .heavy))
@@ -319,11 +300,13 @@ struct SlideView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
                 .foregroundStyle(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .leading, endPoint: .trailing))
+                .probed("stat", probe)
             Text(slide.stat?.label ?? "")
                 .font(style.body(36, .medium))
                 .lineLimit(3)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.7)
+                .probed("label", probe)
                 .frame(maxWidth: 900)
         }
         .padding(.horizontal, pad)
@@ -336,15 +319,18 @@ struct SlideView: View {
                 .font(style.title(260, .heavy))
                 .foregroundColor(style.accent)
                 .frame(height: 170, alignment: .top)
+                .probed("mark", probe)
             Text(slide.quote?.text ?? slide.title)
                 .font(style.body(54, .semibold).italic())
                 .tracking(-0.8)
                 .lineLimit(5)
                 .minimumScaleFactor(0.55)
+                .probed("quote", probe)
             if let author = slide.quote?.author, !author.isEmpty {
                 Text("— \(author)")
                     .font(style.body(30, .medium))
                     .foregroundColor(style.secondary)
+                    .probed("author", probe)
                     .padding(.top, 18)
             }
         }
@@ -362,6 +348,7 @@ struct SlideView: View {
                 Capsule()
                     .fill(LinearGradient(colors: style.palette.prefix(max(items.count, 2)).map { $0 }, startPoint: .leading, endPoint: .trailing))
                     .frame(height: 6)
+                    .probed("line", probe)
                     .padding(.top, 15)
                 HStack(alignment: .top, spacing: 24) {
                     ForEach(Array(items.enumerated()), id: \.offset) { i, item in
@@ -370,16 +357,19 @@ struct SlideView: View {
                                 .fill(style.palette[i % style.palette.count])
                                 .frame(width: 36, height: 36)
                                 .overlay(Circle().stroke(style.background.first, lineWidth: 6))
+                                .probed("t.\(i).dot", probe)
                             Text(item.title)
                                 .font(style.title(items.count > 4 ? 28 : 34, .bold))
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.7)
+                                .probed("t.\(i).title", probe)
                             if !item.detail.isEmpty {
                                 Text(item.detail)
                                     .font(style.body(items.count > 4 ? 22 : 26))
                                     .foregroundColor(style.secondary)
                                     .lineLimit(5)
                                     .minimumScaleFactor(0.75)
+                                    .probed("t.\(i).detail", probe)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -416,9 +406,11 @@ struct SlideView: View {
                     .overlay(alignment: .bottom) {
                         if r < rows.count - 1 { Rectangle().fill(style.line).frame(height: 1) }
                     }
+                    .probed("row.\(r)", probe)
                     .modifier(r == 0 ? Reveal(effect: .none, shown: true) : unit(r - 1))
                 }
             }
+            .probed("table", probe)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(style.line, lineWidth: 1.5))
             Spacer(minLength: 0)
@@ -458,6 +450,7 @@ struct SlideView: View {
                         .minimumScaleFactor(0.6)
                         .padding(26)
                 )
+                .probed("center", probe)
                 .position(center)
             ForEach(Array(nodes.enumerated()), id: \.offset) { i, node in
                 let color = style.palette[i % style.palette.count]
@@ -471,6 +464,7 @@ struct SlideView: View {
                     .frame(maxWidth: 300)
                     .background(Capsule().fill(style.isLight ? Color.white : Color(hex: "#1D1A20")))
                     .overlay(Capsule().stroke(color, lineWidth: 3))
+                    .probed("node.\(i)", probe)
                     .modifier(unit(i))
                     .position(positions[i])
             }
@@ -486,9 +480,11 @@ struct SlideView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
                 .minimumScaleFactor(0.5)
+                .probed("title", probe)
             Capsule()
                 .fill(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .leading, endPoint: .trailing))
                 .frame(width: 140, height: 10)
+                .probed("bar", probe)
             if !slide.subtitle.isEmpty {
                 Text(slide.subtitle)
                     .font(style.body(34, .medium))
@@ -496,11 +492,87 @@ struct SlideView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .minimumScaleFactor(0.7)
+                    .probed("subtitle", probe)
             }
         }
         .frame(maxWidth: 1040)
         .padding(.horizontal, pad)
         .frame(width: Self.size.width, height: Self.size.height)
+    }
+}
+
+// The slide's background: its fill and the soft light in the corners. Also the background
+// picture of a PowerPoint slide, so it looks the same there.
+struct SlideBackdrop: View {
+    let slide: Slide
+    let style: SlideStyle
+
+    var body: some View {
+        ZStack {
+            fill
+            // Soft light in the corners; stronger on title slides.
+            let strong = slide.layout == .cover || slide.layout == .closing || slide.layout == .section
+            if style.glow && style.background.kind != .image {
+                Circle()
+                    .fill(style.accent.opacity(style.isLight ? 0.10 : (strong ? 0.22 : 0.10)))
+                    .frame(width: 760, height: 760)
+                    .blur(radius: 140)
+                    .offset(x: 520, y: -300)
+                Circle()
+                    .fill((style.palette.dropFirst().first ?? style.accent).opacity(style.isLight ? 0.08 : (strong ? 0.18 : 0.07)))
+                    .frame(width: 640, height: 640)
+                    .blur(radius: 140)
+                    .offset(x: -520, y: 340)
+            }
+        }
+        .frame(width: SlideView.size.width, height: SlideView.size.height)
+    }
+
+    @ViewBuilder
+    private var fill: some View {
+        let bg = style.background
+        switch bg.kind {
+        case .solid:
+            bg.first
+        case .gradient:
+            LinearGradient(colors: [bg.first, bg.last], startPoint: bg.points.0, endPoint: bg.points.1)
+        case .image:
+            if let id = bg.image {
+                NodePicture(id: id)
+                    .frame(width: SlideView.size.width, height: SlideView.size.height)
+                    .clipped()
+                    .overlay(Color.black.opacity(bg.dim))
+            } else {
+                LinearGradient(colors: [bg.first, bg.last], startPoint: bg.points.0, endPoint: bg.points.1)
+            }
+        }
+    }
+
+}
+
+// Where the parts of a slide land on its 1280×720 canvas, for the PowerPoint export: its
+// editable boxes go exactly where the slide draws them. Filled while a slide renders off screen.
+final class SlideLayoutProbe {
+    static let space = "slide"
+    private(set) var frames: [String: CGRect] = [:]
+
+    subscript(key: String) -> CGRect? { frames[key] }
+
+    func mark(_ key: String, _ frame: CGRect) -> some View {
+        frames[key] = frame
+        return Color.clear
+    }
+}
+
+extension View {
+    // Reports this view's frame to the probe (only while exporting).
+    @ViewBuilder
+    func probed(_ key: String, _ probe: SlideLayoutProbe?) -> some View {
+        if let probe {
+            background(GeometryReader { geo in probe.mark(key, geo.frame(in: .named(SlideLayoutProbe.space))) })
+        } else {
+            self
+        }
     }
 }
 

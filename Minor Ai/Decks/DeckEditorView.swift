@@ -39,6 +39,7 @@ struct DeckEditorView: View {
     @State private var confirmDelete = false
     @State private var confirmRebuild = false
     @State private var exportURL: URL?
+    @State private var exporting = false
     @State private var photoItem: PhotosPickerItem?
     @State private var showPhotos = false
     // Design.
@@ -913,12 +914,23 @@ struct DeckEditorView: View {
     }
 
     private func export(_ kind: ExportKind) {
-        guard let deck else { return }
-        do {
-            exportURL = kind == .pdf ? try DeckExport.pdf(deck) : try DeckExport.pptx(deck)
-        } catch {
-            banner = L("Couldn’t export. Try again.")
-            bannerIsLimit = false
+        guard let deck, !exporting else { return }
+        exporting = true
+        let note = L("Preparing the file…")
+        withAnimation { toast = note }
+        Task { @MainActor in
+            // Slides are drawn on the main thread and a long deck takes a moment: the note shows first.
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            defer {
+                exporting = false
+                if toast == note { withAnimation { toast = nil } }
+            }
+            do {
+                exportURL = kind == .pdf ? try DeckExport.pdf(deck) : try DeckExport.pptx(deck)
+            } catch {
+                banner = L("Couldn’t export. Try again.")
+                bannerIsLimit = false
+            }
         }
     }
 
