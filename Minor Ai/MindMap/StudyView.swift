@@ -50,6 +50,8 @@ struct StudyView: View {
     @State private var flipped = false
     @State private var known = 0
     @State private var again: [Flashcard] = []
+    @State private var practice = false      // studying cards that aren't due yet
+    @ObservedObject private var study = StudyStore.shared
 
     // Quiz
     @State private var questions: [MapService.QuizQuestion] = []
@@ -98,8 +100,27 @@ struct StudyView: View {
 
     @ViewBuilder
     private var cards: some View {
-        if deck.isEmpty {
+        if deck.isEmpty && Flashcards.make(from: map).isEmpty {
             placeholder("rectangle.on.rectangle.angled", L("No cards yet"), L("Cards are made from ideas that have ideas under them or a note. Expand the map first."))
+        } else if deck.isEmpty {
+            // Everything learned is scheduled for later.
+            VStack(spacing: 14) {
+                Spacer()
+                Text("✅").font(.system(size: 54))
+                Text("All caught up").font(.system(size: 22, weight: .bold))
+                if let next = study.nextReview(in: [map]) {
+                    Text(L("Next review: \(next.date.formatted(.relative(presentation: .named).locale(AppLanguage.current.locale)))"))
+                        .font(.system(size: 15))
+                        .foregroundColor(MinorColor.textSecondary)
+                }
+                Spacer()
+                wideButton(L("Practice Anyway"), primary: false) {
+                    practice = true
+                    restartCards()
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+            }
         } else if index >= deck.count {
             VStack(spacing: 16) {
                 Spacer()
@@ -139,11 +160,13 @@ struct StudyView: View {
                     .accessibilityAddTraits(.isButton)
                     .accessibilityHint(flipped ? "" : L("Shows the answer"))
                 if flipped {
-                    HStack(spacing: 10) {
-                        wideButton(L("Again"), primary: false) { answer(knew: false) }
-                        wideButton(L("Got It"), primary: true) { answer(knew: true) }
+                    HStack(spacing: 8) {
+                        gradeButton(.again, card: card)
+                        gradeButton(.hard, card: card)
+                        gradeButton(.good, card: card)
+                        gradeButton(.easy, card: card)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 12)
                     .transition(.opacity)
                 } else {
@@ -202,15 +225,51 @@ struct StudyView: View {
         withAnimation { flipped.toggle() }
     }
 
-    private func answer(knew: Bool) {
-        if knew { known += 1 } else { again.append(deck[index]) }
+    // How well you knew it decides when the card comes back.
+    private func gradeButton(_ grade: StudyStore.Grade, card: Flashcard) -> some View {
+        let next = StudyStore.next(study.state(card.id), grade)
+        let title: String
+        let color: Color
+        switch grade {
+        case .again: title = L("Again"); color = MinorColor.dangerText
+        case .hard: title = L("Hard"); color = Color(hex: "#FFD66B")
+        case .good: title = L("Good"); color = MinorColor.accent
+        case .easy: title = L("Easy"); color = Color(hex: "#7CC4FF")
+        }
+        return Button { answer(grade) } label: {
+            VStack(spacing: 3) {
+                Text(title).font(.system(size: 15, weight: .semibold))
+                Text(StudyStore.label(for: next)).font(.system(size: 11).monospacedDigit()).opacity(0.8)
+            }
+            .foregroundColor(color)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(RoundedRectangle(cornerRadius: 14).fill(color.opacity(0.12)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.5), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(StudyStore.label(for: next))")
+    }
+
+    private func answer(_ grade: StudyStore.Grade) {
+        let card = deck[index]
+        study.grade(card.id, grade)
+        if grade == .again { again.append(card) } else { known += 1 }
         Haptics.selection()
         flipped = false
         withAnimation(.minorMenu) { index += 1 }
     }
 
+    // Cards due for review first, then new ones (up to 20 a session); practice takes them all.
     private func restartCards() {
-        deck = Flashcards.make(from: map).shuffled()
+        let all = Flashcards.make(from: map)
+        if practice {
+            deck = all.shuffled()
+        } else {
+            let due = all.filter { study.isDue($0.id) }.shuffled()
+            let new = all.filter { study.state($0.id) == nil }.shuffled().prefix(20)
+            deck = due + new
+        }
         resetProgress()
     }
 

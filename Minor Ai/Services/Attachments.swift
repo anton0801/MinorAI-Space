@@ -5,6 +5,7 @@
 //  Photos and documents attached to chat messages or used as map sources.
 //
 
+import ImageIO
 import PDFKit
 import SwiftUI
 import UIKit
@@ -12,16 +13,32 @@ import UIKit
 enum Attachments {
     // Shrinks a photo to at most 1280 px on the long side and re-encodes it as JPEG.
     static func preparedImage(from data: Data) -> Data? {
-        guard let image = UIImage(data: data) else { return nil }
-        let longSide = max(image.size.width, image.size.height)
-        let scale = min(1, 1280 / max(longSide, 1))
-        let size = CGSize(width: floor(image.size.width * scale), height: floor(image.size.height * scale))
+        downsampled(data, maxPixels: 1280)?.jpegData(compressionQuality: 0.7)
+    }
+
+    // A smaller copy read straight from the file, upright, without decoding the full photo
+    // (a 48 MP photo would take about 190 MB in memory).
+    static func downsampled(_ data: Data, maxPixels: Int) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixels,
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: image)
+    }
+
+    // A page from the document camera, made smaller before the next one is read.
+    static func downsampled(_ image: UIImage, maxPixels: CGFloat) -> UIImage {
+        let longSide = max(image.size.width * image.scale, image.size.height * image.scale)
+        guard longSide > maxPixels else { return image }
+        let factor = maxPixels / longSide
+        let size = CGSize(width: floor(image.size.width * image.scale * factor), height: floor(image.size.height * image.scale * factor))
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let resized = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
-        }
-        return resized.jpegData(compressionQuality: 0.7)
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
     }
 
     struct Document {
@@ -35,6 +52,7 @@ enum Attachments {
         case noText
         case tooLong(pages: Int)
         case tooBig
+        case locked
     }
 
     // Text files larger than this are refused before reading (the server reads far less anyway).
@@ -58,6 +76,8 @@ enum Attachments {
             return L("This file has no text Minor can read (it may be a scan or an image).")
         case .tooBig?:
             return L("This file is too large. Try a shorter one.")
+        case .locked?:
+            return L("This PDF is protected with a password. Save a copy without the password and try again.")
         default:
             return L("Couldn’t read this file. Use a PDF, TXT or RTF file.")
         }
@@ -75,6 +95,7 @@ enum Attachments {
         switch url.pathExtension.lowercased() {
         case "pdf":
             guard let pdf = PDFDocument(url: url) else { throw DocumentError.unreadable }
+            if pdf.isLocked { throw DocumentError.locked }
             pages = pdf.pageCount
             if pages > maxPages { throw DocumentError.tooLong(pages: pages) }
             text = (0..<pages).compactMap { pdf.page(at: $0)?.string }.joined(separator: "\n")

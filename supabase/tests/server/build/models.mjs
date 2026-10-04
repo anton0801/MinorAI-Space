@@ -15,6 +15,14 @@ var MAP_TIERS = {
   pro: ["standard", "advanced", "frontier"]
 };
 var BUDGET_USD = { free: 0.25, plus: 5, pro: 10 };
+var BONUS_BUDGET_USD = 2;
+function areaOf(action) {
+  if (["map", "template", "expand", "edit", "summarize", "quiz"].includes(action)) return "maps";
+  if (["deck", "slide", "deckEdit", "deckStyle", "slideElements"].includes(action)) return "decks";
+  if (action === "chat") return "chat";
+  if (action === "image") return "images";
+  return null;
+}
 var CHAT_MAX_OUTPUT = { free: 1500, plus: 4096, pro: 8192 };
 var ModelLockedError = class extends Error {
 };
@@ -64,6 +72,11 @@ function resolveMapModel(plan, requested, keys, overrides = {}) {
 function costMicros(info, inputTokens, outputTokens) {
   return Math.ceil(inputTokens * info.input + outputTokens * info.output);
 }
+function textUnits(text) {
+  let units = 0;
+  for (let i = 0; i < text.length; i++) units += text.charCodeAt(i) < 128 ? 1 : 3;
+  return units;
+}
 function estimateMicros(info, chars, images, maxOutput) {
   const input = Math.ceil(chars / 3 * info.tokenizer) + images * 1600;
   return costMicros(info, input, Math.ceil(maxOutput * info.tokenizer));
@@ -75,9 +88,14 @@ var ACTION_TIER = {
 };
 var SOURCE_LIMITS = { free: 4e4, plus: 4e5, pro: 4e5 };
 var LIMITS = {
-  free: { maps: 3, expands: 30, chats: 50, images: 3 },
-  plus: { maps: 300, expands: 3e3, chats: 5e3, images: 60 },
-  pro: { maps: 600, expands: 6e3, chats: 8e3, images: 150 }
+  free: { maps: 3, expands: 30, chats: 50, images: 3, decks: 1 },
+  plus: { maps: 300, expands: 3e3, chats: 5e3, images: 60, decks: 20 },
+  pro: { maps: 600, expands: 6e3, chats: 8e3, images: 150, decks: 60 }
+};
+var DECK_SLIDES = {
+  free: { max: 8, default: 7 },
+  plus: { max: 20, default: 10 },
+  pro: { max: 30, default: 12 }
 };
 var IMAGE_MODEL = { id: "gpt-image-2", textInput: 5, imageInput: 8, output: 30 };
 function imageQuality(plan, requested) {
@@ -111,20 +129,27 @@ var CAPS = {
 };
 function clip(text, max) {
   const s = String(text ?? "");
-  return s.length > max ? s.slice(0, max - 1) + "\u2026" : s;
+  if (s.length <= max) return s;
+  let cut = max - 1;
+  const last = s.charCodeAt(cut - 1);
+  if (last >= 55296 && last <= 56319) cut -= 1;
+  return s.slice(0, cut) + "\u2026";
 }
 export {
   ACTION_TIER,
+  BONUS_BUDGET_USD,
   BUDGET_USD,
   CAPS,
   CATALOG,
   CHAT_MAX_OUTPUT,
+  DECK_SLIDES,
   FETCH_LIMITS,
   IMAGE_MODEL,
   LIMITS,
   MAP_TIERS,
   ModelLockedError,
   SOURCE_LIMITS,
+  areaOf,
   clip,
   costMicros,
   estimateImageMicros,
@@ -134,5 +159,6 @@ export {
   modelForTier,
   modelInfo,
   resolveChatModel,
-  resolveMapModel
+  resolveMapModel,
+  textUnits
 };

@@ -93,8 +93,10 @@ struct DueDateSheet: View {
         let now = Date()
         let evening = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: now) ?? now
         if now < evening { return evening }
-        let next = calendar.date(byAdding: .hour, value: 1, to: now) ?? now
-        return calendar.date(bySetting: .minute, value: 0, of: next) ?? next
+        // The start of the next hour (19:35 → 20:00). `date(bySetting:)` searches forward and
+        // gave 21:00, or 1:00 tomorrow late at night.
+        let hour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+        return calendar.date(byAdding: .hour, value: 1, to: hour) ?? now
     }
 
     private func quick(_ title: String, _ value: Date) -> some View {

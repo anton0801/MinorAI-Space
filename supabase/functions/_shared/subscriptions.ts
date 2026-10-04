@@ -23,6 +23,8 @@ export interface SubscriptionRow {
   last_signed_at: string;
   revoked_at?: string | null;
   last_notification_at?: string | null;
+  // When the subscription last moved to another account (null: before this was recorded).
+  owner_changed_at?: string | null;
 }
 
 export async function findSubscription(supabase: SupabaseClient, originalTransactionId: string): Promise<SubscriptionRow | null> {

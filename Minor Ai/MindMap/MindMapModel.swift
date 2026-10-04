@@ -258,6 +258,35 @@ enum CanvasBackground: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// A map shared for editing: this person's role and the server version this copy is based on.
+enum CollabRole: String, Codable {
+    case owner, editor, viewer
+}
+
+struct CollabInfo: Codable, Equatable {
+    var isOwner: Bool
+    var version: Int
+    var role: CollabRole
+
+    init(isOwner: Bool, version: Int, role: CollabRole? = nil) {
+        self.isOwner = isOwner
+        self.version = version
+        self.role = role ?? (isOwner ? .owner : .editor)
+    }
+
+    private enum CodingKeys: String, CodingKey { case isOwner, version, role }
+
+    // Maps shared before roles existed were editable by everyone.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        isOwner = try c.decode(Bool.self, forKey: .isOwner)
+        version = try c.decode(Int.self, forKey: .version)
+        role = try c.decodeIfPresent(CollabRole.self, forKey: .role) ?? (isOwner ? .owner : .editor)
+    }
+
+    var canEdit: Bool { role != .viewer }
+}
+
 // A connection between two ideas anywhere in the map, drawn as a dashed arrow with an optional label.
 struct MapLink: Codable, Equatable, Identifiable {
     var id = UUID()
@@ -281,7 +310,7 @@ struct MapLink: Codable, Equatable, Identifiable {
 }
 
 struct MapSource: Codable, Equatable {
-    enum Kind: String, Codable { case topic, document, link, youtube, voice, chat }
+    enum Kind: String, Codable { case topic, document, link, youtube, voice, chat, scan }
     var kind: Kind
     var label: String
 }
@@ -300,6 +329,7 @@ struct MindMap: Identifiable, Codable, Equatable {
     var canvas: String?       // CanvasBackground raw value; nil is dots
     var palette: String?      // MapPalette raw value; nil is vivid
     var links: [MapLink] = [] // connections between ideas
+    var collab: CollabInfo?   // shared for editing with others (see CollabService)
 
     var mapStyle: MapStyle { MapStyle(rawValue: style ?? "") ?? .classic }
     var lineStyle: LineStyle { LineStyle(rawValue: lines ?? "") ?? .curved }
@@ -469,7 +499,7 @@ extension MindNode {
 }
 
 extension MindMap {
-    private enum CodingKeys: String, CodingKey { case id, root, createdAt, updatedAt, isPinned, source, layout, style, lines, lineWeight, canvas, palette, links }
+    private enum CodingKeys: String, CodingKey { case id, root, createdAt, updatedAt, isPinned, source, layout, style, lines, lineWeight, canvas, palette, links, collab }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -486,6 +516,7 @@ extension MindMap {
         canvas = try? c.decodeIfPresent(String.self, forKey: .canvas)
         palette = try? c.decodeIfPresent(String.self, forKey: .palette)
         links = (try? c.decodeIfPresent([MapLink].self, forKey: .links)) ?? []
+        collab = try? c.decodeIfPresent(CollabInfo.self, forKey: .collab)
     }
 
     // Connections whose ideas both still exist (after a delete, undo or AI edit).

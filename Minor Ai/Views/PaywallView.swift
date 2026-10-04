@@ -33,7 +33,7 @@ struct PaywallView: View {
     static var plusFeatures: [String] {
         [
             L("Up to 300 mind maps a month"),
-            L("YouTube and voice maps, documents up to 300 pages"),
+            L("YouTube and voice maps, long documents"),
             L("Advanced maps with Claude Opus 5.5"),
             L("20× more AI for chat, with any model"),
             L("60 AI images a month, in chat and on maps"),
@@ -45,7 +45,7 @@ struct PaywallView: View {
             L("Everything in Plus, up to 600 maps a month"),
             L("Frontier maps with GPT-6 Astra and Claude Fable 5.1"),
             L("40× more AI for chat than the free plan"),
-            L("150 AI images a month, in high quality"),
+            L("150 AI images a month"),
             L("Export to Xmind and MindNode, share links"),
         ]
     }
@@ -155,6 +155,10 @@ struct PaywallView: View {
         .accessibilityAction(.escape, onClose)
         .onAppear {
             withAnimation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.1)) { appeared = true }
+            // Someone who already pays sees their own billing period first (monthly or yearly).
+            if let current = store.activeProductID {
+                period = current.hasSuffix("MonthlyPlan") ? .monthly : .yearly
+            }
         }
         .task {
             if store.products.isEmpty { await loadPrices() }
@@ -254,13 +258,24 @@ struct PaywallView: View {
 
     private var priceDetail: String? {
         guard let price = store.price(tier, period), !isCurrentPlan else { return nil }
+        let billing: String
         switch period {
         case .monthly:
-            return L("\(price) billed every month. Cancel anytime.")
+            billing = L("\(price) billed every month. Cancel anytime.")
         case .yearly:
             let perMonth = store.monthlyEquivalent(tier).map { " (\($0))" } ?? ""
-            return L("\(price) billed every year\(perMonth). Cancel anytime.")
+            billing = L("\(price) billed every year\(perMonth). Cancel anytime.")
         }
+        return [billing, switchNote].compactMap { $0 }.joined(separator: " ")
+    }
+
+    // For someone who already pays, when a change takes effect. Apple's rules for one subscription
+    // group: moving up to PRO starts at once (the unused part of Plus is refunded); moving down to
+    // Plus, or to another billing period, starts when the current period ends.
+    private var switchNote: String? {
+        guard let current = store.activeTier, !isCurrentPlan else { return nil }
+        if current == .plus && tier == .pro { return L("PRO starts right away; the App Store refunds the unused part of Plus.") }
+        return L("Your plan changes when the current billing period ends.")
     }
 
     private var links: some View {
@@ -291,7 +306,8 @@ struct PaywallView: View {
         isLoadingPrices = true
         await store.loadProducts()
         isLoadingPrices = false
-        if store.products.isEmpty {
+        // Also when only the chosen plan is missing (not yet approved, or not attached to the build).
+        if store.products.isEmpty || billedPrice == nil {
             message = L("Couldn’t load prices from the App Store. Check your connection and try again.")
         }
     }
@@ -308,7 +324,13 @@ struct PaywallView: View {
                 switch try await store.purchase(tier, period) {
                 case .purchased:
                     Haptics.success()
-                    onClose()
+                    // A move to Plus or to another billing period waits for the period to end: say so
+                    // instead of closing as if nothing changed.
+                    if store.activeProductID == SubscriptionStore.productID(tier, period) {
+                        onClose()
+                    } else {
+                        message = L("Done. Your plan changes when the current billing period ends.")
+                    }
                 case .pending:
                     message = L("Waiting for approval. Your plan starts as soon as the purchase is approved.")
                 case .cancelled:
@@ -340,6 +362,8 @@ struct PaywallView: View {
                 }
             } catch StoreKitError.userCancelled {
                 return
+            } catch let error as SubscriptionStore.StoreError {
+                message = error.errorDescription
             } catch {
                 message = L("Couldn’t restore purchases. Check your connection and try again.")
             }
@@ -468,8 +492,11 @@ struct PremiumAdvantagesView: View {
             ("map", Color(hex: "#CC3399"), L("Build up to 300 mind maps a month with Plus and 600 with PRO, from any topic, link, document, video or voice note.")),
             ("brain", Color(hex: "#9966CC"), L("Build maps with the strongest models: Claude Opus 5.5 with Plus, GPT-6 Astra and Claude Fable 5.1 with PRO.")),
             ("sparkles", Color(hex: "#3380FF"), L("Chat with any model, from GPT-6 Luna to Claude Fable 5.1. Plus gives 20× and PRO 40× the free monthly AI allowance; stronger models use it faster.")),
-            ("photo.on.rectangle", Color(hex: "#FFD66B"), L("Create images in chat and add pictures to your ideas: 60 a month with Plus, 150 in high quality with PRO.")),
-            ("play.rectangle", Color(hex: "#66B3E6"), L("Turn YouTube videos, voice notes and documents up to 300 pages into clear maps.")),
+            ("photo.on.rectangle", Color(hex: "#FFD66B"), L("Create images in chat and add pictures to your ideas: 60 a month with Plus, 150 with PRO.")),
+            ("rectangle.on.rectangle.angled", Color(hex: "#2FFF9E"), L("Make presentations from your maps with AI: 20 a month with up to 20 slides with Plus, 60 with up to 30 slides with PRO, with PowerPoint export.")),
+            ("paintbrush.pointed", Color(hex: "#C9A2FF"), L("Design presentations your way: own styles and a brand, charts, tables and photos on slides, animations, an AI designer and your own templates.")),
+            ("person.2", Color(hex: "#FC86C3"), L("Edit maps together: invite up to 5 people to a map with Plus and 25 with PRO, as editors or viewers. They don’t need a subscription.")),
+            ("play.rectangle", Color(hex: "#66B3E6"), L("Turn YouTube videos, voice notes and long documents into clear maps.")),
             ("bubble.left", Color(hex: "#0A84FF"), L("Expand, summarize and explore your ideas with AI, and add chat answers back to your map.")),
             ("square.and.arrow.up", Color(hex: "#FF3366"), L("With PRO, export maps to Xmind and MindNode and share them with a link.")),
         ]

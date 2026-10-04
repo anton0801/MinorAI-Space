@@ -7,21 +7,26 @@
 
 import SwiftUI
 
-enum SidebarTab: Hashable { case maps, chats }
+enum SidebarTab: Hashable, CaseIterable { case maps, decks, chats }
 
 struct SidebarSegment: View {
     @Binding var selection: SidebarTab
 
+    private let width: CGFloat = 330
+    private var segment: CGFloat { width / CGFloat(SidebarTab.allCases.count) }
+    private var index: Int { SidebarTab.allCases.firstIndex(of: selection) ?? 0 }
+
     var body: some View {
-        ZStack(alignment: selection == .maps ? .leading : .trailing) {
+        ZStack(alignment: .leading) {
             Capsule().fill(MinorColor.track)
-            Capsule().fill(MinorColor.fillThumb).frame(width: 150)
+            Capsule().fill(MinorColor.fillThumb).frame(width: segment).offset(x: CGFloat(index) * segment)
             HStack(spacing: 0) {
                 segment("Maps", .maps)
+                segment("Slides", .decks)
                 segment("Chats", .chats)
             }
         }
-        .frame(width: 300, height: 40)
+        .frame(width: width, height: 40)
         .overlay(Capsule().stroke(MinorColor.divider, lineWidth: 1))
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selection)
     }
@@ -34,7 +39,7 @@ struct SidebarSegment: View {
             Text(title)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(selection == tab ? MinorColor.textPrimary : MinorColor.textSecondary)
-                .frame(width: 150, height: 40)
+                .frame(width: segment, height: 40)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selection == tab ? .isSelected : [])

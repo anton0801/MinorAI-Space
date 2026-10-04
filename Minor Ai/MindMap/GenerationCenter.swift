@@ -44,6 +44,8 @@ final class GenerationCenter: ObservableObject {
     @Published var focusNode: UUID?     // an idea to select once its map is open (task reminders, Today)
     @Published var topicRequest: String?  // "Create Mind Map" from Siri or Shortcuts
     @Published var todayRequest = false   // the Today widget was tapped
+    @Published var studyRequest: UUID?    // open Study for this map (Today → Review)
+    @Published var routeRequest: URL?     // a notification that opens a screen (minorai://…)
 
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private var watched: Set<UUID> = []

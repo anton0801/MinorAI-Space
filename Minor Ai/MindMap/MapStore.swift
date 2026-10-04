@@ -40,7 +40,6 @@ final class MapStore: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
         load()
-        removeUnusedImages()
     }
 
     var pinned: [MindMap] { maps.filter(\.isPinned) }
@@ -77,7 +76,14 @@ final class MapStore: ObservableObject {
     }
 
     func delete(_ id: UUID) {
-        guard maps.contains(where: { $0.id == id }) else { return }
+        guard let map = maps.first(where: { $0.id == id }) else { return }
+        // A shared map would come back from the server on the next refresh: the owner stops
+        // sharing it (the others keep their copies), a member leaves it.
+        if let collab = map.collab {
+            Task {
+                if collab.isOwner { try? await CollabService.shared.stopSharing(id) } else { try? await CollabService.shared.leave(id) }
+            }
+        }
         // Other devices learn about the delete through sync.
         MapSync.shared.noteDeleted(id)
         maps.removeAll { $0.id == id }
@@ -173,6 +179,8 @@ final class MapStore: ObservableObject {
     // A map from another device, kept exactly as it came (its own edit date included).
     func applySynced(_ map: MindMap) {
         if let index = maps.firstIndex(where: { $0.id == map.id }) {
+            // The newer edit wins; this device's version stays in Version History.
+            if maps[index].root != map.root || maps[index].links != map.links { keepVersion(maps[index], force: true) }
             maps[index] = map
         } else {
             maps.append(map)
@@ -204,11 +212,27 @@ final class MapStore: ObservableObject {
         update(id, touch: false) { $0.isPinned.toggle() }
     }
 
+    // A copy with new ids for every idea, so its tasks, reminders, calendar events and flashcards
+    // don't collide with the original's; it isn't shared.
     func duplicate(_ id: UUID) -> MindMap? {
         guard var copy = map(id) else { return nil }
+        var renamed: [UUID: UUID] = [:]
+        func renew(_ node: inout MindNode) {
+            let fresh = UUID()
+            renamed[node.id] = fresh
+            node.id = fresh
+            for i in node.children.indices { renew(&node.children[i]) }
+        }
+        renew(&copy.root)
+        copy.links = copy.links.compactMap { link in
+            guard let from = renamed[link.from], let to = renamed[link.to] else { return nil }
+            return MapLink(from: from, to: to, label: link.label)
+        }
         copy.id = UUID()
+        copy.collab = nil
         copy.isPinned = false
         copy.createdAt = Date()
+        copy.updatedAt = Date()
         copy.root.title += " copy"
         save(copy)
         return copy
@@ -217,14 +241,16 @@ final class MapStore: ObservableObject {
     // MARK: - Pictures on nodes
 
     // Saves a picture for a node: at most 1600 px on the long side, JPEG. Returns nil if it isn't an image.
-    func storeImage(_ data: Data, isAI: Bool) -> NodeImage? {
+    // `keepTransparency`: logos keep their transparent background (stored as PNG, smaller).
+    func storeImage(_ data: Data, isAI: Bool, keepTransparency: Bool = false) -> NodeImage? {
         guard let source = UIImage(data: data), source.size.width > 0, source.size.height > 0 else { return nil }
-        let scale = min(1, 1600 / max(source.size.width, source.size.height))
+        let scale = min(1, (keepTransparency ? 800 : 1600) / max(source.size.width, source.size.height))
         let size = CGSize(width: (source.size.width * scale).rounded(), height: (source.size.height * scale).rounded())
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
+        format.opaque = !keepTransparency
         let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in source.draw(in: CGRect(origin: .zero, size: size)) }
-        guard let jpeg = image.jpegData(compressionQuality: 0.85) else { return nil }
+        guard let jpeg = keepTransparency ? image.pngData() : image.jpegData(compressionQuality: 0.85) else { return nil }
         let picture = NodeImage(id: UUID(), aspect: Double(size.height / size.width), isAI: isAI)
         let url = imageURL(picture.id)
         imageCache.setObject(image, forKey: picture.id as NSUUID)
@@ -249,10 +275,21 @@ final class MapStore: ObservableObject {
 
     // Pictures no map refers to any more (deleted nodes, maps or replaced pictures). Undo keeps
     // working during a session because this only runs at launch.
-    private func removeUnusedImages() {
-        let used = Set(maps.flatMap { $0.root.imageIDs }.map(\.uuidString))
+    // Called once at launch, after presentations are loaded too (their pictures live here as well).
+    func removeUnusedImages(keeping other: Set<UUID>) {
+        let current = Set(maps.flatMap { $0.root.imageIDs }.map(\.uuidString)).union(other.map(\.uuidString))
         let folder = imagesFolder
+        let history = historyFolder
         io.async {
+            var used = current
+            // Pictures in saved versions stay too, so restoring a version brings its pictures back.
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let versions = FileManager.default.enumerator(at: history, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL } ?? []
+            for url in versions where url.pathExtension == "json" {
+                guard let data = try? Data(contentsOf: url), let map = try? decoder.decode(MindMap.self, from: data) else { continue }
+                used.formUnion(map.root.imageIDs.map(\.uuidString))
+            }
             let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
             for file in files where !used.contains(file.deletingPathExtension().lastPathComponent) {
                 try? FileManager.default.removeItem(at: file)

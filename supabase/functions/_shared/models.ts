@@ -42,6 +42,22 @@ export const MAP_TIERS: Record<Plan, Tier[]> = {
 // subscription earns after Apple's commission and VAT.
 export const BUDGET_USD: Record<Plan, number> = { free: 0.25, plus: 5, pro: 10 };
 
+// Free days of Plus from invitations come with a smaller allowance, so invitations can't be farmed
+// into expensive AI.
+export const BONUS_BUDGET_USD = 2;
+
+// Where the allowance goes, shown in the app as a breakdown: maps (with everything done on a
+// map), presentations, the assistant and pictures.
+export type Area = "maps" | "decks" | "chat" | "images";
+
+export function areaOf(action: string): Area | null {
+  if (["map", "template", "expand", "edit", "summarize", "quiz"].includes(action)) return "maps";
+  if (["deck", "slide", "deckEdit", "deckStyle", "slideElements"].includes(action)) return "decks";
+  if (action === "chat") return "chat";
+  if (action === "image") return "images";
+  return null;
+}
+
 // Longest chat answer per plan (keeps one free message on a frontier model affordable).
 export const CHAT_MAX_OUTPUT: Record<Plan, number> = { free: 1_500, plus: 4_096, pro: 8_192 };
 
@@ -127,7 +143,15 @@ export function costMicros(info: ModelInfo, inputTokens: number, outputTokens: n
   return Math.ceil(inputTokens * info.input + outputTokens * info.output);
 }
 
-// Worst-case cost before sending: ~3 characters per token (conservative for non-English text),
+// Text length for the estimates below: ASCII counts as written (~3 per token); every other
+// character counts as 3, since Cyrillic, CJK and emoji can take a whole token each.
+export function textUnits(text: string): number {
+  let units = 0;
+  for (let i = 0; i < text.length; i++) units += text.charCodeAt(i) < 128 ? 1 : 3;
+  return units;
+}
+
+// Worst-case cost before sending: ~3 characters per token (see textUnits),
 // ~1,600 tokens per photo, and the longest answer the model may write.
 export function estimateMicros(info: ModelInfo, chars: number, images: number, maxOutput: number): number {
   const input = Math.ceil((chars / 3) * info.tokenizer) + images * 1_600;
@@ -145,10 +169,17 @@ export const ACTION_TIER: Record<Plan, { light: Tier; edit: Tier }> = {
 export const SOURCE_LIMITS: Record<Plan, number> = { free: 40_000, plus: 400_000, pro: 400_000 };
 
 // Monthly request counts (on top of the AI allowance in BUDGET_USD).
-export const LIMITS: Record<Plan, { maps: number; expands: number; chats: number; images: number }> = {
-  free: { maps: 3, expands: 30, chats: 50, images: 3 },
-  plus: { maps: 300, expands: 3_000, chats: 5_000, images: 60 },
-  pro: { maps: 600, expands: 6_000, chats: 8_000, images: 150 },
+export const LIMITS: Record<Plan, { maps: number; expands: number; chats: number; images: number; decks: number }> = {
+  free: { maps: 3, expands: 30, chats: 50, images: 3, decks: 1 },
+  plus: { maps: 300, expands: 3_000, chats: 5_000, images: 60, decks: 20 },
+  pro: { maps: 600, expands: 6_000, chats: 8_000, images: 150, decks: 60 },
+};
+
+// Presentations: how many slides one may have, and how many slides the AI writes by default.
+export const DECK_SLIDES: Record<Plan, { max: number; default: number }> = {
+  free: { max: 8, default: 7 },
+  plus: { max: 20, default: 10 },
+  pro: { max: 30, default: 12 },
 };
 
 // AI images (OpenAI). Prices per million tokens: text input, image input, image output.
@@ -195,5 +226,10 @@ export const CAPS = {
 
 export function clip(text: unknown, max: number): string {
   const s = String(text ?? "");
-  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+  if (s.length <= max) return s;
+  // Never cut between the two halves of an emoji or other surrogate pair.
+  let cut = max - 1;
+  const last = s.charCodeAt(cut - 1);
+  if (last >= 0xd800 && last <= 0xdbff) cut -= 1;
+  return s.slice(0, cut) + "…";
 }

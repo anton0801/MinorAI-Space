@@ -6,6 +6,7 @@
 //  Background, haze and glow come from the home screen behind it.
 //
 
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -21,6 +22,7 @@ struct CreateMapView: View {
     var onStart: (MapInput, AIModelOption) -> Void
     var onOpenMap: (UUID) -> Void
     var onAskAssistant: (String) -> Void = { _ in }
+    var onNewDeck: () -> Void = {}
 
     @ObservedObject private var store = MapStore.shared
     @ObservedObject private var account = AccountStore.shared
@@ -34,13 +36,18 @@ struct CreateMapView: View {
     @State private var canPaste = false
     @State private var showToday = false
     @State private var showTemplates = false
+    @State private var showScanChoice = false
+    @State private var showScanner = false
+    @State private var showScanPhotos = false
+    @State private var scanPhotos: [PhotosPickerItem] = []
+    @State private var reading = false
     @AppStorage("mapModel") private var mapModelID = AIModelCatalog.defaultMap.apiModelID
     @StateObject private var voice = VoiceRecorder()
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var fieldFocused: Bool
 
     private enum Tile: CaseIterable {
-        case topic, document, link, youtube, voice, chat
+        case topic, document, link, youtube, voice, scan, chat, template
 
         var icon: String {
             switch self {
@@ -49,7 +56,9 @@ struct CreateMapView: View {
             case .link: return "link"
             case .youtube: return "play.rectangle"
             case .voice: return "mic"
+            case .scan: return "doc.viewfinder"
             case .chat: return "bubble.left"
+            case .template: return "square.grid.2x2"
             }
         }
         var title: String {
@@ -59,7 +68,9 @@ struct CreateMapView: View {
             case .link: return L("Link")
             case .youtube: return L("YouTube")
             case .voice: return L("Voice")
+            case .scan: return L("Scan")
             case .chat: return L("From Chat")
+            case .template: return L("Template")
             }
         }
         var caption: String {
@@ -69,7 +80,9 @@ struct CreateMapView: View {
             case .link: return L("Article or web page")
             case .youtube: return L("Video transcript")
             case .voice: return L("Talk it through")
+            case .scan: return L("Notes, slides, a whiteboard")
             case .chat: return L("Turn a chat into a map")
+            case .template: return L("Ready structures")
             }
         }
         var needsPlus: Bool { self == .youtube || self == .voice }
@@ -118,12 +131,9 @@ struct CreateMapView: View {
                         }
                     }
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         shortcut("calendar", L("Today"), detail: todayDetail, highlight: TaskAgenda.dueCount(in: store.maps) > 0) { showToday = true }
-                        shortcut("square.grid.2x2", L("Templates"), detail: L("Ready structures")) {
-                            if account.isOverFreeLimit { return onUpgrade() }
-                            showTemplates = true
-                        }
+                        shortcut("rectangle.on.rectangle.angled", L("Slides"), detail: L("AI presentation")) { onNewDeck() }
                     }
                     .padding(.top, 12)
 
@@ -203,6 +213,48 @@ struct CreateMapView: View {
             showTemplates = false
             showToday = true
         }
+        .confirmationDialog("Scan", isPresented: $showScanChoice, titleVisibility: .hidden) {
+            if DocumentScanner.isAvailable {
+                Button("Scan with Camera") { showScanner = true }
+            }
+            Button("Choose Photos") { showScanPhotos = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .fullScreenCover(isPresented: $showScanner) {
+            DocumentScanner { pages in
+                showScanner = false
+                readScans(pages)
+            }
+            .ignoresSafeArea()
+        }
+        .photosPicker(isPresented: $showScanPhotos, selection: $scanPhotos, maxSelectionCount: 10, matching: .images)
+        .onChange(of: scanPhotos) { items in
+            guard !items.isEmpty else { return }
+            Task {
+                var pages: [UIImage] = []
+                for item in items {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let image = await Task.detached(priority: .userInitiated, operation: { Attachments.downsampled(data, maxPixels: 2_500) }).value {
+                        pages.append(image)
+                    }
+                }
+                scanPhotos = []
+                readScans(pages)
+            }
+        }
+        .overlay {
+            if reading {
+                ZStack {
+                    Color.black.opacity(0.6).ignoresSafeArea()
+                    VStack(spacing: 12) {
+                        ProgressView().tint(.white)
+                        Text("Reading the text…").font(.system(size: 15, weight: .medium))
+                    }
+                    .padding(24)
+                    .background(RoundedRectangle(cornerRadius: 18).fill(theme.chatRectangle))
+                }
+            }
+        }
         .sheet(isPresented: $showToday) {
             TodayView(theme: theme, onOpen: { mapID, nodeID in
                 GenerationCenter.shared.focusNode = nodeID
@@ -210,6 +262,9 @@ struct CreateMapView: View {
             }, onAsk: {
                 showToday = false
                 onAskAssistant(L("Plan my day: look at my tasks and deadlines and make a short plan for today, most important first."))
+            }, onStudy: { mapID in
+                GenerationCenter.shared.studyRequest = mapID
+                onOpenMap(mapID)
             })
         }
         .sheet(isPresented: $showTemplates) {
@@ -227,7 +282,10 @@ struct CreateMapView: View {
         .sheet(isPresented: $showChatPicker) {
             ChatPickerView(conversations: conversations, theme: theme) { conversation in
                 showChatPicker = false
+                // Only what the person and the assistant said: not the hidden app data the
+                // assistant reads (map outlines, task lists), and not empty picture messages.
                 let transcript = conversation.messages
+                    .filter { !$0.isHidden && !$0.text.isEmpty }
                     .map { "\($0.role == .user ? "User" : "Assistant"): \($0.text)" }
                     .joined(separator: "\n\n")
                 attachment = .text(transcript, source: MapSource(kind: .chat, label: conversation.title))
@@ -308,7 +366,7 @@ struct CreateMapView: View {
     private func isActive(_ tile: Tile) -> Bool {
         switch attachment {
         case .some(.text(_, let source)):
-            return (tile == .document && source.kind == .document) || (tile == .chat && source.kind == .chat)
+            return (tile == .document && source.kind == .document) || (tile == .chat && source.kind == .chat) || (tile == .scan && source.kind == .scan)
         case .some(.link): return tile == .link
         case .some(.youtube): return tile == .youtube
         default:
@@ -350,6 +408,10 @@ struct CreateMapView: View {
                 default: break
                 }
             }
+        case .scan:
+            showScanChoice = true
+        case .template:
+            showTemplates = true
         case .chat:
             if conversations.isEmpty {
                 show(L("No chats yet. Start one from the home screen."))
@@ -583,6 +645,22 @@ struct CreateMapView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) { if notice == message { notice = nil } }
     }
 
+    // MARK: - Scans
+
+    // Text recognized on the phone; the map is built from it like from a document.
+    private func readScans(_ pages: [UIImage]) {
+        guard !pages.isEmpty else { return }
+        reading = true
+        Task {
+            let text = await TextRecognizer.text(from: pages)
+            reading = false
+            guard text.trimmingCharacters(in: .whitespacesAndNewlines).count > 20 else {
+                return show(L("No text found in these pictures. Try a sharper photo with more light."))
+            }
+            attachment = .text(text, source: MapSource(kind: .scan, label: pages.count == 1 ? L("Scan") : L("Scan · \(pages.count) pages")))
+        }
+    }
+
     // MARK: - Today and templates
 
     // A template map counts as one of the month's maps (checked on the server, like AI maps).
@@ -612,11 +690,11 @@ struct CreateMapView: View {
 
     private func shortcut(_ icon: String, _ title: String, detail: String, highlight: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 18))
                     .foregroundColor(highlight ? MinorColor.accent : MinorColor.textPrimary)
-                    .frame(width: 24)
+                    .frame(height: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.system(size: 15, weight: .semibold))
                     Text(detail)
@@ -628,8 +706,9 @@ struct CreateMapView: View {
                 Spacer(minLength: 0)
             }
             .foregroundColor(MinorColor.textPrimary)
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: 58)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 16).fill(theme.chatRectangle))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(highlight ? MinorColor.accent.opacity(0.6) : theme.chatStroke, lineWidth: 1))
         }

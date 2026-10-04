@@ -1,0 +1,24 @@
+Turn a lecture, a PDF or a rough idea into a mind map you can keep working on. Minor AI helps you sort out a topic, plan a project and prepare something to share.
+
+Start with what you have
+Type a topic, paste a link, add a document or use a YouTube video. You can also record a voice note or scan your notes. Minor organizes the material into a map, and you can edit every part of it.
+
+Work through it with an assistant
+Ask about a branch, get an example or tell the assistant what to change. Attach a map to the chat so you can discuss it without copying everything into a message.
+
+Make slides from your map
+Turn an outline into a presentation. Edit the slides, choose a design, add speaker notes and export to PowerPoint when you're ready.
+
+Keep track of what needs doing
+Give an idea a due date and turn it into a task. The Today screen brings tasks and reminders from your maps into one place.
+
+Study from your own material
+Review a map with flashcards and spaced repetition, then check what you remember with an AI-generated quiz.
+
+Work on a map together
+Invite someone by link. Let them edit with you or give them access to view the map.
+
+Minor AI has a free plan, with optional Minor Plus and Minor PRO subscriptions for additional features and higher usage limits. Subscriptions are available monthly or yearly and renew automatically unless canceled. Manage or cancel your subscription in your Apple Account settings.
+
+Privacy Policy: https://minorai.site/privacy
+Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/

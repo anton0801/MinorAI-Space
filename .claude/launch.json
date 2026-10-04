@@ -4,7 +4,7 @@
     {
       "name": "website",
       "runtimeExecutable": "/bin/sh",
-      "runtimeArgs": ["-c", "cd '/private/tmp/claude-501/-Users-antondanilov-Downloads-Minor-Ai/d139b4cb-0a75-4436-a55c-72caf9b7d414/scratchpad/site' && exec python3 -m http.server 8790"],
+      "runtimeArgs": ["-c", "cd '/private/tmp/claude-501/-Users-antondanilov-Downloads-Minor-Ai/d139b4cb-0a75-4436-a55c-72caf9b7d414/scratchpad/www' && exec python3 -m http.server 8790"],
       "port": 8790
     }
   ]

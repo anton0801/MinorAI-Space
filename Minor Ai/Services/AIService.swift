@@ -24,7 +24,7 @@ final class AIService {
     // The model decides, from any wording, that the person wants a picture or a map (see the
     // server's _shared/intent.ts); the app then makes it.
     struct Intent: Decodable, Equatable {
-        enum Kind: String, Decodable { case image, map, read, edit, open, tasks }
+        enum Kind: String, Decodable { case image, map, deck, read, edit, editdeck, open, tasks }
         let kind: Kind
         let prompt: String
         var maps: [String]?     // read, edit, open: map references (Workspace.ref)
@@ -48,7 +48,22 @@ final class AIService {
             let workspace: [Workspace.Entry]?
             let today: String?
         }
-        struct Reply: Decodable { let reply: String; let model: String?; let intent: Intent? }
+        struct Reply: Decodable {
+            let reply: String
+            let model: String?
+            let intent: Intent?
+
+            enum CodingKeys: String, CodingKey { case reply, model, intent }
+
+            // An action this version doesn't know (added on the server later) leaves just the text
+            // instead of failing the whole answer.
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                reply = try c.decode(String.self, forKey: .reply)
+                model = try c.decodeIfPresent(String.self, forKey: .model)
+                intent = try? c.decodeIfPresent(Intent.self, forKey: .intent)
+            }
+        }
 
         // The server reads at most the last 30 messages; photos travel only with the last few.
         let messages = Array(messages.suffix(30))
@@ -72,8 +87,9 @@ final class AIService {
         let intent = reply.intent.flatMap { intent -> Intent? in
             switch intent.kind {
             case .image, .map: return intent.prompt.isEmpty ? nil : intent
+            case .deck: return intent.prompt.isEmpty && intent.maps?.isEmpty != false ? nil : intent
             case .read, .open: return intent.maps?.isEmpty == false ? intent : nil
-            case .edit: return intent.maps?.isEmpty == false && intent.command?.isEmpty == false ? intent : nil
+            case .edit, .editdeck: return intent.maps?.isEmpty == false && intent.command?.isEmpty == false ? intent : nil
             case .tasks: return intent
             }
         }

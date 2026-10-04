@@ -56,6 +56,42 @@ struct WidgetSnapshot: Codable, Equatable {
     }
 }
 
+// Tasks ticked in the widget, applied to the maps when the app next opens.
+enum WidgetTicks {
+    struct Tick: Codable, Equatable {
+        var mapID: UUID
+        var nodeID: UUID
+    }
+
+    static var file: URL? { SharedContainer.url?.appendingPathComponent("ticks.json") }
+
+    static func pending() -> [Tick] {
+        guard let file, let data = try? Data(contentsOf: file) else { return [] }
+        return (try? JSONDecoder().decode([Tick].self, from: data)) ?? []
+    }
+
+    static func add(_ tick: Tick) {
+        guard let file else { return }
+        var ticks = pending()
+        if !ticks.contains(tick) { ticks.append(tick) }
+        try? JSONEncoder().encode(ticks).write(to: file, options: .atomic)
+        // The widget shows it done right away.
+        if var snapshot = WidgetSnapshot.read(), let index = snapshot.tasks.firstIndex(where: { $0.id == tick.nodeID }) {
+            snapshot.tasks.remove(at: index)
+            snapshot.dueCount = max(0, snapshot.dueCount - 1)
+            snapshot.doneToday += 1
+            if let out = SharedContainer.widgetFile, let data = try? SharedContainer.encoder.encode(snapshot) {
+                try? data.write(to: out, options: .atomic)
+            }
+        }
+    }
+
+    static func clear() {
+        guard let file else { return }
+        try? FileManager.default.removeItem(at: file)
+    }
+}
+
 // A page or text shared to Minor from another app, waiting to become a map.
 struct SharedItem: Codable, Equatable, Identifiable {
     var id = UUID()

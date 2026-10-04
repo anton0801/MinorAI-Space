@@ -52,14 +52,13 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (body.action === "delete") {
-    // By map id, whichever account shared it: the same iPhone may have shared the map while signed
-    // in to another account. Map ids never appear in public links, so only the map's owner knows it.
-    const { data: rows } = await supabase.from("shared_links").select("path").eq("map_id", mapId);
+    // Only links this account made: map ids are known to everyone a map is shared with.
+    const { data: rows } = await supabase.from("shared_links").select("path").eq("map_id", mapId).eq("user_id", userId);
     const paths = (rows ?? []).map((row: { path: string }) => row.path);
     if (paths.length) {
       const { error } = await supabase.storage.from("shared").remove(paths);
       if (error) return json({ error: "server_error" }, 500);
-      await supabase.from("shared_links").delete().eq("map_id", mapId);
+      await supabase.from("shared_links").delete().eq("map_id", mapId).eq("user_id", userId);
     }
     return json({ deleted: true });
   }

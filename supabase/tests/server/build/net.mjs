@@ -24,7 +24,8 @@ function isPrivateAddress(address) {
   if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return true;
   const [a, b] = parts;
   return a === 0 || a === 10 || a === 127 || a >= 224 || a === 100 && b >= 64 && b <= 127 || // carrier-grade NAT
-  a === 169 && b === 254 || a === 172 && b >= 16 && b <= 31 || a === 192 && b === 168 || a === 192 && b === 0 || a === 198 && (b === 18 || b === 19) || a === 198 && b === 51 || a === 203 && b === 0;
+  a === 169 && b === 254 || a === 172 && b >= 16 && b <= 31 || a === 192 && b === 168 || a === 192 && b === 0 || a === 192 && b === 88 && parts[2] === 99 || // 6to4 relay anycast
+  a === 198 && (b === 18 || b === 19) || a === 198 && b === 51 || a === 203 && b === 0;
 }
 function checkURL(raw) {
   let url;

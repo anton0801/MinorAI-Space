@@ -6,8 +6,34 @@
 //  The app writes the data (WidgetSnapshot) whenever maps change; a tap opens the task's map.
 //
 
+import AppIntents
 import SwiftUI
 import WidgetKit
+
+// Ticking a task in the widget (iOS 17): it disappears from the widget at once and is marked
+// done in its map when Minor next opens.
+@available(iOSApplicationExtension 17.0, *)
+struct TickTaskIntent: AppIntent {
+    static var title: LocalizedStringResource = "Mark Task Done"
+    static var isDiscoverable = false
+
+    @Parameter(title: "Map") var mapID: String
+    @Parameter(title: "Task") var nodeID: String
+
+    init() {}
+
+    init(mapID: UUID, nodeID: UUID) {
+        self.mapID = mapID.uuidString
+        self.nodeID = nodeID.uuidString
+    }
+
+    func perform() async throws -> some IntentResult {
+        if let map = UUID(uuidString: mapID), let node = UUID(uuidString: nodeID) {
+            WidgetTicks.add(.init(mapID: map, nodeID: node))
+        }
+        return .result()
+    }
+}
 
 struct TodayEntry: TimelineEntry {
     let date: Date
@@ -142,8 +168,11 @@ struct TodayWidgetView: View {
                 Spacer(minLength: 0)
             } else {
                 ForEach(snapshot.tasks.prefix(3)) { task in
-                    Link(destination: URL(string: "\(SharedContainer.scheme)://task/\(task.mapID.uuidString)/\(task.id.uuidString)")!) {
-                        row(task)
+                    HStack(spacing: 8) {
+                        tick(task)
+                        Link(destination: URL(string: "\(SharedContainer.scheme)://task/\(task.mapID.uuidString)/\(task.id.uuidString)")!) {
+                            row(task)
+                        }
                     }
                 }
                 Spacer(minLength: 0)
@@ -152,12 +181,27 @@ struct TodayWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func row(_ task: WidgetSnapshot.Task) -> some View {
-        let overdue = task.due.map { $0 < Calendar.current.startOfDay(for: entry.date) } ?? false
-        return HStack(spacing: 8) {
+    // A circle that ticks the task where iOS allows buttons in widgets.
+    @ViewBuilder
+    private func tick(_ task: WidgetSnapshot.Task) -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            Button(intent: TickTaskIntent(mapID: task.mapID, nodeID: task.id)) {
+                Image(systemName: "circle")
+                    .font(.system(size: 17))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Mark “\(task.title)” done"))
+        } else {
             Image(systemName: "circle")
                 .font(.system(size: 14))
                 .foregroundColor(.white.opacity(0.6))
+        }
+    }
+
+    private func row(_ task: WidgetSnapshot.Task) -> some View {
+        let overdue = task.due.map { $0 < Calendar.current.startOfDay(for: entry.date) } ?? false
+        return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(task.title)
                     .font(.system(size: 13, weight: .medium))

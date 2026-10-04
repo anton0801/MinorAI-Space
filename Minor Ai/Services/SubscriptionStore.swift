@@ -59,9 +59,18 @@ final class SubscriptionStore: ObservableObject {
         return nil
     }
 
+    // The plan this Apple ID pays for. Not counted when the server said it belongs to another
+    // Minor account: the server's plan (free here) is what the limits follow.
     var activeTier: Tier? {
-        guard let id = activeProductID else { return nil }
+        guard let id = activeProductID, !(ownedElsewhere && AuthService.shared.isSignedIn) else { return nil }
         return Self.tier(of: id)
+    }
+
+    // Another account signed in: the previous answer about ownership no longer applies.
+    func accountChanged() {
+        ownedElsewhere = false
+        notConfirmed = false
+        Task { await refreshEntitlements() }
     }
 
     // Price from the App Store in the person's currency; nil until StoreKit answers
@@ -70,7 +79,7 @@ final class SubscriptionStore: ObservableObject {
         products[Self.productID(tier, period)]?.displayPrice
     }
 
-    // "$9.99/month" or "$101.90/year".
+    // "$12.99/month" or "$119.99/year".
     func billedPrice(_ tier: Tier, _ period: Period) -> String? {
         price(tier, period).map { period == .monthly ? L("\($0)/month") : L("\($0)/year") }
     }
@@ -126,10 +135,18 @@ final class SubscriptionStore: ObservableObject {
         }
     }
 
+    // The server keeps a subscription on the account it belongs to (see the `subscription`
+    // function): set when this Apple ID's subscription is linked to another Minor account.
+    @Published private(set) var ownedElsewhere = false
+    // Apple confirmed the purchase on this iPhone but the server couldn't verify it (in testing:
+    // an Xcode StoreKit purchase for an account not listed in XCODE_TEST_USERS).
+    @Published private(set) var notConfirmed = false
+
     // Returns true when an active subscription was found.
     func restore() async throws -> Bool {
         try await AppStore.sync()
         await refreshEntitlements()
+        if activeProductID != nil && ownedElsewhere { throw StoreError.ownedElsewhere }
         return activeProductID != nil
     }
 
@@ -144,33 +161,45 @@ final class SubscriptionStore: ObservableObject {
     func refreshEntitlements() async {
         lastRefresh = Date()
         var best: (Transaction, String)?
+        // currentEntitlements already leaves out expired subscriptions and keeps ones in a billing
+        // grace period, so no date check here.
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result, transaction.revocationDate == nil else { continue }
-            if let expires = transaction.expirationDate, expires < Date() { continue }
             guard let tier = Self.tier(of: transaction.productID) else { continue }
             if best == nil || (tier == .pro && Self.tier(of: best!.0.productID) != .pro) {
                 best = (transaction, result.jwsRepresentation)
             }
         }
         activeProductID = best?.0.productID
+        // The server is told in the background: the paywall closes as soon as Apple confirms.
         if let jws = best?.1 {
-            await sync(jws)
+            Task { await sync(jws) }
         } else {
-            await AccountStore.shared.refresh()
+            Task { await AccountStore.shared.refresh() }
         }
     }
 
     private func handle(_ result: VerificationResult<Transaction>) async {
         guard case .verified(let transaction) = result else { return }
-        await sync(result.jwsRepresentation)
+        let jws = result.jwsRepresentation
         await transaction.finish()
         await refreshEntitlements()
+        // Every transaction (renewals, other products) is recorded on the server too.
+        Task { await sync(jws) }
     }
 
     private func sync(_ jws: String) async {
         struct Body: Encodable { let signedTransaction: String }
         struct Reply: Decodable { let plan: String }
-        let _: Reply? = try? await BackendClient.shared.invoke("subscription", body: Body(signedTransaction: jws))
+        do {
+            let _: Reply = try await BackendClient.shared.invoke("subscription", body: Body(signedTransaction: jws))
+            ownedElsewhere = false
+            notConfirmed = false
+        } catch BackendError.server(let code) where code == "owned_elsewhere" {
+            ownedElsewhere = true
+        } catch BackendError.server(let code) where code == "unverified" || code == "wrong_product" {
+            notConfirmed = AuthService.shared.isSignedIn
+        } catch {}
         await AccountStore.shared.refresh()
     }
 
@@ -178,10 +207,12 @@ final class SubscriptionStore: ObservableObject {
         case unavailable
         case noAccount
         case unverified
+        case ownedElsewhere
 
         var errorDescription: String? {
             switch self {
             case .unavailable: return L("The App Store isn’t available right now. Try again later.")
+            case .ownedElsewhere: return L("This subscription is linked to another Minor account. Sign in to that account, or write to support@minorai.site to move it.")
             case .noAccount: return L("Couldn’t reach your account. Check your connection and try again.")
             case .unverified: return L("The App Store couldn’t verify this purchase. Try Restore Purchases.")
             }

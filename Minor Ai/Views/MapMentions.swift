@@ -144,6 +144,8 @@ struct ActionCard: View {
         case .edited: return action.undone == true ? "arrow.uturn.backward" : "wand.and.stars"
         case .images: return "photo.on.rectangle.angled"
         case .opened: return "point.3.connected.trianglepath.dotted"
+        case .deckCreated, .deckOpened: return "rectangle.on.rectangle.angled"
+        case .deckEdited: return action.undone == true ? "arrow.uturn.backward" : "rectangle.stack.badge.plus"
         }
     }
 
@@ -151,6 +153,9 @@ struct ActionCard: View {
         switch action.kind {
         case .edited: return action.undone == true ? L("Change undone") : L("Map updated")
         case .opened: return L("Opened map")
+        case .deckCreated: return L("Presentation ready")
+        case .deckEdited: return action.undone == true ? L("Change undone") : L("Presentation updated")
+        case .deckOpened: return L("Opened presentation")
         case .images:
             let total = action.imageNodes?.count ?? 0
             guard let done = action.imagesDone else { return L("Pictures for \(total) ideas?") }
@@ -162,7 +167,9 @@ struct ActionCard: View {
     private var detail: String {
         let title = "“\(action.mapTitle)”"
         switch action.kind {
-        case .edited where action.undone != true && !action.summary.isEmpty:
+        case .edited where action.undone != true && !action.summary.isEmpty,
+             .deckEdited where action.undone != true && !action.summary.isEmpty,
+             .deckCreated where !action.summary.isEmpty:
             return "\(title) · \(action.summary)"
         case .images where action.imagesDone == nil:
             return L("In \(title). Each uses one of your monthly AI images.")

@@ -56,9 +56,11 @@ enum BackendError: LocalizedError, Equatable {
             case "budget": return L("You’ve used this month’s free AI allowance. Stronger models use it faster; Minor Plus gives you 20 times more.")
             case "fetches": return L("You’ve used this month’s free link and video reads.")
             case "images": return L("You’ve used this month’s free AI images. Minor Plus creates up to 60 a month.")
+            case "decks": return L("You’ve made this month’s free presentation. Minor Plus makes up to 20 a month.")
             default: return L("You’ve used all free AI actions this month.")
             }
-        case .planRequired: return L("YouTube and voice maps are part of Minor Plus.")
+        // The server sends this for YouTube and voice maps, the AI designer and other Plus features.
+        case .planRequired: return L("This is part of Minor Plus.")
         case .modelLocked: return L("Maps with this model are part of a higher plan.")
         case .sourceTooLong:
             return paid ? L("This source is too long. Try a shorter part of it.") : L("This source is too long for the free plan. Minor Plus reads much longer documents.")
@@ -97,7 +99,7 @@ enum BackendError: LocalizedError, Equatable {
         case "youtube_no_transcript": return .youtubeNoTranscript
         case "bad_link", "bad_video_link": return .badLink
         case "link_unreachable", "link_unreadable", "video_unreachable": return .linkUnreachable
-        case "ai_failed": return .aiFailed
+        case "ai_failed", "ai_timeout": return .aiFailed
         case "image_blocked": return .imageBlocked
         default: return .server(code: code)
         }

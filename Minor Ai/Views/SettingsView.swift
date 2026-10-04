@@ -24,13 +24,21 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var isDeleting = false
     @State private var notice: String?
+    @State private var confirmLogOut = false
+    @State private var logOutUnsynced = false
+    @State private var isLoggingOut = false
     @State private var consentGiven = AIConsent.isGiven
     @State private var showConsent = false
     @State private var confirmRevoke = false
     @State private var assistantSeesMaps = Workspace.isEnabled
     @State private var taskReminders = Reminders.isEnabled
+    @State private var morningBrief = Reminders.morningBrief
+    @State private var tasksInCalendar = CalendarSync.isEnabled
     @State private var syncMaps = MapSync.isEnabled
+    @State private var showUsage = false
+    @State private var showInvite = false
     @ObservedObject private var sync = MapSync.shared
+    @ObservedObject private var push = PushService.shared
 
     private let themes: [(id: Int, name: String, color: String)] = [
         (1, "Classic", "#121212"), (2, "Vio", "#1B1420"), (3, "Aqua", "#101317"),
@@ -74,8 +82,12 @@ struct SettingsView: View {
                                 .accessibilityElement(children: .combine)
                         }
                         row("star", "Subscription", value: subscriptionValue) {
-                            if account.isPaid { manageSubscription() } else { onUpgrade(false) }
+                            // Our own plans screen, also for subscribers: they move between Plus and PRO
+                            // there. Cancelling stays in the iPhone's App Store settings, as Apple intends.
+                            onUpgrade(account.isPro)
                         }
+                        row("gauge.with.dots.needle.33percent", "Limits", value: limitsValue) { showUsage = true }
+                        row("gift", "Invite Friends", value: L("Get Plus")) { showInvite = true }
                         row("arrow.clockwise", "Restore Purchases", last: true) { restore() }
                     }
 
@@ -97,7 +109,7 @@ struct SettingsView: View {
                                                 .fill(Color(hex: theme.color))
                                                 .frame(width: 40, height: 40)
                                                 .overlay(Circle().stroke(Color.white, lineWidth: 1).opacity((selectedSphere ?? 1) == theme.id ? 1 : 0))
-                                            Text(theme.name).font(.system(size: 12))
+                                            Text(LocalizedStringKey(theme.name)).font(.system(size: 12))
                                         }
                                     }
                                     .buttonStyle(.plain)
@@ -145,6 +157,47 @@ struct SettingsView: View {
                                 Reminders.isEnabled = value
                                 if value { Reminders.shared.requestPermission() }
                             }
+                        toggleRow("calendar.badge.plus", "Tasks in Calendar", detail: "Tasks with a date in a “Minor AI” calendar.", isOn: $tasksInCalendar)
+                            .onChange(of: tasksInCalendar) { value in
+                                guard value != CalendarSync.isEnabled else { return }
+                                if value {
+                                    Task {
+                                        let granted = await CalendarSync.shared.enable()
+                                        if !granted {
+                                            tasksInCalendar = false
+                                            notice = L("Allow calendar access for Minor in Settings to add tasks to your calendar.")
+                                        }
+                                    }
+                                } else {
+                                    CalendarSync.shared.disable()
+                                }
+                            }
+                        if taskReminders {
+                            toggleRow("sun.max", "Morning Brief", detail: "At 8:30: today’s tasks and cards to review.", isOn: $morningBrief)
+                                .onChange(of: morningBrief) { value in
+                                    Reminders.morningBrief = value
+                                    if value { Reminders.shared.requestPermission() }
+                                }
+                        }
+                        if auth.isSignedIn {
+                            toggleRow("person.2.badge.gearshape", "Shared Map Updates", detail: "When someone changes a map you share or joins it.", isOn: $push.collab)
+                                .onChange(of: push.collab) { if $0 { push.askIfNeeded() } }
+                            toggleRow("gift", "Invitations and Limits", detail: "Rewards for invited friends, and when your AI allowance runs low.", isOn: $push.account)
+                                .onChange(of: push.account) { if $0 { push.askIfNeeded() } }
+                        }
+                        // Also for reminders when signed out: the toggles alone would look like they work.
+                        if !push.allowed && (taskReminders || (auth.isSignedIn && (push.collab || push.account))) {
+                                Button { UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!) } label: {
+                                    Text("Notifications are off for Minor. Turn them on in iOS Settings.")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(MinorColor.accent)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 10)
+                                }
+                                .buttonStyle(.plain)
+                                .overlay(alignment: .bottom) { Rectangle().fill(MinorColor.divider).frame(height: 1) }
+                        }
                         row("questionmark.circle", "Help & Support") { UIApplication.shared.open(LegalLinks.support) }
                         row("doc.text", "Privacy Policy") { UIApplication.shared.open(LegalLinks.privacy) }
                         row("doc.text", "Terms of Use", last: true) { UIApplication.shared.open(LegalLinks.terms) }
@@ -153,10 +206,7 @@ struct SettingsView: View {
 
                     if auth.isSignedIn {
                         group(nil) {
-                            row("rectangle.portrait.and.arrow.right", "Log Out", last: true) {
-                                auth.signOut()
-                                Task { await account.refresh() }
-                            }
+                            row("rectangle.portrait.and.arrow.right", "Log Out", last: true) { confirmLogOut = true }
                         }
                     }
 
@@ -166,15 +216,8 @@ struct SettingsView: View {
                         }
                     }
 
-                    if let notice {
-                        Text(notice)
-                            .font(.system(size: 13))
-                            .foregroundColor(MinorColor.textSecondary)
-                            .frame(maxWidth: .infinity)
-                    }
-
                     HStack {
-                        Text("By Neuvra")
+                        Text(verbatim: "Minor AI")
                         Spacer()
                         Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
                     }
@@ -188,17 +231,34 @@ struct SettingsView: View {
         }
         .foregroundColor(MinorColor.textPrimary)
         .background(MinorColor.sheet.ignoresSafeArea())
-        .disabled(isDeleting)
-        .overlay { if isDeleting { ProgressView().tint(.white) } }
-        .alert("Delete your account?", isPresented: $confirmDelete) {
-            Button("Delete Account", role: .destructive) { deleteAccount() }
-            if account.isPaid {
-                Button("Manage Subscription") { manageSubscription() }
-            }
+        .disabled(isDeleting || isLoggingOut)
+        .overlay { if isDeleting || isLoggingOut { ProgressView().tint(.white) } }
+        // Can't be swiped away mid-deletion, or its result would be shown nowhere.
+        .interactiveDismissDisabled(isDeleting || isLoggingOut)
+        // Results (restore, calendar access, errors) show where the person is looking.
+        .alert(notice ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
+            Button("OK", role: .cancel) {}
+        }
+        .confirmationDialog("Log out?", isPresented: $confirmLogOut, titleVisibility: .visible) {
+            Button("Log Out", role: .destructive) { logOut(force: false) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(account.isPaid
-                 ? "Your account, maps, chats and shared links will be permanently deleted. Your App Store subscription is not cancelled by this: cancel it in Manage Subscription first. This can’t be undone."
+            Text(MapSync.isEnabled
+                 ? "Your maps and presentations stay in your account and come back when you sign in. Chats are kept only on this iPhone and will be deleted."
+                 : "Sync Maps is off, so your maps, presentations and chats are only on this iPhone and will be deleted. Turn on Sync Maps first to keep them in your account.")
+        }
+        .alert("Some changes aren’t in your account yet", isPresented: $logOutUnsynced) {
+            Button("Log Out Anyway", role: .destructive) { logOut(force: true) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Connect to the internet and try again, or log out and lose the changes that haven’t synced.")
+        }
+        .alert("Delete your account?", isPresented: $confirmDelete) {
+            Button("Delete Account", role: .destructive) { deleteAccount() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(account.hasSubscription
+                 ? "Your account, maps, chats and shared links will be permanently deleted. Your App Store subscription is not cancelled by this: cancel it first in the iPhone Settings → your name → Subscriptions. This can’t be undone."
                  : "Your account, maps, chats and shared links will be permanently deleted. This can’t be undone.")
         }
         .confirmationDialog("Stop sending requests to AI?", isPresented: $confirmRevoke, titleVisibility: .visible) {
@@ -222,15 +282,38 @@ struct SettingsView: View {
         .sheet(isPresented: $showSignIn) {
             SignInView(onFinish: { showSignIn = false })
         }
-        .task { await account.refresh() }
+        .sheet(isPresented: $showUsage) {
+            UsageView(onUpgrade: { pro in
+                showUsage = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { onUpgrade(pro) }
+            })
+        }
+        .sheet(isPresented: $showInvite) { InviteView() }
+        .task {
+            await account.refresh()
+            await push.registerIfAllowed()
+            await account.loadReport()
+        }
     }
 
     private var subscriptionValue: String {
+        // This Apple ID pays for a subscription that belongs to another Minor account.
+        if subscriptions.ownedElsewhere && auth.isSignedIn && !account.hasSubscription { return L("On another account") }
+        // Paid on this iPhone, but the server (which sets the limits) didn't accept the purchase.
+        if subscriptions.notConfirmed && auth.isSignedIn && account.plan == .free { return L("Not confirmed") }
         switch account.effectivePlan {
         case .pro: return L("Minor PRO")
-        case .plus: return L("Minor Plus")
+        case .plus:
+            if !account.hasSubscription, let until = account.bonusUntil { return L("Plus until \(UsageView.day(until))") }
+            return L("Minor Plus")
         case .free: return L("Free")
         }
+    }
+
+    // "37% used" of this month's AI allowance, once known.
+    private var limitsValue: String? {
+        guard auth.isSignedIn, account.report != nil || account.spendMicros > 0 else { return nil }
+        return L("\(UsageView.percent(account.allowanceUsed)) used")
     }
 
     // MARK: - Rows
@@ -251,6 +334,9 @@ struct SettingsView: View {
 
     private var syncStatus: String {
         guard syncMaps else { return L("Maps stay on this iPhone only.") }
+        if !sync.rejectedTitles.isEmpty {
+            return L("Too large to sync: \(sync.rejectedTitles.prefix(3).map { "“\($0)”" }.joined(separator: ", ")). Split it into smaller maps.")
+        }
         if sync.isSyncing { return L("Syncing…") }
         if sync.failed { return L("Couldn’t sync. It will try again.") }
         if let date = sync.lastSynced {
@@ -324,20 +410,43 @@ struct SettingsView: View {
 
     // MARK: - Actions
 
-    private func manageSubscription() {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-        Task { try? await AppStore.showManageSubscriptions(in: scene) }
-    }
-
     private func restore() {
         Task {
             do {
                 notice = try await subscriptions.restore()
                     ? L("Purchases restored.")
                     : L("No active subscription was found for this Apple ID.")
+            } catch let error as SubscriptionStore.StoreError {
+                notice = error.errorDescription
+            } catch StoreKitError.userCancelled {
+                // The person closed the Apple ID prompt: nothing to report.
             } catch {
                 notice = L("Couldn’t restore purchases. Try again.")
             }
+        }
+    }
+
+    // Logging out leaves nothing of the account on this iPhone (the next account would otherwise
+    // see these maps and upload them to itself). With sync on, everything is sent first.
+    private func logOut(force: Bool) {
+        isLoggingOut = true
+        Task {
+            if !force, !(await MapSync.shared.syncAndWait()) {
+                isLoggingOut = false
+                logOutUnsynced = true
+                return
+            }
+            GenerationCenter.shared.cancelAll()
+            MapStore.shared.deleteAll()
+            DeckStore.shared.deleteAll()
+            StudyStore.shared.forgetAll()
+            CollabService.shared.forgetAll()
+            CalendarSync.shared.disable()
+            ConversationStore.shared.deleteBackups()
+            onDataDeleted()
+            auth.signOut()
+            await account.refresh()
+            isLoggingOut = false
         }
     }
 
@@ -348,6 +457,10 @@ struct SettingsView: View {
                 try await auth.deleteAccount()
                 GenerationCenter.shared.cancelAll()
                 MapStore.shared.deleteAll()
+                DeckStore.shared.deleteAll()
+                StudyStore.shared.forgetAll()
+                CollabService.shared.forgetAll()
+                CalendarSync.shared.disable()
                 ConversationStore.shared.deleteBackups()
                 AIConsent.revoke()
                 onDataDeleted()

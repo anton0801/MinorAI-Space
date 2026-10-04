@@ -24,6 +24,8 @@ struct ChatMessage: Identifiable, Codable, Equatable {
     var mapText: String?     // their outlines when sent, read by the model
     var action: ChatAction?  // what the assistant did in a map (a card with Open and Undo)
     var tasksText: String?   // the person's tasks, attached by "Plan My Day"
+    var failed: String?      // why this message got no answer (offline, server, limit); Retry sends it again
+    var imageRequest: Bool?  // asked for a picture with the image switch: Retry draws again
 
     init(id: UUID = UUID(), role: ChatRole, text: String, images: [Data]? = nil, fileName: String? = nil, fileText: String? = nil, model: String? = nil, imagePrompt: String? = nil, hidden: Bool? = nil, maps: [MapMention]? = nil, mapText: String? = nil, action: ChatAction? = nil) {
         self.id = id
@@ -76,6 +78,11 @@ struct ChatAction: Codable, Equatable {
         case edited      // the map changed; Undo restores it
         case images      // pictures for some ideas (pending until the person confirms)
         case opened
+        case deckCreated // a presentation was made (mapID holds the presentation's id)
+        case deckEdited  // a presentation changed; Undo restores it
+        case deckOpened
+
+        var isDeck: Bool { self == .deckCreated || self == .deckEdited || self == .deckOpened }
     }
     var kind: Kind
     var mapID: UUID
@@ -97,6 +104,14 @@ struct ChatAction: Codable, Equatable {
             return "(The app offered to create \(imageNodes?.count ?? 0) pictures in the map “\(mapTitle)”.)"
         case .opened:
             return "(The app opened the map “\(mapTitle)”.)"
+        case .deckCreated:
+            return "(The app made the presentation “\(mapTitle)”: \(summary).)"
+        case .deckEdited:
+            return undone == true
+                ? "(The app changed the presentation “\(mapTitle)”, then the user undid it.)"
+                : "(The app changed the presentation “\(mapTitle)”: \(summary).)"
+        case .deckOpened:
+            return "(The app opened the presentation “\(mapTitle)”.)"
         }
     }
 }

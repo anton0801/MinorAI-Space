@@ -6,6 +6,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyAppleJWS } from "../_shared/appstore.ts";
 import { BUNDLE_ID, findSubscription, isUUID, later, PLANS, recomputePlan, saveSubscription, time } from "../_shared/subscriptions.ts";
+import { rewardPurchase } from "../_shared/referrals.ts";
 
 const ACTIVE = new Set(["SUBSCRIBED", "DID_RENEW", "OFFER_REDEEMED", "RENEWAL_EXTENDED", "REFUND_REVERSED", "DID_CHANGE_RENEWAL_PREF"]);
 const ENDED = new Set(["EXPIRED", "GRACE_PERIOD_EXPIRED"]);
@@ -81,7 +82,9 @@ Deno.serve(async (req) => {
       const when = transaction.revocationDate ? new Date(Number(transaction.revocationDate)).toISOString() : signedAt;
       row = { ...row, revoked: true, revoked_at: when };
     } else if (ACTIVE.has(type)) {
-      row = { ...row, revoked: false, revoked_at: null, expires_at: later(existing?.expires_at ?? null, expires) };
+      // Another product (an upgrade or crossgrade) brings its own expiry.
+      const switched = existing && existing.product_id !== row.product_id;
+      row = { ...row, revoked: false, revoked_at: null, expires_at: switched ? expires : later(existing?.expires_at ?? null, expires) };
     } else if (ENDED.has(type)) {
       row = { ...row, expires_at: expires };
     } else if (type === "DID_FAIL_TO_RENEW" && renewal?.gracePeriodExpiresDate) {
@@ -98,6 +101,9 @@ Deno.serve(async (req) => {
       await saveSubscription(supabase, row);
     }
     await recomputePlan(supabase, row.user_id);
+    if (ACTIVE.has(type) && !row.revoked) {
+      await rewardPurchase(supabase, row.user_id, transaction).catch((err) => console.warn("referral", err));
+    }
     console.log("notification", type, notification.subtype ?? "", original, row.revoked ? "revoked" : row.expires_at);
     return new Response("ok", { status: 200 });
   } catch (err) {

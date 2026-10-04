@@ -11,7 +11,7 @@ async function clientSecret(env = {
   privateKey: Deno.env.get("APPLE_PRIVATE_KEY")
 }, now = Math.floor(Date.now() / 1e3)) {
   if (!env.teamID || !env.keyID || !env.privateKey) return null;
-  const pem = env.privateKey.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const pem = env.privateKey.replace(/\\n/g, "\n").replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
   const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
   const encoder = new TextEncoder();

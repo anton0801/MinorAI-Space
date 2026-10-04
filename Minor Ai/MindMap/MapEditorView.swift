@@ -39,6 +39,8 @@ struct MapEditorView: View {
     @State private var dueTarget: UUID?
     @State private var showStudy = false
     @State private var showHistory = false
+    @State private var showCollab = false
+    @ObservedObject private var collab = CollabService.shared
     // Presentation: slide 0 shows the whole map, then one main branch per slide.
     @State private var presenting = false
     @State private var slide = 0
@@ -99,10 +101,13 @@ struct MapEditorView: View {
         let action: Int?
     }
 
-    init(mapID: UUID, theme: AppTheme, onClose: @escaping () -> Void, onUpgrade: @escaping (_ pro: Bool) -> Void) {
+    var onCreateDeck: (UUID) -> Void = { _ in }
+
+    init(mapID: UUID, theme: AppTheme, onClose: @escaping () -> Void, onUpgrade: @escaping (_ pro: Bool) -> Void, onCreateDeck: @escaping (UUID) -> Void = { _ in }) {
         self.theme = theme
         self.onClose = onClose
         self.onUpgrade = onUpgrade
+        self.onCreateDeck = onCreateDeck
         self.mapID = mapID
         let map = MapStore.shared.map(mapID) ?? MindMap(root: MindNode(title: L("New Map")))
         // VoiceOver users start in the outline, which reads in order; they can still switch.
@@ -182,6 +187,13 @@ struct MapEditorView: View {
     // Due dates, and selecting the task a reminder or the Today screen pointed at.
     private func tasksModifiers<Content: View>(_ content: Content) -> some View {
         content
+            .sheet(isPresented: $showCollab) {
+                CollabSheet(mapID: mapID, theme: theme) { onUpgrade(false) }
+                    .presentationDetents([.medium, .large])
+            }
+            .onAppear { collab.watch(mapID) }
+            .onDisappear { collab.unwatch(mapID) }
+            .onChange(of: store.map(mapID)?.collab != nil) { shared in if shared { collab.watch(mapID) } }
             .sheet(isPresented: $showHistory) {
                 VersionHistoryView(mapID: mapID, theme: theme) {
                     history = []
@@ -206,11 +218,16 @@ struct MapEditorView: View {
                     .presentationDetents([.large])
                 }
             }
+            .onReceive(GenerationCenter.shared.$studyRequest) { id in
+                guard let id, id == mapID else { return }
+                GenerationCenter.shared.studyRequest = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { showStudy = true }
+            }
             .onReceive(GenerationCenter.shared.$focusNode) { id in
                 guard let id, map.root.node(id) != nil else { return }
                 GenerationCenter.shared.focusNode = nil
                 // Open the branches above it, then select it (which also brings it into view).
-                mutate(animated: false, undoable: false) { map in
+                mutate(animated: false, undoable: false, personal: true) { map in
                     for ancestor in (map.root.path(to: id) ?? []).dropLast() {
                         map.root.update(ancestor.id) { $0.isCollapsed = false }
                     }
@@ -293,9 +310,23 @@ struct MapEditorView: View {
         }
         .onReceive(store.$maps) { maps in
             // A result that landed while this editor was closed, or a change made elsewhere.
-            guard let stored = maps.first(where: { $0.id == mapID }), stored.root != map.root || stored.links != map.links else { return }
-            map.root = stored.root
-            map.links = stored.links
+            // Content or design changed elsewhere (an AI result, another device, a person editing with us).
+            guard let stored = maps.first(where: { $0.id == mapID }) else {
+                // Deleted on another device (or by the owner of a shared map): close instead of
+                // letting edits go nowhere.
+                onClose()
+                return
+            }
+            guard stored.root != map.root || stored.links != map.links || stored.collab != map.collab
+                    || stored.style != map.style || stored.palette != map.palette || stored.lines != map.lines
+                    || stored.lineWeight != map.lineWeight || stored.canvas != map.canvas
+            else { return }
+            // Undo would put back a whole snapshot and wipe what came from elsewhere.
+            if stored.root != map.root || stored.links != map.links {
+                history.removeAll()
+                toast = nil
+            }
+            map = stored
             sanitize()
             relayout(animated: false)
         }
@@ -462,7 +493,8 @@ struct MapEditorView: View {
                 onUpgrade: {
                     afterCard = { onUpgrade(false) }
                     cardNodeID = nil
-                }
+                },
+                readOnly: isViewer
             )
         }
         .sheet(isPresented: $showConsent, onDismiss: { afterConsent = nil }) {
@@ -491,7 +523,7 @@ struct MapEditorView: View {
     // Launch arguments for screenshots: -demoSearch <text>, -demoFocus, -demoCard, -demoSelect.
     private func applyDebugState() {
         let args = ProcessInfo.processInfo.arguments
-        let pricing = map.root.children.first { $0.title == "Pricing" }?.id
+        let pricing = map.root.children.first { $0.link == "https://minorai.site/#pricing" }?.id
         if let i = args.firstIndex(of: "-demoSearch"), args.indices.contains(i + 1) {
             isSearching = true
             query = args[i + 1]
@@ -500,6 +532,7 @@ struct MapEditorView: View {
         if args.contains("-demoSelect") { selection = pricing }
         if args.contains("-demoCard") { cardNodeID = pricing }
         if args.contains("-demoStudy") { showStudy = true }
+        if args.contains("-demoCollab") { showCollab = true }
         if args.contains("-demoPresent") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 startPresentation()
@@ -524,7 +557,7 @@ struct MapEditorView: View {
                     .frame(width: 44, height: 44)
             }
             .accessibilityLabel("Home")
-            if !history.isEmpty && !isSearching {
+            if !history.isEmpty && !isSearching && !isViewer {
                 Button(action: undo) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 17))
@@ -565,7 +598,7 @@ struct MapEditorView: View {
                     Text(map.title)
                         .font(.system(size: 17, weight: .semibold))
                         .lineLimit(1)
-                    Text(store.failedSaves.contains(mapID) ? "\(map.nodeCount) nodes · Not saved" : "\(map.nodeCount) nodes · Saved")
+                    Text(store.failedSaves.contains(mapID) ? "\(map.nodeCount) nodes · Not saved" : store.map(mapID)?.collab != nil ? (collab.busy.contains(mapID) ? "\(map.nodeCount) nodes · Syncing" : "\(map.nodeCount) nodes · Shared") : "\(map.nodeCount) nodes · Saved")
                         .font(.system(size: 12).monospacedDigit())
                         .foregroundColor(store.failedSaves.contains(mapID) ? MinorColor.dangerText : MinorColor.textTertiary)
                 }
@@ -577,7 +610,9 @@ struct MapEditorView: View {
                 }
                 .accessibilityLabel("Export Map")
                 Menu {
-                    Button { startRename(map.root.id) } label: { Label("Rename", systemImage: "pencil") }
+                    if !isViewer {
+                        Button { startRename(map.root.id) } label: { Label("Rename", systemImage: "pencil") }
+                    }
                     Button {
                         isSearching = true
                         searchFocused = true
@@ -587,10 +622,16 @@ struct MapEditorView: View {
                         Label("Balanced", systemImage: "circle.grid.cross").tag(Mode.balanced)
                         Label("List", systemImage: "list.bullet").tag(Mode.list)
                     }
-                    Button { showDesign = true } label: { Label("Map Design", systemImage: "paintpalette") }
-                    Button { improveMap() } label: { Label("Improve with AI", systemImage: "wand.and.stars") }
+                    if !isViewer {
+                        Button { showDesign = true } label: { Label("Map Design", systemImage: "paintpalette") }
+                        Button { improveMap() } label: { Label("Improve with AI", systemImage: "wand.and.stars") }
+                    }
                     Button { showStudy = true } label: { Label("Study", systemImage: "graduationcap") }
-                    Button { showHistory = true } label: { Label("Version History", systemImage: "clock.arrow.circlepath") }
+                    Button { onCreateDeck(mapID) } label: { Label("Create Presentation", systemImage: "rectangle.on.rectangle.angled") }
+                    Button { showCollab = true } label: { Label("Edit Together", systemImage: "person.2") }
+                    if !isViewer {
+                        Button { showHistory = true } label: { Label("Version History", systemImage: "clock.arrow.circlepath") }
+                    }
                     if !map.root.children.isEmpty {
                         Button { startPresentation() } label: { Label("Present", systemImage: "play.rectangle") }
                     }
@@ -702,6 +743,32 @@ struct MapEditorView: View {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
+            if isViewer {
+                HStack(spacing: 8) {
+                    Label("View only", systemImage: "eye")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(MinorColor.textSecondary)
+                        .padding(.horizontal, 16)
+                        .frame(height: 40)
+                        .background(Capsule().fill(theme.chatRectangle))
+                        .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
+                        .accessibilityLabel(L("View only: the owner can make you an editor"))
+                    // A viewer still reads an idea's note, link and picture.
+                    if let node = selectedNode, !node.isSuggestion {
+                        Button { cardNodeID = node.id } label: {
+                            Label("Details", systemImage: "text.alignleft")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 16)
+                                .frame(height: 40)
+                                .background(Capsule().fill(MinorColor.accent))
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: selectedNode?.id)
+            } else {
             Group {
                 if let node = selectedNode, node.isSuggestion {
                     suggestionActions(for: node)
@@ -718,6 +785,7 @@ struct MapEditorView: View {
             .opacity(isApplying ? 0.5 : 1)
 
             composer
+            }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -747,6 +815,7 @@ struct MapEditorView: View {
                 }
                 chip("Design", "paintpalette") { showDesign = true }
                 chip("Study", "graduationcap") { showStudy = true }
+                chip("Slides", "rectangle.on.rectangle.angled") { onCreateDeck(mapID) }
                 if !map.root.children.isEmpty {
                     chip("Present", "play.rectangle") { startPresentation() }
                 }
@@ -1001,7 +1070,18 @@ struct MapEditorView: View {
 
     // Every change starts from the stored map, so results that arrive late (AI expand, edits)
     // build on the newest version, and nothing is written for a map that was deleted.
-    private func mutate(animated: Bool = true, undoable: Bool = true, _ change: (inout MindMap) -> Void) {
+    // A viewer of a shared map: they can fold branches on their phone but not change the map.
+    private var isViewer: Bool { store.map(mapID)?.collab?.role == .viewer }
+
+    private func blockedForViewer() -> Bool {
+        guard isViewer else { return false }
+        Haptics.error()
+        showToast(L("View only: the owner can make you an editor"), canUndo: false)
+        return true
+    }
+
+    private func mutate(animated: Bool = true, undoable: Bool = true, personal: Bool = false, _ change: (inout MindMap) -> Void) {
+        if !personal && blockedForViewer() { return }
         guard let base = store.map(mapID) else { return }
         var copy = base
         change(&copy)
@@ -1032,6 +1112,7 @@ struct MapEditorView: View {
     }
 
     private func undo() {
+        if blockedForViewer() { return }
         guard !isApplying, let snapshot = history.popLast(), store.map(mapID) != nil else { return }
         actionCount += 1
         Haptics.impact(.light)
@@ -1414,18 +1495,21 @@ struct MapEditorView: View {
     func openImage(_ id: UUID) {
         guard let picture = map.root.node(id)?.image, let image = store.image(picture.id) else { return }
         let path = map.root.path(to: id)?.map(\.title).joined(separator: " > ") ?? ""
+        let viewOnly = isViewer
         viewer = ViewerItem(image: image, isAI: picture.isAI, onReport: picture.isAI ? {
-            mutate(undoable: false) { $0.root.update(id) { $0.image = nil } }
+            // A viewer's report goes for review; the picture can't be removed from a map they only view.
+            if !viewOnly { mutate(undoable: false) { $0.root.update(id) { $0.image = nil } } }
             Task { try? await AIService.shared.report(kind: "image", content: path, reason: "reported on a map") }
         } : nil)
     }
 
     private func toggleCollapse(_ id: UUID) {
         Haptics.impact(.light)
-        mutate(undoable: false) { $0.root.update(id) { $0.isCollapsed.toggle() } }
+        mutate(undoable: false, personal: true) { $0.root.update(id) { $0.isCollapsed.toggle() } }
     }
 
     private func startRename(_ id: UUID) {
+        if blockedForViewer() { return }
         guard let node = map.root.node(id) else { return }
         renameTarget = id
         renameText = node.title
@@ -1573,6 +1657,7 @@ struct MapEditorView: View {
     }
 
     private func expand(_ id: UUID, hint: ExpandHint = .more) {
+        if blockedForViewer() { return }
         guard AuthService.shared.isSignedIn, AIConsent.isGiven else { return withConsent { expand(id, hint: hint) } }
         guard !generating.contains(id), let node = map.root.node(id) else { return }
         if node.isCollapsed { toggleCollapse(id) }
@@ -1614,6 +1699,7 @@ struct MapEditorView: View {
     }
 
     private func applyCommand() {
+        if blockedForViewer() { return }
         let text = command.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isApplying else { return }
         // The AI reads the command in whatever wording: a change to the map, pictures for some
@@ -1688,6 +1774,7 @@ struct MapEditorView: View {
 
     // Improve Map: the AI proposes what is missing; its ideas appear as suggestions to keep or drop.
     private func improveMap() {
+        if blockedForViewer() { return }
         guard !isApplying else { return }
         guard AuthService.shared.isSignedIn, AIConsent.isGiven else { return withConsent(improveMap) }
         guard generating.isEmpty else {

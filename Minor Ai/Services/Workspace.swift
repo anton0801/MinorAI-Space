@@ -26,6 +26,15 @@ enum Workspace {
         MapStore.shared.maps.first { Self.ref($0.id) == ref.lowercased() }
     }
 
+    // Presentations are named "d-…" in conversations with the AI.
+    static func deckRef(_ id: UUID) -> String {
+        "d-" + id.uuidString.replacingOccurrences(of: "-", with: "").prefix(6).lowercased()
+    }
+
+    static func deck(ref: String) -> Deck? {
+        DeckStore.shared.decks.first { deckRef($0.id) == ref.lowercased() }
+    }
+
     struct Entry: Encodable, Equatable {
         let ref: String
         let title: String
@@ -37,7 +46,11 @@ enum Workspace {
     }
 
     // Pinned maps first, then the most recently edited; at most 40.
-    static func index() -> [Entry] { index(MapStore.shared.maps) }
+    static func index() -> [Entry] {
+        index(MapStore.shared.maps) + DeckStore.shared.decks.prefix(20).map { deck in
+            Entry(ref: deckRef(deck.id), title: deck.title, ideas: deck.slides.count, tasksDone: 0, tasksTotal: 0, edited: day(deck.updatedAt), pinned: false)
+        }
+    }
 
     static func index(_ maps: [MindMap]) -> [Entry] {
         let ordered = maps.filter(\.isPinned) + maps.filter { !$0.isPinned }

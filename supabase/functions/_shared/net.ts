@@ -36,6 +36,7 @@ export function isPrivateAddress(address: string): boolean {
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
     (a === 192 && b === 0) ||
+    (a === 192 && b === 88 && parts[2] === 99) || // 6to4 relay anycast
     (a === 198 && (b === 18 || b === 19)) ||
     (a === 198 && b === 51) || (a === 203 && b === 0);
 }

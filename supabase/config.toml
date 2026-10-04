@@ -205,13 +205,13 @@ double_confirm_changes = true
 # 6-digit code from the confirmation email).
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+otp_expiry = 900
 
 # Our own email sender (Resend), required for sign-up and password-reset codes to reach users and
 # for custom templates. The password is the Resend API key, read from the SUPABASE_SMTP_PASS

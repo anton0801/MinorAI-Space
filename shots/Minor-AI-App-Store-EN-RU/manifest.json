@@ -1,0 +1,380 @@
+[
+  {
+    "language": "en",
+    "file": "app-store/en/01-map.png",
+    "source": "raw/en/01-map.png",
+    "caption": "Any idea, mapped in seconds",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-demoMap",
+      "-demoFit"
+    ],
+    "file_sha256": "aa27f3f1408e1d3c4e152c77d9636ed4b28be05d954d45bb990c79e6eb8b9edf",
+    "source_sha256": "6f4aa226d8791c68354b78bb919357f34c6bf088195b20933447e8db3d0c2057"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/02-sources.png",
+    "source": "raw/en/02-sources.png",
+    "caption": "From a topic, link, YouTube, PDF or voice",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-mindMode"
+    ],
+    "file_sha256": "f6dddce976346608e70d36f813d8efd590e59fb625763356d06288ce80f06558",
+    "source_sha256": "faf8b193ba8cb7f0287e981d931e8300859ae2afd86bbefbb064bf5ff1e44d9a"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/03-assistant.png",
+    "source": "raw/en/03-assistant.png",
+    "caption": "An AI assistant that knows your maps",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-demoAgent"
+    ],
+    "file_sha256": "26e6f9ed1dcb0085f97ef9f2ec01cba16239821ccfc4d88ede0bc9fac5f5d21e",
+    "source_sha256": "3ae9c1996019cd1d75a9ac2323bcf5d11b6bf665f76afd591153b0aa469bdbf6"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/04-slides.png",
+    "source": "raw/en/04-slides.png",
+    "caption": "Slides from your map, with PowerPoint export",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-demoDesign"
+    ],
+    "file_sha256": "8859b7fb86f282038a114a389262a4ed2bcd4e0392dcefb761fc1031a72f5858",
+    "source_sha256": "9c2c2437710a542fda9b0ef0861a06d807e1b620c7a6f2a7051c8ef9c2e82634"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/05-today.png",
+    "source": "raw/en/05-today.png",
+    "caption": "Tasks and reminders from all your maps",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-mindMode",
+      "-demoToday"
+    ],
+    "file_sha256": "8e4ff50965ded79fe4afbcfc82b83aea3f56db3b8f858538684b7af6b5e3185d",
+    "source_sha256": "39cc319d9c40eced728160b91d7975584c8e919eb47a192306e312be3f10ca62"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/06-study.png",
+    "source": "raw/en/06-study.png",
+    "caption": "Learn with flashcards and quizzes",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-demoMap",
+      "-demoStudy"
+    ],
+    "file_sha256": "52554210b350ad5e8f6de46b74929d68a33d871b975a732065b9abfb15bcd6e0",
+    "source_sha256": "cba598a3e76441aa3a5ed12d5d542c6c6372b8af0d7682d0a9789ae3bc27c5e8"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/07-together.png",
+    "source": "raw/en/07-together.png",
+    "caption": "Edit maps together",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-demoMap",
+      "-demoFit",
+      "-demoCollab"
+    ],
+    "file_sha256": "82b7f734f8663eeaef1e8e7b9aaf5b8a4b13e8f8698932a9fd372ce68bc84ffb",
+    "source_sha256": "e1d3b1d9c1a16c18a01c0aad04f36492dae1e5eec4e01ca3936b0b7b8bf6b252"
+  },
+  {
+    "language": "en",
+    "file": "app-store/en/08-present.png",
+    "source": "raw/en/08-present.png",
+    "caption": "Your slides and speaker notes, together",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "en",
+      "-demoPresentDeck"
+    ],
+    "file_sha256": "ba575d3ce603308419b5a4733a063f878aa2547a28f296390ad2b4959c3b3d46",
+    "source_sha256": "833d5154303b09eafab2bf1dead14d8142a673b6cb390d9e7d86b79022ef1ac0"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/01-map.png",
+    "source": "raw/ru/01-map.png",
+    "caption": "Любая идея — карта за секунды",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-demoMap",
+      "-demoFit"
+    ],
+    "file_sha256": "37d4102f3d658f9c79b0e8357ad24fb20eea5533135255aea60191781872e24e",
+    "source_sha256": "6a29ba378994f28cadbc85ba5203d8897d3d5d20d3b70a292bb4846cc7bb0406"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/02-sources.png",
+    "source": "raw/ru/02-sources.png",
+    "caption": "Из темы, ссылки, YouTube, PDF или голоса",
+    "font_px": 90,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-mindMode"
+    ],
+    "file_sha256": "670dda2de85e8757ae7b47cdf4cb7dda422435793ede1a12ba3d9344a2a7b400",
+    "source_sha256": "92af0a92fcf554fe1dd9996b8abfb84771abf09a74a058ac1e92059565e5174b"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/03-assistant.png",
+    "source": "raw/ru/03-assistant.png",
+    "caption": "ИИ-помощник, который знает ваши карты",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-demoAgent"
+    ],
+    "file_sha256": "88a36683414e3631d91048f6a0fd1ab49e20aca23c32c3c279dea78f264f7f65",
+    "source_sha256": "998352a76892d0397cc153a7cf015f989f906f952a243a1db088552c823d2a41"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/04-slides.png",
+    "source": "raw/ru/04-slides.png",
+    "caption": "Презентация из карты с экспортом в PowerPoint",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-demoDesign"
+    ],
+    "file_sha256": "98a22407759063328955c013c86183ea47cb9e6b999ac0f12cc67a519f675c3e",
+    "source_sha256": "e41e0ca128ec7b3c0c15206046cf0fedc73e2e919ceac5cf3b00c1a1e4ad89a4"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/05-today.png",
+    "source": "raw/ru/05-today.png",
+    "caption": "Задачи и напоминания из всех карт",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-mindMode",
+      "-demoToday"
+    ],
+    "file_sha256": "2b03ecce9ddb61fca49f64ce2a53ead71a3f897ec1190219bafd14bd5887f1fc",
+    "source_sha256": "467807d1257cb39e646ef6257119559e43ab482ed2b696c8a2ec3c60bd690f14"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/06-study.png",
+    "source": "raw/ru/06-study.png",
+    "caption": "Учитесь по карточкам и тестам",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-demoMap",
+      "-demoStudy"
+    ],
+    "file_sha256": "331bfd0f2d25d855f04f7cc751a062cc842cc14c62e817299c6139411691b3f8",
+    "source_sha256": "74ac848b77f1660b4712a85b91b9889eb912ed3a09ad7b7d30395db3cdd2d712"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/07-together.png",
+    "source": "raw/ru/07-together.png",
+    "caption": "Редактируйте карты вместе",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-demoMap",
+      "-demoFit",
+      "-demoCollab"
+    ],
+    "file_sha256": "98abad83fe5542b26be3a79192d9ca74d16614b1c3a6f0297b5d8c39768e7ff6",
+    "source_sha256": "1fcc3ff6fa8ea0a555cda6ea9540bc6a3e7c02b32bdcf02ff30335bd756b3da5"
+  },
+  {
+    "language": "ru",
+    "file": "app-store/ru/08-present.png",
+    "source": "raw/ru/08-present.png",
+    "caption": "Слайды и заметки для выступления",
+    "font_px": 96,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "mode": "RGB",
+    "launch_flags": [
+      "-didOnboard",
+      "YES",
+      "-auditSignedOut",
+      "-demoPro",
+      "-appLanguage",
+      "ru",
+      "-demoPresentDeck"
+    ],
+    "file_sha256": "929b2a981f746b74b2b2220b1e51dbe878bf3e56daa9627aa36363bfaeded7e8",
+    "source_sha256": "40aafea5e4ba7b0c57fde1aaa446ed879ae2cfec80b30b368a9a93ed88bd9bd3"
+  }
+]

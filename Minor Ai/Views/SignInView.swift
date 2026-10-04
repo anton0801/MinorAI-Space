@@ -25,6 +25,7 @@ struct SignInView: View {
     @State private var error: String?
     @State private var info: String?
     @State private var isWorking = false
+    @State private var codeVerified = false   // reset: the code worked; only the password is left
     @State private var breathe = false
     @FocusState private var focused: Field?
 
@@ -140,6 +141,7 @@ struct SignInView: View {
         .onChange(of: step) { _ in
             error = nil
             code = ""
+            codeVerified = false
         }
     }
 
@@ -208,7 +210,7 @@ struct SignInView: View {
                     .accessibilityLabel("Email")
             }
         }
-        if step == .confirm || step == .reset {
+        if step == .confirm || (step == .reset && !codeVerified) {
             field {
                 TextField("", text: $code)
                     .placeholder(when: code.isEmpty) { Text("6-digit code").foregroundColor(theme.placeholderText) }
@@ -235,7 +237,38 @@ struct SignInView: View {
                     .onSubmit(submit)
                     .accessibilityLabel(step == .signIn ? "Password" : "New password")
             }
+            if step != .signIn { passwordChecklist }
         }
+    }
+
+    // What the server will accept, ticked off while typing.
+    private var passwordChecklist: some View {
+        let check = PasswordRules.check(password)
+        let foreignLetters = !check.latinLetter && password.unicodeScalars.contains { CharacterSet.letters.contains($0) }
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 14) {
+                rule(L("8+ characters"), check.length)
+                rule(L("A–Z letter"), check.latinLetter)
+                rule(L("Digit"), check.digit)
+            }
+            if foreignLetters {
+                Text("Only Latin letters count: switch the keyboard to English.")
+                    .foregroundColor(Color(hex: "#FFD66B"))
+            }
+        }
+        .font(.system(size: 13))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func rule(_ text: String, _ ok: Bool) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: ok ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(ok ? MinorColor.accent : MinorColor.textTertiary)
+            Text(text).foregroundColor(ok ? MinorColor.textPrimary : MinorColor.textSecondary)
+        }
+        .accessibilityLabel(ok ? L("\(text): done") : text)
     }
 
     private func field<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -269,10 +302,10 @@ struct SignInView: View {
     private var canSubmit: Bool {
         switch step {
         case .signIn: return emailLooksValid && !password.isEmpty
-        case .signUp: return emailLooksValid && password.count >= 8
+        case .signUp: return emailLooksValid && PasswordRules.problem(in: password) == nil
         case .confirm: return code.count == 6
         case .forgot: return emailLooksValid
-        case .reset: return code.count == 6 && password.count >= 8
+        case .reset: return (codeVerified || code.count == 6) && PasswordRules.problem(in: password) == nil
         }
     }
 
@@ -352,7 +385,12 @@ struct SignInView: View {
                     step = .reset
                     focused = .code
                 case .reset:
-                    try await auth.resetPassword(email: trimmedEmail, code: code, newPassword: password)
+                    if !codeVerified {
+                        try await auth.verifyPasswordReset(email: trimmedEmail, code: code)
+                        codeVerified = true
+                        info = L("Code confirmed. Now set the new password.")
+                    }
+                    try await auth.updatePassword(password)
                     await didSignIn()
                 }
             } catch AuthError.emailNotConfirmed {

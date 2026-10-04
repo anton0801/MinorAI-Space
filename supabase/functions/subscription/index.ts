@@ -12,6 +12,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyAppleJWS } from "../_shared/appstore.ts";
 import { BUNDLE_ID, findSubscription, later, PLANS, recomputePlan, saveSubscription, time } from "../_shared/subscriptions.ts";
+import { rewardPurchase } from "../_shared/referrals.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -82,19 +83,36 @@ Deno.serve(async (req) => {
     }
     const newer = !existing || time(signedAt) >= time(existing.last_signed_at);
     const previousOwner = existing?.user_id ?? null;
+    // A signed transaction can be copied, so it alone doesn't move a subscription to another
+    // account. It moves when the purchase was made from this account (appAccountToken), when no
+    // account has it, or when it hasn't moved for 30 days (someone who switched accounts).
+    const moving = previousOwner !== null && previousOwner !== userId;
+    if (moving) {
+      const token = typeof payload.appAccountToken === "string" ? payload.appAccountToken.toLowerCase() : null;
+      const settled = time(existing?.owner_changed_at ?? existing?.last_signed_at ?? null) < Date.now() - 30 * 86_400_000;
+      if (token !== userId.toLowerCase() && (token !== null || !settled)) {
+        return json({ error: "owned_elsewhere", plan: await recomputePlan(supabase, userId) }, 409);
+      }
+    }
     await saveSubscription(supabase, {
       original_transaction_id: original,
       user_id: userId,
       product_id: newer ? productId : existing!.product_id,
       plan: newer ? plan : existing!.plan,
-      expires_at: resubscribed ? expires : later(existing?.expires_at ?? null, expires),
+      // A newer transaction for another product (Plus → PRO, monthly → yearly) brings its own
+      // expiry; keeping the old product's later date would extend the new plan past what was paid.
+      expires_at: resubscribed || (newer && existing && existing.product_id !== productId)
+        ? expires
+        : later(existing?.expires_at ?? null, expires),
       environment,
       revoked: Boolean(revocation),
       revoked_at: revocation ?? (resubscribed ? null : existing?.revoked_at ?? null),
       last_signed_at: later(existing?.last_signed_at ?? null, signedAt)!,
+      owner_changed_at: !existing || moving ? new Date().toISOString() : existing.owner_changed_at ?? null,
     });
     if (previousOwner && previousOwner !== userId) await recomputePlan(supabase, previousOwner);
     const current = await recomputePlan(supabase, userId);
+    if (!revocation) await rewardPurchase(supabase, userId, payload).catch((err) => console.warn("referral", err));
     return json({ plan: current, expiresAt: expires });
   } catch (err) {
     console.error("subscription", err instanceof Error ? err.message : err);

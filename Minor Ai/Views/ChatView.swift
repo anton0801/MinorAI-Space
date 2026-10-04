@@ -27,6 +27,8 @@ struct ChatView: View {
     @State private var viewer: ViewerItem?
     @State private var mentions: [MapMention] = []
     @State private var dictating = false
+    @State private var voiceMode = false
+    @ObservedObject private var speaker = Speaker.shared
     @FocusState private var inputFocused: Bool
     @ObservedObject private var mapStore = MapStore.shared
 
@@ -39,7 +41,7 @@ struct ChatView: View {
             VStack(spacing: 0) {
                 header
                 messages
-                if let error = viewModel.errorMessage ?? attachError {
+                if let error = bannerError {
                     errorBanner(error)
                 }
                 if !images.isEmpty || file != nil {
@@ -54,6 +56,13 @@ struct ChatView: View {
         .photosPicker(isPresented: $showPhotos, selection: $photoItems, maxSelectionCount: 4, matching: .images)
         .onChange(of: photoItems) { items in loadPhotos(items) }
         .fullScreenCover(item: $viewer) { item in ImageViewer(item: item) }
+        .fullScreenCover(isPresented: $voiceMode) {
+            VoiceModeView(viewModel: viewModel, model: model, theme: theme) { voiceMode = false }
+        }
+        .onDisappear { speaker.stop() }
+        #if DEBUG
+        .onAppear { if ProcessInfo.processInfo.arguments.contains("-demoVoice") { voiceMode = true } }
+        #endif
         .onChange(of: viewModel.restoredDraft?.id) { _ in
             // Consent was declined: the message and attachments go back into the field.
             guard !viewModel.messages.isEmpty, let restored = viewModel.restoredDraft else { return }
@@ -97,6 +106,18 @@ struct ChatView: View {
             }
             .accessibilityLabel("AI model: \(model.displayName)")
             Spacer()
+            Button {
+                guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { voiceMode = true } }
+                voiceMode = true
+            } label: {
+                Image(systemName: "waveform")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(MinorColor.accent))
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Voice Mode")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -195,9 +216,9 @@ struct ChatView: View {
                     ActionCard(
                         action: action,
                         theme: theme,
-                        canUndo: action.kind == .edited && action.undone != true && viewModel.canUndo(message.id),
-                        mapExists: mapStore.map(action.mapID) != nil,
-                        onOpen: { viewModel.openMap(action.mapID) },
+                        canUndo: (action.kind == .edited || action.kind == .deckEdited) && action.undone != true && viewModel.canUndo(message.id),
+                        mapExists: viewModel.targetExists(action),
+                        onOpen: { viewModel.openTarget(action) },
                         onUndo: { viewModel.undoAction(message.id) },
                         onCreateImages: { viewModel.createImages(message.id) }
                     )
@@ -236,6 +257,11 @@ struct ChatView: View {
                         Button {
                             UIPasteboard.general.string = message.text
                         } label: { Label("Copy", systemImage: "doc.on.doc") }
+                        if !isUser {
+                            Button { toggleReading(message) } label: {
+                                Label(speaker.speakingID == message.id ? "Stop Reading" : "Read Aloud", systemImage: speaker.speakingID == message.id ? "stop.fill" : "speaker.wave.2")
+                            }
+                        }
                         if !isUser && message.text.count >= 80 {
                             Button {
                                 onMapThis(message.text)
@@ -243,10 +269,24 @@ struct ChatView: View {
                         }
                     }
                 }
+                if isUser, let reason = message.failed {
+                    failureNote(message, reason: reason)
+                }
                 if !isUser, let used = message.model, used != model.apiModelID, let option = AIModelCatalog.option(apiID: used) {
                     Text("Answered by \(option.displayName)")
                         .font(.system(size: 12))
                         .foregroundColor(MinorColor.textTertiary)
+                }
+                if !isUser, !message.text.isEmpty, message.id == viewModel.messages.last(where: { !$0.isHidden })?.id {
+                    Button { toggleReading(message) } label: {
+                        Image(systemName: speaker.speakingID == message.id ? "stop.fill" : "speaker.wave.2")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 34, height: 30)
+                            .overlay(RoundedRectangle(cornerRadius: 15).stroke(theme.chatStroke, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(speaker.speakingID == message.id ? "Stop Reading" : "Read Aloud")
                 }
                 if !isUser, message.id == viewModel.messages.last?.id, message.text.count > 120 {
                     Button { onMapThis(message.text) } label: {
@@ -283,6 +323,44 @@ struct ChatView: View {
             Spacer(minLength: 40)
         }
         .accessibilityLabel("Minor is typing")
+    }
+
+    // A message that got no answer shows its reason under it with Retry; the banner is for other
+    // problems, and for limits (it has the upgrade button).
+    private var bannerError: String? {
+        if let attachError { return attachError }
+        guard let error = viewModel.errorMessage else { return nil }
+        if !viewModel.limitReached, viewModel.messages.last(where: { !$0.isHidden })?.failed != nil { return nil }
+        return error
+    }
+
+    private func retry(_ message: ChatMessage) {
+        guard AuthService.shared.isSignedIn else {
+            return AuthGate.shared.require { viewModel.retry(message.id, model: model) }
+        }
+        viewModel.retry(message.id, model: model)
+    }
+
+    private func failureNote(_ message: ChatMessage, reason: String) -> some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Label(reason, systemImage: "exclamationmark.circle")
+                .font(.system(size: 12))
+                .foregroundColor(MinorColor.dangerText)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+            if viewModel.canRetry(message.id) {
+                Button { retry(message) } label: {
+                    Label("Retry", systemImage: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .frame(height: 32)
+                        .overlay(Capsule().stroke(MinorColor.dangerText.opacity(0.8), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 
     private func errorBanner(_ text: String) -> some View {
@@ -448,8 +526,10 @@ struct ChatView: View {
         .padding(.bottom, 12)
     }
 
+    // A picture is drawn from words, so image mode needs text; attachments wait for a normal message.
     private var canSend: Bool {
-        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !images.isEmpty || file != nil
+        let hasText = !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return imageMode ? hasText : hasText || !images.isEmpty || file != nil
     }
 
     private func sendDraft() {
@@ -460,10 +540,21 @@ struct ChatView: View {
         draft = ""
         mentions = []
         viewModel.send(text, model: model, images: imageMode ? [] : images, file: imageMode ? nil : file, maps: imageMode ? [] : maps, asImage: imageMode)
-        images = []
-        file = nil
+        // In image mode the attached photos and file weren't sent: they stay for the next message.
+        if !imageMode {
+            images = []
+            file = nil
+        }
         attachError = nil
         imageMode = false
+    }
+
+    private func toggleReading(_ message: ChatMessage) {
+        if speaker.speakingID == message.id {
+            speaker.stop()
+        } else {
+            speaker.speak(message.text, id: message.id)
+        }
     }
 
     // MARK: - @ mentions
@@ -484,7 +575,9 @@ struct ChatView: View {
         Task {
             var loaded: [Data] = []
             for item in items {
-                if let data = try? await item.loadTransferable(type: Data.self), let prepared = Attachments.preparedImage(from: data) {
+                // Shrunk off the main thread, so a big photo doesn't freeze the screen.
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let prepared = await Task.detached(priority: .userInitiated, operation: { Attachments.preparedImage(from: data) }).value {
                     loaded.append(prepared)
                 }
             }

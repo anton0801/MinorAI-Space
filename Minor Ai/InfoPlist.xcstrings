@@ -1,84 +1,134 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "CFBundleDisplayName": {
-      "comment": "Bundle display name",
-      "extractionState": "extracted_with_value",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Minor AI"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Minor AI"
           }
         }
       }
     },
-    "CFBundleName": {
-      "comment": "Bundle name",
-      "extractionState": "extracted_with_value",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Minor Ai"
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Minor Ai"
           }
         }
       }
     },
-    "NSMicrophoneUsageDescription": {
-      "comment": "Privacy - usage description",
-      "extractionState": "extracted_with_value",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minor listens while you dictate a message or talk through an idea for a mind map."
+    "NSCalendarsFullAccessUsageDescription" : {
+      "comment" : "Privacy - usage description",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor adds your tasks with a due date to a “Minor AI” calendar and keeps them up to date."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minor слушает, пока вы диктуете сообщение или проговариваете идею для карты."
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor добавляет задачи со сроком в календарь «Minor AI» и обновляет их."
           }
         }
       }
     },
-    "NSPhotoLibraryAddUsageDescription": {
-      "comment": "Privacy - usage description",
-      "extractionState": "extracted_with_value",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Minor saves the mind map images you export to your photo library."
+    "NSCalendarsUsageDescription" : {
+      "comment" : "Privacy - usage description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor adds your tasks with a due date to a “Minor AI” calendar and keeps them up to date."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minor сохраняет экспортированные изображения карт в вашу медиатеку."
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor добавляет задачи со сроком в календарь «Minor AI» и обновляет их."
           }
         }
       }
     },
-    "NSSpeechRecognitionUsageDescription": {
-      "comment": "Privacy - usage description",
-      "extractionState": "extracted_with_value",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minor turns your voice into text on your iPhone. The text is sent to AI only when you send a message or build a map."
+    "NSCameraUsageDescription" : {
+      "comment" : "Privacy - usage description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor scans your notes, slides or a whiteboard to turn them into a mind map. The text is read on your iPhone."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minor превращает голос в текст на вашем iPhone. Текст отправляется ИИ, только когда вы отправите сообщение или построите карту."
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor сканирует конспекты, слайды или доску, чтобы превратить их в карту. Текст распознаётся на вашем iPhone."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "comment" : "Privacy - usage description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor listens while you dictate a message or talk through an idea for a mind map."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor слушает, пока вы диктуете сообщение или проговариваете идею для карты."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryAddUsageDescription" : {
+      "comment" : "Privacy - usage description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Minor saves the mind map images you export to your photo library."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor сохраняет экспортированные изображения карт в вашу медиатеку."
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription" : {
+      "comment" : "Privacy - usage description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor turns your voice into text on your iPhone. The text is sent to AI only when you send a message or build a map."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minor превращает голос в текст на вашем iPhone. Текст отправляется ИИ, только когда вы отправите сообщение или построите карту."
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

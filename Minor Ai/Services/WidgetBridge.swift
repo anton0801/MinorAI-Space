@@ -24,8 +24,22 @@ final class WidgetBridge {
             .sink { [weak self] maps in self?.write(maps) }
     }
 
+    // Tasks ticked in the widget since the app was last open.
+    func applyTicks() {
+        let ticks = WidgetTicks.pending()
+        guard !ticks.isEmpty else { return }
+        WidgetTicks.clear()
+        // Not on shared maps the person can only view.
+        for tick in ticks where MapStore.shared.map(tick.mapID)?.collab?.canEdit != false {
+            MapStore.shared.update(tick.mapID) { map in
+                map.root.update(tick.nodeID) { $0.isDone = true }
+            }
+        }
+    }
+
     // The language or the day changed: write again even if the tasks did not.
     func refresh() {
+        applyTicks()
         last = nil
         write(MapStore.shared.maps)
     }

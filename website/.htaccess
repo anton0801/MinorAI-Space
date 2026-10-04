@@ -1,0 +1,2 @@
+# Apache hosting: show our own page for missing addresses.
+ErrorDocument 404 /404.html

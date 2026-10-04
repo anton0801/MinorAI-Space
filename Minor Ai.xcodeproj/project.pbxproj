@@ -82,6 +82,7 @@
 		880FED883AA93E91692D5810 /* SharedContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedContainer.swift; sourceTree = "<group>"; };
 		8F20094030713F470018F533 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		AB24707EC74AB4A454303FC5 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		C0FFEE0A2E91000100A1B2C3 /* Minor.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Minor.storekit; sourceTree = "<group>"; };
 		CE135291E93F8F41940576E3 /* MinorShare.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = MinorShare.entitlements; sourceTree = "<group>"; };
 		ED0742B52B1B92FD9D43FAB1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		FA27147E792ED44B6A20D03B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -193,6 +194,7 @@
 				BF85726B1C6990D16C9BF22C /* Shared */,
 				EA6C1A72DC7FEF1207A209D0 /* MinorWidgets */,
 				182272612913C22D2DD0A584 /* MinorShare */,
+				C0FFEE0B2E91000100A1B2C3 /* StoreKit */,
 			);
 			sourceTree = "<group>";
 		};
@@ -226,6 +228,14 @@
 				880FED883AA93E91692D5810 /* SharedContainer.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		C0FFEE0B2E91000100A1B2C3 /* StoreKit */ = {
+			isa = PBXGroup;
+			children = (
+				C0FFEE0A2E91000100A1B2C3 /* Minor.storekit */,
+			);
+			path = StoreKit;
 			sourceTree = "<group>";
 		};
 		EA6C1A72DC7FEF1207A209D0 /* MinorWidgets */ = {
@@ -566,6 +576,10 @@
 				INFOPLIST_FILE = "Minor Ai/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Minor adds your tasks with a due date to a “Minor AI” calendar and keeps them up to date.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Minor adds your tasks with a due date to a “Minor AI” calendar and keeps them up to date.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Minor scans your notes, slides or a whiteboard to turn them into a mind map. The text is read on your iPhone.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Minor listens while you dictate a message or talk through an idea for a mind map.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Minor saves the mind map images you export to your photo library.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Minor turns your voice into text on your iPhone. The text is sent to AI only when you send a message or build a map.";
@@ -603,6 +617,10 @@
 				INFOPLIST_FILE = "Minor Ai/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Minor AI";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Minor adds your tasks with a due date to a “Minor AI” calendar and keeps them up to date.";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Minor adds your tasks with a due date to a “Minor AI” calendar and keeps them up to date.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Minor scans your notes, slides or a whiteboard to turn them into a mind map. The text is read on your iPhone.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Minor listens while you dictate a message or talk through an idea for a mind map.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Minor saves the mind map images you export to your photo library.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Minor turns your voice into text on your iPhone. The text is sent to AI only when you send a message or build a map.";
@@ -757,7 +775,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				MARKETING_VERSION = 1.0;
@@ -776,7 +794,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				MARKETING_VERSION = 1.0;
@@ -794,7 +812,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				MARKETING_VERSION = 1.0;
@@ -812,7 +830,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7X47AV9RN8;
+				DEVELOPMENT_TEAM = 3B4YZ93BS3;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				MARKETING_VERSION = 1.0;

@@ -20,6 +20,8 @@ struct NodeCardView: View {
     var onAddPhoto: () -> Void = {}
     var onGenerateImage: () -> Void = {}
     var onUpgrade: () -> Void
+    // A viewer of a shared map: the idea's picture, link and note to read, nothing to change.
+    var readOnly = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var note = ""
@@ -38,14 +40,22 @@ struct NodeCardView: View {
                 if let color = map.branchColor(for: nodeID) {
                     Circle().fill(color.color).frame(width: 10, height: 10).padding(.top, 8)
                 }
-                Button { act(onRename) } label: {
+                if readOnly {
                     Text(node?.title ?? "")
                         .font(.system(size: 20, weight: .bold))
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                } else {
+                    Button { act(onRename) } label: {
+                        Text(node?.title ?? "")
+                            .font(.system(size: 20, weight: .bold))
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Rename")
                 }
-                .buttonStyle(.plain)
-                .accessibilityHint("Rename")
                 if noteFocused {
                     Button("Done") {
                         noteFocused = false
@@ -91,7 +101,7 @@ struct NodeCardView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel(picture.isAI ? "Image created with AI" : "Photo")
                     }
-                    if let link = node?.link, let url = URL(string: link) {
+                    if let link = node?.link, let url = URL(string: link), ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
                         Link(destination: url) {
                             HStack(spacing: 10) {
                                 Image(systemName: "link").font(.system(size: 17)).frame(width: 24)
@@ -105,6 +115,19 @@ struct NodeCardView: View {
                             .background(RoundedRectangle(cornerRadius: 10).fill(MinorColor.row))
                         }
                     }
+                    if readOnly {
+                        if !note.isEmpty {
+                            Text(note)
+                                .font(.system(size: 17))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                                .padding(14)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(MinorColor.row))
+                        }
+                        Label("View only: the owner can make you an editor", systemImage: "eye")
+                            .font(.system(size: 13))
+                            .foregroundColor(MinorColor.textTertiary)
+                    } else {
                     ZStack(alignment: .topLeading) {
                         if note.isEmpty {
                             Text("Add a note")
@@ -123,6 +146,7 @@ struct NodeCardView: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(RoundedRectangle(cornerRadius: 10).fill(MinorColor.row))
+                    }
 
                     if let source = map.source, source.kind != .topic {
                         HStack(spacing: 10) {
@@ -147,6 +171,14 @@ struct NodeCardView: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(MinorColor.danger.opacity(0.6), lineWidth: 1))
                     }
 
+                    if readOnly {
+                        // Asking about the idea changes nothing in the map.
+                        VStack(spacing: 0) {
+                            action("bubble.left", "Ask in Chat", last: true) { act { onAsk() } }
+                        }
+                        .background(MinorColor.row)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
                     VStack(alignment: .leading, spacing: 15) {
                         Text("AI").font(.system(size: 14, weight: .medium)).foregroundColor(MinorColor.textTertiary)
                         VStack(spacing: 0) {
@@ -162,7 +194,9 @@ struct NodeCardView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
 
-                    if !isRoot {
+                    }
+
+                    if !isRoot && !readOnly {
                         Button {
                             dismiss()
                             onDelete()
@@ -215,6 +249,7 @@ struct NodeCardView: View {
     }
 
     private func commit() {
+        guard !readOnly else { return }
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed != (node?.note ?? "") { onSaveNote(trimmed) }
     }
@@ -255,6 +290,7 @@ struct NodeCardView: View {
         case .youtube: return "play.rectangle"
         case .voice: return "mic"
         case .chat: return "bubble.left"
+        case .scan: return "doc.viewfinder"
         }
     }
 }

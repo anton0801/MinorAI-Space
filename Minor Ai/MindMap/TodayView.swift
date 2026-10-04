@@ -88,9 +88,13 @@ struct TodayView: View {
     let theme: AppTheme
     var onOpen: (_ map: UUID, _ node: UUID) -> Void
     var onAsk: () -> Void
+    var onStudy: (_ map: UUID) -> Void = { _ in }
+
+    @ObservedObject private var study = StudyStore.shared
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = MapStore.shared
+    @State private var viewOnlyNotice = false
 
     private var tasks: [TaskEntry] { TaskAgenda.tasks(in: store.maps) }
     private var sections: [TaskAgenda.Section] { TaskAgenda.sections(tasks) }
@@ -100,7 +104,8 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     summary
-                    if sections.isEmpty {
+                    reviews
+                    if sections.isEmpty && study.reviews(in: store.maps).isEmpty {
                         empty
                     }
                     ForEach(sections) { section in
@@ -131,6 +136,11 @@ struct TodayView: View {
             .background(theme.background.ignoresSafeArea())
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("View only", isPresented: $viewOnlyNotice) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("This map is shared with you to view. The owner can make you an editor.")
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.foregroundColor(MinorColor.accent)
@@ -175,6 +185,50 @@ struct TodayView: View {
                     .background(Capsule().fill(MinorColor.accent))
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    // Flashcards due for review, by map.
+    @ViewBuilder
+    private var reviews: some View {
+        let due = study.reviews(in: store.maps)
+        if !due.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Review")
+                    .textCase(.uppercase)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(MinorColor.textTertiary)
+                VStack(spacing: 0) {
+                    ForEach(due, id: \.map.id) { item in
+                        Button {
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onStudy(item.map.id) }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "rectangle.on.rectangle.angled")
+                                    .foregroundColor(Color(hex: "#7CC4FF"))
+                                    .frame(width: 44, height: 44)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.map.title).font(.system(size: 16)).lineLimit(1)
+                                    Text(L("\(item.count) cards to review")).font(.system(size: 12)).foregroundColor(MinorColor.textTertiary)
+                                }
+                                Spacer()
+                                Text("Review")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 12)
+                                    .frame(height: 32)
+                                    .background(Capsule().fill(MinorColor.accent))
+                            }
+                            .padding(.trailing, 12)
+                            .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .background(RoundedRectangle(cornerRadius: 14).fill(theme.chatRectangle))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.chatStroke, lineWidth: 1))
+            }
         }
     }
 
@@ -254,6 +308,12 @@ struct TodayView: View {
     }
 
     private func toggle(_ task: TaskEntry) {
+        // A shared map the person can only view: their tick would never reach the others.
+        if store.map(task.mapID)?.collab?.canEdit == false {
+            Haptics.error()
+            viewOnlyNotice = true
+            return
+        }
         Haptics.selection()
         store.update(task.mapID) { $0.root.update(task.nodeID) { $0.isDone.toggle() } }
     }

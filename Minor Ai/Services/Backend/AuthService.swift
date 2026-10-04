@@ -29,7 +29,13 @@ final class AuthService: ObservableObject {
     // Set when a signed-in (Apple) session was revoked on the server, so Settings can offer to sign in again.
     @Published var signedOutByServer = false
 
+    #if DEBUG
+    // -auditSignedOut: automated tests run as if signed out and never read or change the saved
+    // session, so a person's account on the simulator stays untouched.
+    private let keychain = KeychainStore(account: ProcessInfo.processInfo.arguments.contains("-auditSignedOut") ? "audit.session" : "supabase.session")
+    #else
     private let keychain = KeychainStore(account: "supabase.session")
+    #endif
     private var refreshTask: Task<AuthSession, Error>?
     // Bumped on every sign-in or sign-out, so a slow refresh or sign-up never overwrites a newer session.
     private var generation = 0
@@ -64,6 +70,15 @@ final class AuthService: ObservableObject {
             signedIn(with: response)
             return .signedIn
         }
+        // For an email that already has a confirmed account the server answers with a stand-in
+        // user without identities and sends no code; say so instead of waiting for a code.
+        struct Identities: Decodable { let identities: [AnyCodable]? }
+        struct Wrapped: Decodable { let user: Identities? }
+        let direct = try? JSONDecoder().decode(Identities.self, from: data)
+        let wrapped = try? JSONDecoder().decode(Wrapped.self, from: data)
+        if let identities = direct?.identities ?? wrapped?.user?.identities, identities.isEmpty {
+            throw AuthError.alreadyRegistered
+        }
         return .needsCode
     }
 
@@ -89,16 +104,21 @@ final class AuthService: ObservableObject {
         _ = try await postRaw("auth/v1/recover", body: Body(email: email))
     }
 
-    // Checks the code, signs in and sets the new password.
-    func resetPassword(email: String, code: String, newPassword: String) async throws {
+    // Checks the code from the reset email and signs in. A code works once, so the new password
+    // is set separately: if it is refused, the person fixes it without asking for a new code.
+    func verifyPasswordReset(email: String, code: String) async throws {
         let response: TokenResponse = try await postForm("auth/v1/verify", body: VerifyBody(type: "recovery", email: email, token: code))
         signedIn(with: response)
+    }
+
+    func updatePassword(_ newPassword: String) async throws {
         struct Body: Encodable { let password: String }
+        let token = try await validAccessToken()
         var request = URLRequest(url: URL(string: "auth/v1/user", relativeTo: BackendConfig.url)!)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(BackendConfig.publishableKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(response.access_token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONEncoder().encode(Body(password: newPassword))
         let (data, http) = try await BackendClient.shared.send(request)
         guard (200..<300).contains(http.statusCode) else { throw AuthError.from(data) }
@@ -108,6 +128,9 @@ final class AuthService: ObservableObject {
         generation += 1
         store(response)
         signedOutByServer = false
+        // Another account may be signing in: its own plan and subscription answer apply.
+        AccountStore.shared.reset()
+        SubscriptionStore.shared.accountChanged()
     }
 
     func signInWithApple(idToken: String, rawNonce: String, authorizationCode: String?) async throws {
@@ -133,8 +156,13 @@ final class AuthService: ObservableObject {
     }
 
     func signOut() {
+        if let current = session, !current.isAnonymous { PushService.shared.signedOut(accessToken: current.accessToken) }
         generation += 1
         session = nil
+        // Nothing of this account's plan, limits or invitations stays on screen.
+        AccountStore.shared.reset()
+        InviteService.shared.forget()
+        SubscriptionStore.shared.accountChanged()
         keychain.delete()
     }
 
@@ -338,6 +366,7 @@ enum AuthError: LocalizedError, Equatable {
     case emailNotConfirmed
     case alreadyRegistered
     case weakPassword
+    case samePassword
     case invalidEmail
     case badCode
     case tooManyAttempts
@@ -346,10 +375,11 @@ enum AuthError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .wrongCredentials: return L("Wrong email or password.")
+        case .wrongCredentials: return L("Wrong email or password. If you forgot it, tap “Forgot password?”.")
         case .emailNotConfirmed: return L("Confirm your email first: enter the code we sent you.")
         case .alreadyRegistered: return L("An account with this email already exists. Sign in instead.")
-        case .weakPassword: return L("Use at least 8 characters, with letters and numbers.")
+        case .weakPassword: return L("Use at least 8 characters with a Latin letter (A–Z) and a digit.")
+        case .samePassword: return L("Choose a password different from your old one.")
         case .invalidEmail: return L("Enter a valid email address.")
         case .badCode: return L("This code is wrong or has expired. Request a new one.")
         case .tooManyAttempts: return L("Too many attempts. Try again in a few minutes.")
@@ -372,6 +402,7 @@ enum AuthError: LocalizedError, Equatable {
         case "email_not_confirmed": return .emailNotConfirmed
         case "user_already_exists", "email_exists": return .alreadyRegistered
         case "weak_password": return .weakPassword
+        case "same_password": return .samePassword
         case "email_address_invalid", "validation_failed": return .invalidEmail
         case "otp_expired", "otp_disabled", "bad_code_verifier": return .badCode
         case "over_email_send_rate_limit", "over_request_rate_limit": return .tooManyAttempts
@@ -382,7 +413,45 @@ enum AuthError: LocalizedError, Equatable {
         if message.contains("email not confirmed") { return .emailNotConfirmed }
         if message.contains("token has expired") || message.contains("invalid") && message.contains("otp") { return .badCode }
         if message.contains("rate limit") { return .tooManyAttempts }
-        if message.contains("password") { return .weakPassword }
+        if message.contains("different from the old password") { return .samePassword }
+        if message.contains("password should") || message.contains("weak") { return .weakPassword }
         return .unknown
     }
+}
+
+// What Supabase Auth accepts (password_requirements = "letters_digits" in config.toml): at least
+// 8 characters with a Latin letter and a digit. Letters of other alphabets don't count, which
+// surprised people typing on a Russian keyboard, so the app checks before sending.
+enum PasswordRules {
+    static let minimumLength = 8
+
+    struct Check { let length: Bool; let latinLetter: Bool; let digit: Bool }
+
+    static func check(_ password: String) -> Check {
+        let scalars = password.unicodeScalars
+        return Check(
+            length: password.count >= minimumLength,
+            latinLetter: scalars.contains { ("a"..."z").contains($0) || ("A"..."Z").contains($0) },
+            digit: scalars.contains { ("0"..."9").contains($0) }
+        )
+    }
+
+    // nil when the password will be accepted.
+    static func problem(in password: String) -> String? {
+        let check = check(password)
+        if !check.length { return L("Use at least 8 characters.") }
+        if !check.latinLetter {
+            let otherLetters = password.unicodeScalars.contains { CharacterSet.letters.contains($0) }
+            return otherLetters
+                ? L("Use Latin letters (A–Z): switch the keyboard to English.")
+                : L("Add a Latin letter (A–Z).")
+        }
+        if !check.digit { return L("Add a digit (0–9).") }
+        return nil
+    }
+}
+
+// Any JSON value, when only the count of an array matters.
+private struct AnyCodable: Decodable {
+    init(from decoder: Decoder) throws {}
 }

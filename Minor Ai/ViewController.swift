@@ -27,6 +27,16 @@ struct ContentView: View {
     @State private var homeMentions: [MapMention] = []   // maps attached with @
     @State private var pendingShare: SharedItem?          // a page or text shared from another app
     @State private var homeDictating = false
+    @State private var openDeckID: UUID?
+    @State private var newDeck: NewDeckRequest?
+
+    struct NewDeckRequest: Identifiable {
+        let id = UUID()
+        let mapID: UUID?
+    }
+    #if DEBUG
+    @State private var slideGallery = false
+    #endif
     @Environment(\.scenePhase) private var scenePhase
     @State private var homeImages: [Data] = []
     @State private var homeFile: Attachments.Document?
@@ -55,8 +65,12 @@ struct ContentView: View {
     @State private var isSidebarActive: Bool = false
     @State private var sidebarOffset: CGFloat = -UIScreen.main.bounds.width
     @State private var showSettings = false
+    @State private var showUsage = false
+    @State private var inviteSheet: InviteSheet?
     @State private var paywallTier: SubscriptionStore.Tier = .plus
     @AppStorage("didOnboard") private var didOnboard = false
+    // A link that arrived during onboarding, opened once it is done.
+    @State private var pendingLink: URL?
     @State private var minorPlusOffsetY: CGFloat = -10
     @State private var mainScreenOffsetY: CGFloat = 0
     @State private var bigLogoOffsetX: CGFloat = 0
@@ -112,26 +126,20 @@ struct ContentView: View {
             Button(action: {
                 openPaywall()
             }) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 25)
-                        .fill(minorPlusRectangleColor)
-                        .frame(width: 130, height: 35)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 25)
-                                .stroke(minorPlusStrokeColor, lineWidth: 1)
-                        )
-                    HStack(spacing: 5) {
-                        Image("minlogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 28, height: 28)
-                            .offset(x: -4)
-                        Text("Minor Plus")
-                            .foregroundColor(.white)
-                            .font(.system(size: 16))
-                            .offset(x: -4)
-                    }
-                }
+                // "Get Plus", not the plan's name: free users read "Minor Plus" as their plan. As
+                // narrow as the old pill, so it never reaches the model name on an iPhone SE.
+                Text("Get Plus")
+                    .foregroundColor(.white)
+                    .font(.system(size: 15, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, 12)
+                    .frame(width: 122, height: 35)
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(minorPlusRectangleColor)
+                            .overlay(RoundedRectangle(cornerRadius: 25).stroke(minorPlusStrokeColor, lineWidth: 1))
+                    )
             }
             .accessibilityLabel("Get Minor Plus")
             .position(x: UIScreen.main.bounds.width / 2, y: 40) // Центр
@@ -199,6 +207,21 @@ struct ContentView: View {
             // Прямоугольник "Ask me anything"
             VStack {
                 Spacer()
+                // "@" lists the person's maps right above the card (above the attachments row or
+                // hint when one shows), never over the field being typed in.
+                if !homeMentionMatches.isEmpty && !isMindActive {
+                    MentionSuggestions(maps: homeMentionMatches, theme: theme) { map in
+                        askText = Mentions.insert(map, into: askText)
+                        if !homeMentions.contains(where: { $0.id == map.id }) { homeMentions.append(MapMention(id: map.id, title: map.title)) }
+                        Haptics.selection()
+                    }
+                    // The list has its own 16-pt side margins; the outer frame keeps the column as
+                    // wide as the card, so the screen's layout doesn't widen and shift.
+                    .frame(width: chatWidth + 32)
+                    .frame(width: chatWidth)
+                    .padding(.bottom, homeAccessoryShown ? 52 : 6)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
                 ZStack {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(chatRectangleColor)
@@ -268,6 +291,7 @@ struct ContentView: View {
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "photo")
+                                        .font(.system(size: 15))
                                         .foregroundColor(.white)
                                         .frame(width: 20, height: 20)
                                     Text(homeImages.isEmpty ? "Media" : "\(homeImages.count) Photo\(homeImages.count == 1 ? "" : "s")")
@@ -285,19 +309,6 @@ struct ContentView: View {
                             Spacer()
                         }
                         .offset(x: 30, y: 2)
-                    }
-                }
-                .overlay(alignment: .top) {
-                    // "@" lists the person's maps above the card.
-                    if !homeMentionMatches.isEmpty {
-                        MentionSuggestions(maps: homeMentionMatches, theme: theme) { map in
-                            askText = Mentions.insert(map, into: askText)
-                            if !homeMentions.contains(where: { $0.id == map.id }) { homeMentions.append(MapMention(id: map.id, title: map.title)) }
-                            Haptics.selection()
-                        }
-                        .frame(width: chatWidth + 32)
-                        .alignmentGuide(.top) { d in d[.bottom] + 4 }
-                        .zIndex(2)
                     }
                 }
                 .overlay(alignment: .top) {
@@ -426,7 +437,8 @@ struct ContentView: View {
                 onAskAssistant: { text in
                     // "Plan My Day": the chat assistant reads the tasks and answers.
                     AuthGate.shared.require { chatVM.send(text, model: selectedModel, withTasks: true) }
-                }
+                },
+                onNewDeck: { newDeck = NewDeckRequest(mapID: nil) }
             )
             .offset(y: isMindActive ? 0 : UIScreen.main.bounds.height)
             .opacity(isMindActive ? 1 : 0)
@@ -453,12 +465,15 @@ struct ContentView: View {
                 
                 VStack(spacing: 0) {
                     HStack {
-                        Text(sidebarTab == .maps ? "Your Maps" : "Your Chats")
+                        Text(sidebarTab == .maps ? "Your Maps" : sidebarTab == .decks ? "Your Presentations" : "Your Chats")
                             .foregroundColor(.white)
                             .font(.system(size: 22, weight: .bold))
                         Spacer()
                         Button(action: {
-                            if sidebarTab == .maps {
+                            if sidebarTab == .decks {
+                                closeSidebar()
+                                newDeck = NewDeckRequest(mapID: nil)
+                            } else if sidebarTab == .maps {
                                 closeSidebar()
                                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2)) {
                                     isMindActive = true
@@ -474,7 +489,7 @@ struct ContentView: View {
                                 .frame(width: 44, height: 44)
                                 .contentShape(Rectangle())
                         }
-                        .accessibilityLabel(sidebarTab == .maps ? "New Map" : "New Chat")
+                        .accessibilityLabel(sidebarTab == .maps ? "New Map" : sidebarTab == .decks ? "New Presentation" : "New Chat")
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 80)
@@ -490,6 +505,14 @@ struct ContentView: View {
                         }, onOpenJob: { id in
                             closeSidebar()
                             generatingJobID = id
+                        })
+                    } else if sidebarTab == .decks {
+                        SidebarDecksView(onOpen: { id in
+                            closeSidebar()
+                            openDeckID = id
+                        }, onNew: {
+                            closeSidebar()
+                            newDeck = NewDeckRequest(mapID: nil)
                         })
                     } else if chatVM.conversations.isEmpty {
                         Spacer()
@@ -599,6 +622,7 @@ struct ContentView: View {
                     onUpgrade: openPaywall
                 )
                 .transition(.move(edge: .bottom))
+                .modifier(TopLayer(isTop: topLayer == .chat))
                 .zIndex(10)
             }
 
@@ -617,6 +641,7 @@ struct ContentView: View {
                 )
                 .id(jobID)
                 .transition(.move(edge: .bottom))
+                .modifier(TopLayer(isTop: topLayer == .building))
                 .zIndex(11)
             }
 
@@ -661,15 +686,35 @@ struct ContentView: View {
                     mapID: id,
                     theme: theme,
                     onClose: { openMapID = nil },
+                    onUpgrade: { pro in openPaywall(pro: pro) },
+                    onCreateDeck: { map in newDeck = NewDeckRequest(mapID: map) }
+                )
+                .id(id)
+                .transition(.move(edge: .bottom))
+                .modifier(TopLayer(isTop: topLayer == .map))
+                .zIndex(12)
+            }
+
+            if let id = openDeckID {
+                DeckEditorView(
+                    deckID: id,
+                    theme: theme,
+                    onClose: { openDeckID = nil },
+                    onOpenMap: { map in
+                        openDeckID = nil
+                        openMapID = map
+                    },
                     onUpgrade: { pro in openPaywall(pro: pro) }
                 )
                 .id(id)
                 .transition(.move(edge: .bottom))
-                .zIndex(12)
+                .modifier(TopLayer(isTop: topLayer == .deck))
+                .zIndex(13)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: chatVM.messages.isEmpty)
         .animation(.easeInOut(duration: 0.3), value: openMapID)
+        .animation(.easeInOut(duration: 0.3), value: openDeckID)
         .animation(.easeInOut(duration: 0.3), value: generatingJobID)
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: generation.ready)
         .photosPicker(isPresented: $showHomePhotos, selection: $homePhotoItems, maxSelectionCount: 4, matching: .images)
@@ -678,7 +723,9 @@ struct ContentView: View {
             Task {
                 var loaded: [Data] = []
                 for item in items {
-                    if let data = try? await item.loadTransferable(type: Data.self), let prepared = Attachments.preparedImage(from: data) {
+                    // Shrunk off the main thread, so a big photo doesn't freeze the screen.
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let prepared = await Task.detached(priority: .userInitiated, operation: { Attachments.preparedImage(from: data) }).value {
                         loaded.append(prepared)
                     }
                 }
@@ -697,6 +744,24 @@ struct ContentView: View {
         }
         .onChange(of: generation.openRequest) { id in
             if let id { openRequested(id) }
+        }
+        #if DEBUG
+        .fullScreenCover(isPresented: $slideGallery) { SlideGallery() }
+        #endif
+        .sheet(item: $newDeck) { request in
+            NewDeckView(theme: theme, preselectedMap: request.mapID, onCreated: { id in
+                openDeckID = id
+            }, onUpgrade: { openPaywall() })
+        }
+        .onChange(of: generation.routeRequest) { url in
+            guard let url else { return }
+            generation.routeRequest = nil
+            openLink(url)
+        }
+        .onChange(of: chatVM.openDeckRequest) { id in
+            guard let id else { return }
+            chatVM.openDeckRequest = nil
+            openDeckID = id
         }
         .onOpenURL { url in openLink(url) }
         .onChange(of: scenePhase) { phase in
@@ -718,6 +783,7 @@ struct ContentView: View {
             generation.topicRequest = nil
             if isBlurActive { closePaywall() }
             closeSidebar()
+            closeOverlays()
             openMapID = nil
             chatVM.endSession()
             withConsent { generatingJobID = GenerationCenter.shared.start(.topic(topic)) }
@@ -752,9 +818,56 @@ struct ContentView: View {
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
             if args.contains("-demoMap") { openMapID = DemoMap.install().id }
+            // A shared map this person can only view (-demoViewer, with -demoSelect or -demoCard).
+            if args.contains("-demoViewer") {
+                var map = DemoMap.install()
+                map.collab = CollabInfo(isOwner: false, version: 1, role: .viewer)
+                MapStore.shared.save(map)
+                openMapID = map.id
+            }
+            // The home field with "@" typed: the list of maps to attach (-demoMention).
+            if args.contains("-demoMention") {
+                _ = DemoMap.install()
+                askText = "@"
+            }
+            // A chat whose last message got no answer (-demoFailed): the reason and Retry under it.
+            if args.contains("-demoFailed") {
+                var failed = ChatMessage(role: .user, text: "Make a study plan for my exam")
+                failed.failed = BackendError.offline.errorDescription
+                chatVM.messages = [
+                    ChatMessage(role: .user, text: "Hi!"),
+                    ChatMessage(role: .assistant, text: "Hi! What are we working on today?"),
+                    failed,
+                ]
+            }
             if args.contains("-mindMode") { _ = DemoMap.install(); isMindActive = true }
             if args.contains("-sidebarMaps") { _ = DemoMap.install(); openSidebar() }
+            if args.contains("-onboarding") { didOnboard = false }
+            if args.contains("-sidebarDecks") { DeckStore.shared.save(DemoMap.deck()); sidebarTab = .decks; openSidebar() }
             if args.contains("-demoChat") { chatVM.messages = DemoMap.chat }
+            if args.contains("-demoSlides") { slideGallery = true }
+            if args.contains("-demoDeck") || args.contains("-demoExport") || args.contains("-demoPresentDeck") {
+                let deck = DemoMap.deck()
+                DeckStore.shared.save(deck)
+                openDeckID = deck.id
+                if args.contains("-demoExport") {
+                    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    if let pdf = try? DeckExport.pdf(deck) { try? FileManager.default.copyItem(at: pdf, to: documents.appendingPathComponent("demo.pdf")) }
+                    if let pptx = try? DeckExport.pptx(deck) { try? FileManager.default.copyItem(at: pptx, to: documents.appendingPathComponent("demo.pptx")) }
+                }
+            }
+            if args.contains("-demoDesign") {
+                let deck = DemoMap.designedDeck()
+                DeckStore.shared.save(deck)
+                openDeckID = deck.id
+                if args.contains("-demoDesignExport") {
+                    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    for name in ["design.pdf", "design.pptx"] { try? FileManager.default.removeItem(at: documents.appendingPathComponent(name)) }
+                    if let pdf = try? DeckExport.pdf(deck) { try? FileManager.default.copyItem(at: pdf, to: documents.appendingPathComponent("design.pdf")) }
+                    if let pptx = try? DeckExport.pptx(deck) { try? FileManager.default.copyItem(at: pptx, to: documents.appendingPathComponent("design.pptx")) }
+                }
+            }
+            if args.contains("-demoNewDeck") { _ = DemoMap.install(); newDeck = NewDeckRequest(mapID: nil) }
             if args.contains("-demoAgent") {
                 let map = DemoMap.install()
                 chatVM.messages = DemoMap.agentChat(map)
@@ -765,6 +878,15 @@ struct ContentView: View {
                 openSidebar()
             }
             if args.contains("-demoPaywall") { openPaywall() }
+            if args.contains("-demoUsage") {
+                AccountStore.shared.installDemo()
+                showUsage = true
+            }
+            if args.contains("-demoInvite") {
+                AccountStore.shared.installDemo()
+                InviteService.shared.installDemo()
+                inviteSheet = InviteSheet(code: nil)
+            }
             if args.contains("-demoSignIn") { AuthGate.shared.require {} }
         }
         #endif
@@ -783,6 +905,13 @@ struct ContentView: View {
             )
             .presentationDetents([.large])
         }
+        .sheet(isPresented: $showUsage) {
+            UsageView(onUpgrade: { pro in
+                showUsage = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { openPaywall(pro: pro) }
+            })
+        }
+        .sheet(item: $inviteSheet) { request in InviteView(initialCode: request.code) }
         .sheet(isPresented: $gate.isPresented, onDismiss: { gate.finish() }) {
             SignInView(onFinish: { gate.finish() })
         }
@@ -813,7 +942,13 @@ struct ContentView: View {
             AIConsentView(onAllow: { chatVM.resumeAfterConsent() }, onDecline: { chatVM.cancelPendingSend() })
         }
         .fullScreenCover(isPresented: Binding(get: { !didOnboard }, set: { didOnboard = !$0 })) {
-            OnboardingView(onFinish: { didOnboard = true })
+            OnboardingView(onFinish: {
+                didOnboard = true
+                if let url = pendingLink {
+                    pendingLink = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openLink(url) }
+                }
+            })
         }
         .gesture(
             DragGesture()
@@ -846,13 +981,16 @@ struct ContentView: View {
                     }
                 }
         )
-        .onTapGesture {
-            if isModelMenuActive {
+        // Tapping outside closes the model menu. Only while it is open: a tap gesture on the whole
+        // screen otherwise competes with the buttons in the sidebar lists and sometimes wins.
+        .gesture(
+            TapGesture().onEnded {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0.2)) {
                     isModelMenuActive = false
                 }
-            }
-        }
+            },
+            including: isModelMenuActive ? .all : .subviews
+        )
     }
 
     private func openPaywall() {
@@ -897,8 +1035,10 @@ struct ContentView: View {
         }
     }
 
+    // A picture is drawn from words, so image mode needs text; attachments wait for a normal message.
     private var canSendFromHome: Bool {
-        !askText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !homeImages.isEmpty || homeFile != nil
+        let hasText = !askText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return homeImageMode ? hasText : hasText || !homeImages.isEmpty || homeFile != nil
     }
 
     private func sendFromHome() {
@@ -910,14 +1050,22 @@ struct ContentView: View {
         askText = ""
         homeMentions = []
         chatVM.send(text, model: selectedModel, images: homeImageMode ? [] : homeImages, file: homeImageMode ? nil : homeFile, maps: homeImageMode ? [] : maps, asImage: homeImageMode)
+        // In image mode the attached photos and file weren't sent: they stay for the next message.
+        if !homeImageMode {
+            homeImages = []
+            homeFile = nil
+        }
         homeImageMode = false
-        homeImages = []
-        homeFile = nil
     }
 
     private var homeMentionMatches: [MindMap] {
         guard !homeImageMode, let query = Mentions.query(in: askText, picked: homeMentions) else { return [] }
         return Mentions.matches(query, in: MapStore.shared.maps)
+    }
+
+    // Something shows in the row above the home card (attachments, an error or the hint).
+    private var homeAccessoryShown: Bool {
+        !homeImages.isEmpty || homeFile != nil || homeError != nil || showHomeHint
     }
 
     // Above the input card: attached photos and file, or the one-time Mind Map hint.
@@ -932,8 +1080,9 @@ struct ContentView: View {
                             .scaledToFill()
                             .frame(width: 36, height: 36)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .onTapGesture { homeImages.remove(at: index) }
+                            .onTapGesture { if homeImages.indices.contains(index) { homeImages.remove(at: index) } }
                             .accessibilityLabel("Remove photo")
+                            .accessibilityAddTraits(.isButton)
                     }
                 }
                 if let file = homeFile {
@@ -947,6 +1096,9 @@ struct ContentView: View {
                     .frame(height: 30)
                     .overlay(Capsule().stroke(chatStrokeColor, lineWidth: 1))
                     .onTapGesture { homeFile = nil }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text("Remove \(file.name)"))
+                    .accessibilityAddTraits(.isButton)
                 }
             }
             .frame(width: chatWidth, alignment: .leading)
@@ -990,18 +1142,24 @@ struct ContentView: View {
     // The edge swipe opens Your Maps only from the home and Mind screens, never over a map,
     // a chat or the paywall (where it fought with panning and scrolling).
     private var sidebarSwipeEnabled: Bool {
-        openMapID == nil && generatingJobID == nil && chatVM.messages.isEmpty && !isBlurActive && !showSettings
+        openMapID == nil && openDeckID == nil && generatingJobID == nil && chatVM.messages.isEmpty && !isBlurActive && !showSettings
     }
 
     // A "map is ready" notification was tapped: show that map, whatever was open.
     // minorai://today, minorai://map/<id>, minorai://task/<map id>/<idea id> (widget taps).
     private func openLink(_ url: URL) {
         guard url.scheme == SharedContainer.scheme else { return }
+        // Onboarding covers everything (sheets can't show above it): the link waits for it.
+        guard didOnboard else {
+            pendingLink = url
+            return
+        }
         let parts = url.pathComponents.filter { $0 != "/" }.compactMap(UUID.init(uuidString:))
         switch url.host {
         case "today":
             if isBlurActive { closePaywall() }
             closeSidebar()
+            closeOverlays()
             openMapID = nil
             chatVM.endSession()
             isMindActive = true
@@ -1013,8 +1171,55 @@ struct ContentView: View {
                 generation.focusNode = parts[1]
                 generation.openRequest = parts[0]
             }
+        case "join":
+            // minorai://join/<invite secret>: become an editor of a shared map.
+            if let token = url.pathComponents.filter({ $0 != "/" }).first { joinShared(token) }
+        case "invite":
+            // minorai://invite/<friend's code> from an invitation link, or minorai://invite from a notification.
+            let code = url.pathComponents.filter { $0 != "/" }.first.map(InviteService.clean).flatMap { $0.isEmpty ? nil : $0 }
+            if let code, InviteService.isValid(code) { InviteService.shared.pendingCode = code }
+            presentOverSettings { inviteSheet = InviteSheet(code: code) }
+        case "usage":
+            presentOverSettings { showUsage = true }
         default:
             break
+        }
+    }
+
+    // Only one sheet shows at a time: any open one closes first, then the requested screen opens.
+    private func presentOverSettings(_ open: @escaping () -> Void) {
+        if isBlurActive { closePaywall() }
+        let sheetOpen = showSettings || showUsage || inviteSheet != nil || newDeck != nil
+        guard sheetOpen else { return open() }
+        showSettings = false
+        showUsage = false
+        inviteSheet = nil
+        newDeck = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: open)
+    }
+
+    // A map opened from a notification, a widget or Siri must not end up hidden under a
+    // presentation or a sheet.
+    private func closeOverlays() {
+        openDeckID = nil
+        showSettings = false
+        showUsage = false
+        inviteSheet = nil
+        newDeck = nil
+    }
+
+    private func joinShared(_ token: String) {
+        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { joinShared(token) } }
+        Task {
+            do {
+                let id = try await CollabService.shared.join(token: token)
+                if isBlurActive { closePaywall() }
+                closeSidebar()
+                chatVM.endSession()
+                openMapID = id
+            } catch {
+                homeError = (error as? LocalizedError)?.errorDescription ?? L("Couldn’t open the shared map. Try again.")
+            }
         }
     }
 
@@ -1024,11 +1229,23 @@ struct ContentView: View {
         pendingShare = next
     }
 
+    private enum Layer { case home, chat, building, map, deck }
+
+    // The full-screen layer on top; VoiceOver reads only that one.
+    private var topLayer: Layer {
+        if openDeckID != nil { return .deck }
+        if openMapID != nil { return .map }
+        if generatingJobID != nil { return .building }
+        if !chatVM.messages.isEmpty { return .chat }
+        return .home
+    }
+
     private func openRequested(_ id: UUID) {
         generation.openRequest = nil
         guard MapStore.shared.map(id) != nil else { return }
         if isBlurActive { closePaywall() }
         closeSidebar()
+        closeOverlays()
         generatingJobID = nil
         isMindActive = false
         openMapID = id
@@ -1110,5 +1327,22 @@ extension Color {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+// A request to show Invite Friends, with a friend's code from a link.
+struct InviteSheet: Identifiable {
+    let id = UUID()
+    let code: String?
+}
+
+// A full-screen layer: modal for VoiceOver when on top, hidden from it when covered.
+private struct TopLayer: ViewModifier {
+    let isTop: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityAddTraits(isTop ? .isModal : [])
+            .accessibilityHidden(!isTop)
     }
 }

@@ -6,6 +6,7 @@
 //  (App Store Review 1.2 asks for a way to report generated content).
 //
 
+import Photos
 import SwiftUI
 import UIKit
 
@@ -23,6 +24,7 @@ struct ImageViewer: View {
     @GestureState private var pinch: CGFloat = 1
     @State private var zoom: CGFloat = 1
     @State private var saved = false
+    @State private var saveFailed = false
     @State private var confirmReport = false
 
     var body: some View {
@@ -52,6 +54,11 @@ struct ImageViewer: View {
                     }
                     .accessibilityLabel("Share")
                     toolbarButton(saved ? "checkmark" : "square.and.arrow.down", saved ? "Saved" : "Save to Photos") { save() }
+                        .alert("Couldn’t save to Photos", isPresented: $saveFailed) {
+                            Button("OK", role: .cancel) {}
+                        } message: {
+                            Text("Allow Minor to add photos in iOS Settings → Privacy & Security → Photos.")
+                        }
                     if item.onReport != nil {
                         toolbarButton("flag", "Report") { confirmReport = true }
                     }
@@ -89,9 +96,24 @@ struct ImageViewer: View {
         .accessibilityLabel(label)
     }
 
+    // "Saved" only when the picture really reached Photos (access may be denied).
     private func save() {
-        UIImageWriteToSavedPhotosAlbum(item.image, nil, nil, nil)
-        saved = true
-        Haptics.success()
+        let image = item.image
+        Task {
+            let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            guard status == .authorized || status == .limited else {
+                saveFailed = true
+                Haptics.error()
+                return
+            }
+            do {
+                try await PHPhotoLibrary.shared().performChanges { PHAssetChangeRequest.creationRequestForAsset(from: image) }
+                saved = true
+                Haptics.success()
+            } catch {
+                saveFailed = true
+                Haptics.error()
+            }
+        }
     }
 }

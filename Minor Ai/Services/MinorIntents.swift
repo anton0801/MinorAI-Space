@@ -64,6 +64,9 @@ struct AddIdeaIntent: AppIntent {
         let text = String(idea.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80))
         guard !text.isEmpty else { throw $idea.needsValueError("What idea should I add?") }
         guard let stored = MapStore.shared.map(map.id) else { throw $map.needsValueError("Which map?") }
+        if stored.collab?.canEdit == false {
+            return .result(dialog: "\(map.title) is shared with you to view only, so ideas can’t be added to it.")
+        }
         var parent = stored.root.id
         if let branch, !branch.trimmingCharacters(in: .whitespaces).isEmpty,
            let match = stored.root.ids(titled: [branch]).first {

@@ -776,3 +776,358 @@ struct DictationAndPlanTests {
         #expect(message.contentForModel.contains("my tasks") && message.contentForModel.contains("Call the bank"))
     }
 }
+
+@MainActor
+struct DeckTests {
+    @Test func layoutsCarryContentOver() {
+        let slide = Slide(layout: .bullets, title: "Plan", bullets: ["One", "Two", "Three", "Four"])
+        #expect(slide.converted(to: .twoColumns).columns.map(\.bullets) == [["One", "Two"], ["Three", "Four"]])
+        #expect(slide.converted(to: .timeline).items.map(\.title) == ["One", "Two", "Three", "Four"])
+        #expect(slide.converted(to: .diagram).diagram?.nodes.count == 4)
+        #expect(slide.converted(to: .table).table.count == 5)
+        #expect(slide.converted(to: .bullets).bullets == slide.bullets)
+    }
+
+    @Test func editedDecksKeepPictures() {
+        var old = Slide(layout: .imageText, title: "Think in maps", bullets: ["a"])
+        old.image = NodeImage(id: UUID(), aspect: 1)
+        let other = Slide(layout: .bullets, title: "Why")
+        let reply = APIDeck(Deck(title: "D", slides: [Slide(layout: .cover, title: "New cover"), Slide(layout: .imageText, title: "think in maps", bullets: ["b"]), other]))
+        let slides = reply.toSlides(keeping: [old, other])
+        #expect(slides[1].image == old.image && slides[1].id == old.id && slides[1].bullets == ["b"])
+        #expect(slides[2].id == other.id)
+        #expect(slides[0].image == nil)
+    }
+
+    @Test func decksDecodeTolerantly() throws {
+        let json = #"{"id":"\#(UUID().uuidString)","title":"T","slides":[{"layout":"hologram","title":"A"},{"title":"B","bullets":["x"]}]}"#
+        let deck = try JSONDecoder().decode(Deck.self, from: Data(json.utf8))
+        #expect(deck.slides.map(\.layout) == [.bullets, .bullets] && deck.deckTheme == .midnight)
+    }
+
+    @Test func zipChecksumsAreRight() {
+        #expect(ZipWriter.crc32(Data("The quick brown fox jumps over the lazy dog".utf8)) == 0x414F_A339)
+    }
+
+    @Test func powerPointFileIsWellFormed() throws {
+        let url = try DeckExport.pptx(DemoMap.deck())
+        let data = try Data(contentsOf: url)
+        #expect(data.starts(with: [0x50, 0x4B, 0x03, 0x04]), "a zip file")
+        // Every XML part parses.
+        var offset = 0
+        var parts = 0
+        while offset + 30 < data.count, data[offset..<offset + 4].elementsEqual([0x50, 0x4B, 0x03, 0x04]) {
+            func u16(_ at: Int) -> Int { Int(data[at]) | Int(data[at + 1]) << 8 }
+            func u32(_ at: Int) -> Int { u16(at) | u16(at + 2) << 16 }
+            let size = u32(offset + 18)
+            let nameLength = u16(offset + 26)
+            let name = String(decoding: data[(offset + 30)..<(offset + 30 + nameLength)], as: UTF8.self)
+            let body = data[(offset + 30 + nameLength)..<(offset + 30 + nameLength + size)]
+            if name.hasSuffix(".xml") || name.hasSuffix(".rels") {
+                #expect(XMLParser(data: Data(body)).parse(), "\(name) parses")
+            }
+            parts += 1
+            offset += 30 + nameLength + size
+        }
+        #expect(parts > 40)
+    }
+}
+
+struct CollabMergeTests {
+    private func titles(_ node: MindNode) -> [String] { [node.title] + node.children.flatMap(titles) }
+
+    @Test func editsToDifferentIdeasBothSurvive() {
+        let base = sampleMap()
+        var local = base, remote = base
+        local.root.update(base.root.children[0].id) { $0.title = "People" }
+        remote.root.update(base.root.children[1].id) { $0.title = "Prices" }
+        local.root.update(base.root.children[0].id) { $0.children.append(MindNode(title: "Teachers")) }
+        remote.root.update(base.root.children[2].id) { $0.children.append(MindNode(title: "YouTube")) }
+        let merged = CollabMerge.merge(base: base, local: local, remote: remote)
+        let all = titles(merged.root)
+        #expect(all.contains("People") && all.contains("Prices") && all.contains("Teachers") && all.contains("YouTube"))
+        #expect(merged.root.children.map(\.id) == base.root.children.map(\.id), "branch order kept")
+    }
+
+    @Test func deletesWin() {
+        let base = sampleMap()
+        let x = base.root.children[3].id, y = base.root.children[4].id
+        var local = base, remote = base
+        local.root.remove(x)                                        // deleted here
+        remote.root.update(x) { $0.title = "Timeline v2" }          // edited there
+        remote.root.remove(y)                                       // deleted there
+        local.root.update(y) { $0.title = "Risks v2" }              // edited here
+        let merged = CollabMerge.merge(base: base, local: local, remote: remote)
+        #expect(merged.root.node(x) == nil && merged.root.node(y) == nil)
+    }
+
+    @Test func sameIdeaThisDeviceWins() {
+        let base = sampleMap()
+        let id = base.root.children[0].id
+        var local = base, remote = base
+        local.root.update(id) { $0.title = "Mine" }
+        remote.root.update(id) { $0.title = "Theirs" }
+        #expect(CollabMerge.merge(base: base, local: local, remote: remote).root.node(id)?.title == "Mine")
+    }
+
+    @Test func movesAndFoldsAndLinks() {
+        let base = sampleMap()
+        let students = base.root.children[0].children[0].id
+        var local = base, remote = base
+        // Moved here under Pricing; folded here; a connection added on each side.
+        let moved = local.root.remove(students)!
+        local.root.update(base.root.children[1].id) { $0.children.append(moved) }
+        local.root.update(base.root.children[2].id) { $0.isCollapsed = true }
+        local.links = [MapLink(from: base.root.children[0].id, to: base.root.children[1].id)]
+        remote.links = [MapLink(from: base.root.children[2].id, to: base.root.children[3].id)]
+        remote.root.update(base.root.children[2].id) { $0.isCollapsed = false }
+        let merged = CollabMerge.merge(base: base, local: local, remote: remote)
+        #expect(merged.root.parent(of: students)?.id == base.root.children[1].id)
+        #expect(merged.root.node(base.root.children[2].id)?.isCollapsed == true, "folding is personal")
+        #expect(merged.links.count == 2)
+    }
+
+    @Test func nothingChangedHereTakesTheirs() {
+        let base = sampleMap()
+        var remote = base
+        remote.root.children.append(MindNode(title: "New branch"))
+        remote.palette = "ocean"
+        let merged = CollabMerge.merge(base: base, local: base, remote: remote)
+        #expect(merged.root == remote.root && merged.palette == "ocean")
+    }
+}
+
+// The server takes only Latin letters and digits; the app must say so before sending.
+@Suite struct PasswordRulesTests {
+    @Test func cyrillicLettersDontCount() {
+        #expect(PasswordRules.check("Пароль2024").latinLetter == false)
+        #expect(PasswordRules.problem(in: "Пароль2024") != nil)
+    }
+
+    @Test func latinLetterAndDigitPass() {
+        #expect(PasswordRules.problem(in: "Minor2024") == nil)
+        #expect(PasswordRules.problem(in: "мой Minor 7") == nil)
+    }
+
+    @Test func lengthAndDigitAreRequired() {
+        #expect(PasswordRules.problem(in: "Mi12") != nil)
+        #expect(PasswordRules.problem(in: "Minorabc") != nil)
+    }
+}
+
+// Maps shared before roles existed stay editable; viewers can't edit.
+@Suite struct CollabRoleTests {
+    @Test func legacyInfoDecodesAsEditorOrOwner() throws {
+        let member = try JSONDecoder().decode(CollabInfo.self, from: Data(#"{"isOwner":false,"version":3}"#.utf8))
+        #expect(member.role == .editor && member.canEdit)
+        let owner = try JSONDecoder().decode(CollabInfo.self, from: Data(#"{"isOwner":true,"version":1}"#.utf8))
+        #expect(owner.role == .owner)
+    }
+
+    @Test func viewerCannotEdit() throws {
+        let info = CollabInfo(isOwner: false, version: 2, role: .viewer)
+        let round = try JSONDecoder().decode(CollabInfo.self, from: JSONEncoder().encode(info))
+        #expect(round.role == .viewer && !round.canEdit)
+    }
+}
+
+// Presentation design: old files still open, looks, templates, building up and the PowerPoint file.
+@MainActor
+@Suite struct DeckDesignTests {
+    @Test func oldDecksStillDecode() throws {
+        let json = #"{"id":"6F1B1C5E-2B0B-4F44-9E0B-1B2E3C4D5E6F","title":"Old","slides":[{"layout":"bullets","title":"A","bullets":["x"]}],"theme":"paper"}"#
+        let deck = try JSONDecoder().decode(Deck.self, from: Data(json.utf8))
+        #expect(deck.look == nil && deck.brand == nil && deck.transition == .fade)
+        #expect(deck.slides[0].elements.isEmpty && deck.slides[0].buildBullets == .none)
+        #expect(deck.style.isLight)
+    }
+
+    @Test func designSurvivesARoundTrip() throws {
+        var deck = DemoMap.designedDeck()
+        deck.slides[1].background = SlideBackground(kind: .solid, colors: ["#FFFFFF"], angle: 0)
+        let back = try JSONDecoder().decode(Deck.self, from: JSONEncoder().encode(deck))
+        #expect(back == deck)
+        #expect(back.style(for: back.slides[1]).isLight)
+        #expect(!back.style(for: back.slides[0]).isLight)
+    }
+
+    @Test func paletteFollowsTheAccent() {
+        let palette = DeckLook.palette(from: "#2FFF9E")
+        #expect(palette.count == 6 && palette[0] == "#2FFF9E")
+        #expect(Set(palette).count == 6)
+    }
+
+    @Test func buildStepsCountPointsAndElements() {
+        var slide = Slide(layout: .bullets, title: "T", bullets: ["a", "b", "c"])
+        #expect(Deck.buildSteps(slide) == 0)
+        slide.buildBullets = .fade
+        var element = SlideElement.new(.icon)
+        element.build = .zoom
+        slide.elements = [element, SlideElement.new(.text)]
+        #expect(Deck.buildSteps(slide) == 4)
+    }
+
+    @Test func templatesFillWithContentAndKeepDesign() throws {
+        let template = DeckTemplates.all[0]
+        #expect(template.layouts.first == .cover && template.layouts.last == .closing)
+        let generated = template.layouts.map { Slide(layout: $0, title: "AI \($0.rawValue)") }
+        let deck = template.fill(with: generated, title: "Filled")
+        #expect(deck.title == "Filled" && deck.look == template.deck.look)
+        #expect(deck.slides[1].title == "AI bullets" && deck.slides[1].elements.count == template.deck.slides[1].elements.count)
+        #expect(deck.slides[1].buildBullets == template.deck.slides[1].buildBullets)
+        #expect(Set(deck.slides.map(\.id)).isDisjoint(with: Set(template.deck.slides.map(\.id))))
+    }
+
+    @Test func powerPointHasMotionAndElements() throws {
+        let url = try DeckExport.pptx(DemoMap.designedDeck())
+        let data = try Data(contentsOf: url)
+        let text = String(decoding: data, as: UTF8.self)
+        #expect(text.contains("<p:timing>") && text.contains("<p:transition"))
+        #expect(text.contains("prst=\"roundRect\"") && text.contains("Avenir Next"))
+        #expect(text.contains("ppt/media/") && text.contains("<p:bldP"))
+    }
+}
+
+@MainActor
+struct LimitsAndInvitesTests {
+    @Test func percentsReadWell() {
+        #expect(UsageView.percent(0) == "0%")
+        #expect(UsageView.percent(0.004) == "<1%")
+        #expect(UsageView.percent(0.126) == "13%")
+        #expect(UsageView.percent(1.4) == "140%")
+        #expect(UsageView.percent(-0.2) == "0%")
+    }
+
+    @Test func serverDatesParse() throws {
+        #expect(AccountStore.parseDate("2026-11-01T00:00:00.000Z") != nil)
+        #expect(AccountStore.parseDate("2026-10-12T10:00:00+00:00") != nil)
+        let micro = try #require(AccountStore.parseDate("2026-10-12T10:00:00.123456+00:00"))
+        let plain = try #require(AccountStore.parseDate("2026-10-12T10:00:00+00:00"))
+        #expect(abs(micro.timeIntervalSince(plain) - 0.123) < 0.01)
+        #expect(AccountStore.parseDate("2026-10-12 10:00:00.123456+00") != nil)
+        #expect(AccountStore.parseDate("soon") == nil)
+    }
+
+    @Test func usageReportDecodes() throws {
+        let json = """
+        {"plan":"plus","bonusUntil":"2026-10-12T10:00:00.5+00:00","resetsAt":"2026-11-01T00:00:00.000Z",
+         "allowance":{"limit":2000000,"used":500000,"areas":{"maps":200000,"decks":100000,"chat":150000,"images":0}},
+         "counts":{"maps":{"used":3,"limit":300},"decks":{"used":1,"limit":20},"expands":{"used":0,"limit":3000},
+                   "chats":{"used":12,"limit":5000},"images":{"used":60,"limit":60},"fetches":{"used":2,"limit":1000}}}
+        """
+        let report = try JSONDecoder().decode(UsageReport.self, from: Data(json.utf8))
+        #expect(report.bonusDate != nil && report.resetDate != nil)
+        #expect(report.counts.images.share == 1 && report.counts.maps.share == 0.01)
+        #expect(report.allowance.areas.maps == 200_000)
+    }
+
+    @Test func invitationCodesAreCleaned() {
+        #expect(InviteService.clean(" k7m2-q9xa ") == "K7M2Q9XA")
+        #expect(InviteService.clean("O0I1abcdefghij") == "ABCDEFGH")
+        #expect(InviteService.isValid("K7M2Q9XA"))
+        #expect(!InviteService.isValid("K7M2Q9X"))
+        #expect(!InviteService.isValid("K7M2Q9X0"))
+    }
+
+    @Test func inviteErrorsMapFromServerCodes() {
+        #expect(InviteService.InviteError.from("invite_device_used") == .deviceUsed)
+        #expect(InviteService.InviteError.from("device_check_failed") == .deviceCheck)
+        #expect(InviteService.InviteError.from("something_new") == .other)
+        #expect(InviteService.InviteError.notFound.errorDescription?.isEmpty == false)
+        #expect(InviteService.InviteError.from("no_codes") == .noCodes)
+    }
+
+    @Test func discountsCoverPlansOnSale() {
+        #expect(InviteService.discountProducts.count == 4)
+        #expect(!InviteService.discountProducts.contains { $0.contains("HalfYear") })
+        #expect(Set(InviteService.discountProducts.map(InviteService.productName)).count == 4)
+    }
+
+    @Test func inviteStatusDecodesOldAndNewServers() throws {
+        let old = #"{"code":"K7M2Q9XA","link":"https://minorai.site/invite/#c=K7M2Q9XA","friends":3,"active":1,"subscribed":0,"bonusUntil":null,"bonusDays":0,"redeemed":false,"canRedeem":false,"days":{"friend":7,"join":7,"purchase":30}}"#
+        let status = try JSONDecoder().decode(InviteService.Status.self, from: Data(old.utf8))
+        #expect(status.friendLimit == 3 && status.isFull && status.percentText == "30%")
+        let new = #"{"code":"K7M2Q9XA","link":"x","friends":1,"active":1,"subscribed":1,"bonusUntil":null,"bonusDays":0,"redeemed":false,"canRedeem":true,"days":{"friend":3,"join":3},"limit":3,"discountPercent":30,"discountsAvailable":0,"discounts":[{"code":"AB12","product":"com.minorailifegroup.MinorAI.plusYearlyPlan","url":"https://apps.apple.com/redeem?ctx=offercodes&id=6737686540&code=AB12"}]}"#
+        let fresh = try JSONDecoder().decode(InviteService.Status.self, from: Data(new.utf8))
+        #expect(!fresh.isFull && fresh.discounts?.first?.code == "AB12")
+    }
+}
+
+// Fixes from the pre-release audit.
+@MainActor
+struct AuditFixTests {
+    @Test func chartNumbersNeverCrash() {
+        #expect(ChartView.format(12) == "12")
+        #expect(ChartView.format(1.25) == "1.2" || ChartView.format(1.25) == "1.3")
+        #expect(!ChartView.format(9_999_999_999_999_999_999).isEmpty)   // Int(value) used to trap here
+        #expect(ChartView.format(.infinity) == "0" && ChartView.format(.nan) == "0")
+        #expect(!ChartView.format(-1e30).isEmpty)
+    }
+
+    @Test func powerPointTextHasNoForbiddenCharacters() {
+        let escaped = XML.escape("A\u{0B}B\u{0C}C\u{01}D & <E> \"F\"\tG\nH")
+        #expect(escaped == "A B CD &amp; &lt;E&gt; &quot;F&quot;\tG\nH")
+    }
+
+    @Test func mergeKeepsNewNestedIdeasUnderTheirParent() {
+        let a = MindNode(title: "A")
+        let base = MindMap(root: MindNode(title: "Root", children: [a]))
+        var local = base
+        let step1 = MindNode(title: "Step 1"), step2 = MindNode(title: "Step 2")
+        local.root.children.append(MindNode(title: "Plan", children: [MindNode(title: "Phase", children: [step1, step2])]))
+        var remote = base
+        remote.root.children[0].title = "A (renamed there)"
+        let merged = CollabMerge.merge(base: base, local: local, remote: remote)
+        let plan = merged.root.children.first { $0.title == "Plan" }
+        #expect(merged.root.children.count == 2)
+        #expect(plan?.children.first?.title == "Phase" && plan?.children.first?.children.count == 2)
+        #expect(merged.root.children.first?.title == "A (renamed there)")
+    }
+
+    @Test func crossedMovesDontLoseBranches() {
+        let a = MindNode(title: "A"), b = MindNode(title: "B")
+        let base = MindMap(root: MindNode(title: "Root", children: [a, b]))
+        // Here A went under B; there B went under A.
+        var local = base
+        local.root.children = [MindNode(id: b.id, title: "B", children: [MindNode(id: a.id, title: "A")])]
+        var remote = base
+        remote.root.children = [MindNode(id: a.id, title: "A", children: [MindNode(id: b.id, title: "B")])]
+        let merged = CollabMerge.merge(base: base, local: local, remote: remote)
+        func titles(_ node: MindNode) -> [String] { [node.title] + node.children.flatMap(titles) }
+        #expect(Set(titles(merged.root)) == ["Root", "A", "B"])
+    }
+
+    @Test func duplicateLinksInSharedDataDontCrash() {
+        let a = MindNode(title: "A"), b = MindNode(title: "B")
+        var map = MindMap(root: MindNode(title: "Root", children: [a, b]))
+        let link = MapLink(from: a.id, to: b.id)
+        map.links = [link, link]
+        let merged = CollabMerge.merge(base: map, local: map, remote: map)
+        #expect(merged.links.count == 1)
+    }
+
+    @Test func deckEditKeepsTextTheServerOnlyShortened() {
+        #expect(DeckService.unlessOnlyShortened("Line one\nLine two", "Line one Line two") == "Line one\nLine two")
+        #expect(DeckService.unlessOnlyShortened(String(repeating: "word ", count: 300), String(repeating: "word ", count: 100) + "…") == String(repeating: "word ", count: 300))
+        #expect(DeckService.unlessOnlyShortened("Old title", "New title") == "New title")
+        #expect(DeckService.hasWords(Slide(layout: .bullets, title: "T")))
+        var picture = Slide(layout: .bullets, title: "")
+        picture.bullets = []
+        #expect(!DeckService.hasWords(picture))
+    }
+}
+
+struct ChatRetryTests {
+    @Test func failedMessagesKeepTheirReasonOnDisk() throws {
+        var message = ChatMessage(role: .user, text: "Plan my exam")
+        message.failed = "You’re offline."
+        message.imageRequest = true
+        let data = try JSONEncoder().encode(message)
+        let decoded = try JSONDecoder().decode(ChatMessage.self, from: data)
+        #expect(decoded.failed == "You’re offline." && decoded.imageRequest == true)
+        // Chats saved before Retry existed still load.
+        let old = #"{"id":"\#(UUID().uuidString)","role":"user","text":"Hi"}"#
+        let legacy = try JSONDecoder().decode(ChatMessage.self, from: Data(old.utf8))
+        #expect(legacy.failed == nil && legacy.imageRequest == nil)
+    }
+}

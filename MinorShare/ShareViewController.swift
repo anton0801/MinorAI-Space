@@ -31,6 +31,7 @@ final class ShareModel: ObservableObject {
     @Published var loading = true
     @Published var saved = false
     @Published var failed = false
+    @Published var saveFailed = false   // the app group couldn't be written (not "nothing to share")
 
     private weak var context: NSExtensionContext?
 
@@ -75,7 +76,7 @@ final class ShareModel: ObservableObject {
                 self?.context?.completeRequest(returningItems: nil)
             }
         } catch {
-            failed = true
+            saveFailed = true
         }
     }
 
@@ -106,6 +107,10 @@ struct ShareView: View {
                           systemImage: "checkmark.circle.fill")
                         .foregroundColor(accent)
                         .font(.system(size: 15, weight: .medium))
+                } else if model.saveFailed {
+                    Text(model.ru ? "Не удалось сохранить. Откройте Minor один раз и попробуйте снова." : "Couldn’t save this. Open Minor once, then try again.")
+                        .font(.system(size: 15))
+                        .foregroundColor(.white.opacity(0.7))
                 } else if model.failed {
                     Text(model.ru ? "Здесь нет ссылки или текста, из которых можно сделать карту." : "There’s no link or text here to make a map from.")
                         .font(.system(size: 15))

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-title-en="You’re invited — Minor AI" data-title-ru="Приглашение — Minor AI">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>You’re invited — Minor AI</title>
+  <meta name="description" content="A friend invited you to Minor AI: 3 days of Minor Plus free.">
+  <meta name="apple-itunes-app" content="app-id=6737686540">
+  <meta name="theme-color" content="#100e11">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    (function () { var l; try { l = localStorage.getItem("minor-lang"); } catch (e) {}
+      var q = (location.search.match(/[?&]lang=(en|ru)/) || [])[1];
+      l = q || l || ((navigator.language || "").toLowerCase().indexOf("ru") === 0 ? "ru" : "en");
+      document.documentElement.setAttribute("data-lang", l); document.documentElement.setAttribute("lang", l); })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span></a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/assets/apple-touch-icon.png" alt="" width="30" height="30">Minor AI</a>
+      <nav class="nav" aria-label="Main">
+        <a class="nav-link" href="/#how"><span data-l="en">How it works</span><span data-l="ru">Как это работает</span></a>
+        <a class="nav-link" href="/#pricing"><span data-l="en">Pricing</span><span data-l="ru">Тарифы</span></a>
+        <a class="nav-link" href="/support/"><span data-l="en">Support</span><span data-l="ru">Поддержка</span></a>
+        <a class="nav-link" href="/privacy/"><span data-l="en">Privacy</span><span data-l="ru">Конфиденциальность</span></a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+          <button type="button" data-set-lang="ru" aria-pressed="false">RU</button>
+        </div>
+        <a class="btn btn-primary btn-sm header-get" href="https://apps.apple.com/app/id6737686540"><span data-l="en">Download</span><span data-l="ru">Скачать</span></a>
+        <button type="button" class="menu-btn" aria-expanded="false" aria-controls="mobile-nav"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-open"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-close"><path d="M6 6l12 12M18 6 6 18"/></svg><span class="sr"><span data-l="en">Menu</span><span data-l="ru">Меню</span></span></button>
+      </div>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile">
+      <div class="wrap">
+        <a class="mnav-link" href="/#how"><span data-l="en">How it works</span><span data-l="ru">Как это работает</span></a>
+        <a class="mnav-link" href="/#pricing"><span data-l="en">Pricing</span><span data-l="ru">Тарифы</span></a>
+        <a class="mnav-link" href="/support/"><span data-l="en">Support</span><span data-l="ru">Поддержка</span></a>
+        <a class="mnav-link" href="/privacy/"><span data-l="en">Privacy</span><span data-l="ru">Конфиденциальность</span></a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-set-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-set-lang="ru" aria-pressed="false">Русский</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main id="main" class="pp-hero center-page">
+    <div class="wrap narrow">
+      <img class="page-logo" src="/assets/icon-512.png" alt="" width="96" height="96">
+      <h1><span data-l="en">A friend invited you to Minor AI</span><span data-l="ru">Друг приглашает вас в Minor AI</span></h1>
+      <p class="lead"><span data-l="en">Turn notes, videos and ideas into mind maps and presentations. Sign up with this code and get 3 days of Minor Plus free.</span><span data-l="ru">Превращайте заметки, видео и идеи в интеллект-карты и презентации. Зарегистрируйтесь с этим кодом и получите 3 дня Minor Plus бесплатно.</span></p>
+      <div class="invite-code" id="code-box">
+        <span class="invite-label"><span data-l="en">Invitation code</span><span data-l="ru">Код приглашения</span></span>
+        <strong id="code" class="invite-value"></strong>
+        <button type="button" class="btn btn-ghost btn-sm" id="copy"><span class="copy-idle"><span data-l="en">Copy</span><span data-l="ru">Скопировать</span></span><span class="copy-done"><span data-l="en">Copied</span><span data-l="ru">Скопировано</span></span></button>
+      </div>
+      <div class="cta center">
+        <a class="btn btn-primary" id="open" href="#"><span data-l="en">Open in Minor AI</span><span data-l="ru">Открыть в Minor AI</span></a>
+        <a class="btn btn-ghost" href="https://apps.apple.com/app/id6737686540"><span data-l="en">Get the App</span><span data-l="ru">Скачать приложение</span></a>
+      </div>
+      <p class="note"><span data-l="en">New to Minor AI? Install the app, create an account, then enter the code in Settings → Invite Friends within 14 days.</span><span data-l="ru">Впервые в Minor AI? Установите приложение, создайте аккаунт и введите код в Настройки → Пригласить друзей в течение 14 дней.</span></p>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var code = ((location.hash.match(/[#&]c=([A-Za-z0-9]+)/) || location.search.match(/[?&]c=([A-Za-z0-9]+)/) || [])[1] || "").toUpperCase();
+      var box = document.getElementById("code-box");
+      var open = document.getElementById("open");
+      if (!/^[A-HJ-NP-Z2-9]{8}$/.test(code)) { box.style.display = "none"; open.style.display = "none"; return; }
+      document.getElementById("code").textContent = code;
+      var target = "minorai://invite/" + code;
+      open.setAttribute("href", target);
+      var copy = document.getElementById("copy");
+      copy.addEventListener("click", function () {
+        var done = function () { copy.classList.add("copied"); setTimeout(function () { copy.classList.remove("copied"); }, 1600); };
+        if (navigator.clipboard) { navigator.clipboard.writeText(code).then(done, function () {}); }
+      });
+      setTimeout(function () { location.href = target; }, 400);
+    })();
+  </script>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot-top">
+        <div class="foot-brand">
+          <a class="brand" href="/"><img src="/assets/apple-touch-icon.png" alt="" width="30" height="30">Minor AI</a>
+          <p><span data-l="en">Give your thoughts shape. AI mind maps for iPhone.</span><span data-l="ru">Дайте мысли форму. ИИ-карты мыслей для iPhone.</span></p>
+          <a class="btn btn-primary btn-store btn-sm" href="https://apps.apple.com/app/id6737686540"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg><span class="two-line"><small data-l="en">Download on the</small><small data-l="ru">Загрузите в</small>App Store</span></a>
+        </div>
+        <nav class="foot-cols" aria-label="Footer">
+          <div>
+            <h4><span data-l="en">Product</span><span data-l="ru">Продукт</span></h4>
+            <a href="/#how"><span data-l="en">How it works</span><span data-l="ru">Как это работает</span></a>
+            <a href="/#examples"><span data-l="en">Examples</span><span data-l="ru">Примеры</span></a>
+            <a href="/#pricing"><span data-l="en">Pricing</span><span data-l="ru">Тарифы</span></a>
+          </div>
+          <div>
+            <h4><span data-l="en">Help</span><span data-l="ru">Помощь</span></h4>
+            <a href="/support/"><span data-l="en">Support</span><span data-l="ru">Поддержка</span></a>
+            <a href="/support/#contact"><span data-l="en">Write to us</span><span data-l="ru">Написать нам</span></a>
+          </div>
+          <div>
+            <h4><span data-l="en">Legal</span><span data-l="ru">Документы</span></h4>
+            <a href="/privacy/"><span data-l="en">Privacy Policy</span><span data-l="ru">Конфиденциальность</span></a>
+            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"><span data-l="en">Terms of Use</span><span data-l="ru">Условия использования</span></a>
+          </div>
+        </nav>
+      </div>
+      <div class="foot-bottom">
+        <span>© <span data-year>2026</span> Regina Danilova · Minor AI</span>
+        <span><span data-l="en">No cookies, no trackers.</span><span data-l="ru">Без cookies и трекеров.</span> <a href="mailto:support@minorai.site">support@minorai.site</a></span>
+      </div>
+    </div>
+  </footer>
+  <script src="/assets/site.js" defer></script>
+</body>
+</html>

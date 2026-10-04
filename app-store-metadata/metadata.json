@@ -1,0 +1,24 @@
+{
+  "en-US": {
+    "subtitle": "Mind maps, slides & AI chat",
+    "keywords": "notes,study,flashcards,planner,tasks,pdf,outline,brainstorm,lecture,summary,quiz,voice,organizer",
+    "description": "Turn a lecture, a PDF or a rough idea into a mind map you can keep working on. Minor AI helps you sort out a topic, plan a project and prepare something to share.\n\nStart with what you have\nType a topic, paste a link, add a document or use a YouTube video. You can also record a voice note or scan your notes. Minor organizes the material into a map, and you can edit every part of it.\n\nWork through it with an assistant\nAsk about a branch, get an example or tell the assistant what to change. Attach a map to the chat so you can discuss it without copying everything into a message.\n\nMake slides from your map\nTurn an outline into a presentation. Edit the slides, choose a design, add speaker notes and export to PowerPoint when you're ready.\n\nKeep track of what needs doing\nGive an idea a due date and turn it into a task. The Today screen brings tasks and reminders from your maps into one place.\n\nStudy from your own material\nReview a map with flashcards and spaced repetition, then check what you remember with an AI-generated quiz.\n\nWork on a map together\nInvite someone by link. Let them edit with you or give them access to view the map.\n\nMinor AI has a free plan, with optional Minor Plus and Minor PRO subscriptions for additional features and higher usage limits. Subscriptions are available monthly or yearly and renew automatically unless canceled. Manage or cancel your subscription in your Apple Account settings.\n\nPrivacy Policy: https://minorai.site/privacy\nTerms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+    "counts": {
+      "subtitle_characters": 27,
+      "keyword_characters": 96,
+      "keyword_utf8_bytes": 96,
+      "description_characters": 1553
+    }
+  },
+  "ru": {
+    "subtitle": "Интеллект-карты и презентации",
+    "keywords": "конспект,учеба,задачи,планер,схемы,заметки,pdf,карточки",
+    "description": "Соберите конспект, план проекта или новую идею в интеллект-карту. Minor AI помогает разложить материал по темам, разобраться в деталях и подготовить его к учёбе или работе.\n\nНачните с того, что у вас есть\nНапишите тему, вставьте ссылку, добавьте документ или видео с YouTube. Можно записать мысль голосом или отсканировать конспект. Minor соберёт карту, в которой вы сможете изменить любую часть.\n\nОбсудите карту с помощником\nПопросите объяснить отдельную ветку, привести пример или внести правки. Прикрепите карту к чату, чтобы обсуждать её без копирования всего текста в сообщение.\n\nСделайте презентацию\nСоздайте слайды на основе карты. Отредактируйте текст, выберите оформление, добавьте заметки для выступления и сохраните результат в PowerPoint.\n\nПерейдите от плана к задачам\nПревратите пункт карты в задачу и назначьте срок. На экране «Сегодня» собраны задачи и напоминания из ваших карт.\n\nПовторите материал\nУчитесь по карточкам с интервальными повторениями и проверяйте себя с помощью тестов, которые ИИ составляет по карте.\n\nРаботайте вместе\nПригласите друга или коллегу по ссылке. Можно разрешить редактирование или оставить доступ только для просмотра.\n\nВ Minor AI есть бесплатный тариф и подписки Minor Plus и Minor PRO. Часть функций и повышенные лимиты доступны по подписке. Подписка оформляется на месяц или год и продлевается автоматически, пока вы её не отмените. Управлять подпиской можно в настройках Аккаунта Apple.\n\nПолитика конфиденциальности: https://minorai.site/privacy\nУсловия использования: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+    "counts": {
+      "subtitle_characters": 29,
+      "keyword_characters": 55,
+      "keyword_utf8_bytes": 100,
+      "description_characters": 1583
+    }
+  }
+}
