@@ -25,6 +25,14 @@ final class LaunchSplash: ObservableObject {
     private(set) var timeline = SplashTimeline.full
     private var skipped: TimeInterval = 0
     private var window: UIWindow?
+    // True while a tap may skip the animation; afterwards touches pass through to the app.
+    fileprivate var catchesTouches = true
+    #if DEBUG
+    // -splashLegacy: the splash as in build 2.0 (2), to compare in UI tests (SignInFlowUITests).
+    fileprivate static let legacy = ProcessInfo.processInfo.arguments.contains("-splashLegacy")
+    #else
+    fileprivate static let legacy = false
+    #endif
     private var observers: [NSObjectProtocol] = []
     private var events: Task<Void, Never>?
     #if DEBUG
@@ -65,7 +73,7 @@ final class LaunchSplash: ObservableObject {
         let theme = AppTheme(sphere: sphere == 0 ? nil : sphere)
         let host = UIHostingController(rootView: LaunchSplashView(splash: self, scene: SplashScene(glow: theme.glowSolid, timeline: timeline)))
         host.view.backgroundColor = .clear
-        let window = UIWindow(windowScene: scene)
+        let window = SplashWindow(windowScene: scene)
         window.windowLevel = .normal + 1
         window.backgroundColor = .clear
         window.overrideUserInterfaceStyle = .dark
@@ -88,7 +96,12 @@ final class LaunchSplash: ObservableObject {
             observers.append(NotificationCenter.default.addObserver(forName: UIScene.didActivateNotification, object: scene, queue: .main) { _ in
                 MainActor.assumeIsolated { LaunchSplash.shared.begin() }
             })
+            // Some windows (an iPhone app on iPad, a window opened in the background) may not
+            // report becoming active: the splash starts anyway.
+            if !Self.legacy { DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { LaunchSplash.shared.begin() } }
         }
+        // Whatever happens to the animation, the splash never stays over the app.
+        if !Self.legacy { DispatchQueue.main.asyncAfter(deadline: .now() + timeline.end + 4) { LaunchSplash.shared.finish() } }
     }
 
     // The top safe area: the home screen lays out its faint logo below it.
@@ -141,19 +154,32 @@ final class LaunchSplash: ObservableObject {
     }
 
     private func reveal() {
+        catchesTouches = false
         guard !revealed else { return }
         withAnimation(.timingCurve(0.3, 0, 0.2, 1, duration: timeline.end - timeline.portal)) { revealed = true }
     }
 
     private func finish() {
+        guard let window else { return }
         events?.cancel()
         events = nil
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         observers = []
+        catchesTouches = false
         revealed = true
-        window?.isHidden = true
-        window = nil
+        window.isHidden = true
+        window.rootViewController = nil
+        self.window = nil
         UIAccessibility.post(notification: .screenChanged, argument: nil)
+    }
+}
+
+// The splash's window: it takes taps (to skip) only while the animation plays, so even a
+// moment of it left on screen can never stand between a person and the app.
+private final class SplashWindow: UIWindow {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard LaunchSplash.shared.catchesTouches || LaunchSplash.legacy else { return nil }
+        return super.hitTest(point, with: event)
     }
 }
 
