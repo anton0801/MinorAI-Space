@@ -53,6 +53,21 @@ final class SignInFlowUITests: XCTestCase {
         expectation(for: gone, evaluatedWith: app.staticTexts["Welcome Back"])
         waitForExpectations(timeout: 5)
         shot(app, "3-after-not-now")
+        // The home screen under it answers too (on iOS 26 it stopped redrawing after the first
+        // frame, which is also why the cover above it couldn't close).
+        app.buttons["Get Minor Plus"].firstMatch.tap()
+        let terms = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH 'Payment is charged'")).firstMatch
+        XCTAssertTrue(terms.waitForExistence(timeout: 5), "Get Plus didn't open the paywall")
+        shot(app, "4-paywall")
+    }
+
+    // A screen opened from the home screen's own state right after launch.
+    func testHomeOpensDemoMap() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-didOnboard", "YES", "-appLanguage", "en", "-auditSignedOut", "-demoMap"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Export Map"].waitForExistence(timeout: 10), "The demo map didn't open")
+        shot(app, "demo-map")
     }
 
     func testSignInButtonAnswers() {

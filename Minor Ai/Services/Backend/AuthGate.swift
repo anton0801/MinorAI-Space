@@ -26,13 +26,19 @@ final class AuthGate: ObservableObject {
         }
     }
 
-    // The sign-in screen closed. The waiting action runs only if the person signed in, after the
-    // sheet is gone (so a consent sheet it may open can be presented).
+    // The sign-in screen asks to close (signed in, or "Not Now").
+    func close() {
+        isPresented = false
+    }
+
+    // The sheet is gone (its onDismiss). The waiting action runs only if the person signed in,
+    // now that nothing is closing: a consent sheet or a chat it opens would be dropped if it
+    // were presented during the dismissal, which takes longer on iOS 26 than a fixed delay.
     func finish() {
         isPresented = false
         let action = pending
         pending = nil
         guard AuthService.shared.isSignedIn, let action else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: action)
+        action()
     }
 }

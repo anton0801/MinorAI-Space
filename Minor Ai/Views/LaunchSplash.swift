@@ -104,9 +104,6 @@ final class LaunchSplash: ObservableObject {
         if !Self.legacy { DispatchQueue.main.asyncAfter(deadline: .now() + timeline.end + 4) { LaunchSplash.shared.finish() } }
     }
 
-    // The top safe area: the home screen lays out its faint logo below it.
-    var safeTop: CGFloat { window?.safeAreaInsets.top ?? 0 }
-
     // Seconds into the splash.
     func elapsed(at date: Date) -> TimeInterval {
         #if DEBUG
@@ -208,16 +205,21 @@ struct LaunchSplashView: View {
     let scene: SplashScene
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: splash.start == nil)) { timeline in
-            let t = splash.elapsed(at: timeline.date)
-            let top = splash.safeTop
-            Canvas { context, size in
-                scene.draw(&context, size: size, safeTop: top, t: t)
+        // The top safe area (the home screen lays out its faint logo below it) comes from the
+        // layout, not from the window: reading a window's insets while SwiftUI draws froze
+        // screens on iOS 26. The reader stays inside the safe area to see it; the drawing
+        // covers the whole screen.
+        GeometryReader { geo in
+            TimelineView(.animation(minimumInterval: nil, paused: splash.start == nil)) { timeline in
+                let t = splash.elapsed(at: timeline.date)
+                Canvas { context, size in
+                    scene.draw(&context, size: size, safeTop: geo.safeAreaInsets.top, t: t)
+                }
             }
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .onTapGesture { splash.skip() }
         }
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onTapGesture { splash.skip() }
         .accessibilityHidden(true)
     }
 }

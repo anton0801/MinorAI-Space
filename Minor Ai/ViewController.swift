@@ -69,6 +69,11 @@ struct ContentView: View {
     @State private var inviteSheet: InviteSheet?
     @State private var paywallTier: SubscriptionStore.Tier = .plus
     @AppStorage("didOnboard") private var didOnboard = false
+    // The onboarding cover has its own state that body reads, rather than a Binding(get:set:)
+    // over the @AppStorage that body never read.
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "didOnboard")
+    // Phones with a Home button (iPhone SE) have no bottom inset for the Mind button to sit in.
+    @State private var hasHomeIndicator = true
     // A link that arrived during onboarding, opened once it is done.
     @State private var pendingLink: URL?
     @State private var minorPlusOffsetY: CGFloat = -10
@@ -97,6 +102,19 @@ struct ContentView: View {
         ZStack {
             backgroundColor // Динамический фон приложения
                 .ignoresSafeArea()
+
+            // The bottom inset comes from the layout (a reader inside the safe area sees it; the
+            // keyboard doesn't count). Read from the window, as before, it froze this screen on
+            // iOS 26: no state change redrew it after the first frame, so "Not Now" and signing
+            // in couldn't close onboarding (App Review, 2.0 (2)) and no home button answered.
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { hasHomeIndicator = geo.safeAreaInsets.bottom > 0 }
+                    .onChange(of: geo.safeAreaInsets.bottom) { hasHomeIndicator = $0 > 0 }
+            }
+            .ignoresSafeArea(.keyboard)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
 
             VStack {
                 Spacer()
@@ -346,7 +364,7 @@ struct ContentView: View {
                 .opacity(isMindActive ? 0 : 1)
                 .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
             }
-            .offset(y: mainScreenOffsetY + (isMindActive || !Self.hasHomeIndicator ? 0 : 30))
+            .offset(y: mainScreenOffsetY + (isMindActive || !hasHomeIndicator ? 0 : 30))
             .animation(.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.2), value: mainScreenOffsetY)
             .padding(.bottom, 20)
             
@@ -847,7 +865,7 @@ struct ContentView: View {
             }
             if args.contains("-mindMode") { _ = DemoMap.install(); isMindActive = true }
             if args.contains("-sidebarMaps") { _ = DemoMap.install(); openSidebar() }
-            if args.contains("-onboarding") { didOnboard = false }
+            if args.contains("-onboarding") { didOnboard = false; showOnboarding = true }
             if args.contains("-sidebarDecks") { DeckStore.shared.save(DemoMap.deck()); sidebarTab = .decks; openSidebar() }
             if args.contains("-demoChat") { chatVM.messages = DemoMap.chat }
             if args.contains("-demoSlides") { slideGallery = true }
@@ -918,7 +936,7 @@ struct ContentView: View {
         }
         .sheet(item: $inviteSheet) { request in InviteView(initialCode: request.code) }
         .sheet(isPresented: $gate.isPresented, onDismiss: { gate.finish() }) {
-            SignInView(onFinish: { gate.finish() })
+            SignInView(onFinish: { gate.close() })
         }
         .confirmationDialog(
             "Delete this chat?",
@@ -946,9 +964,10 @@ struct ContentView: View {
         .sheet(isPresented: Binding(get: { chatVM.needsConsent }, set: { if !$0 { chatVM.cancelPendingSend() } })) {
             AIConsentView(onAllow: { chatVM.resumeAfterConsent() }, onDecline: { chatVM.cancelPendingSend() })
         }
-        .fullScreenCover(isPresented: Binding(get: { !didOnboard }, set: { didOnboard = !$0 })) {
+        .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView(onFinish: {
                 didOnboard = true
+                showOnboarding = false
                 if let url = pendingLink {
                     pendingLink = nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openLink(url) }
@@ -1138,11 +1157,6 @@ struct ContentView: View {
         }
     }
 
-    // Phones with a Home button (iPhone SE) have no bottom inset for the Mind button to sit in.
-    private static var hasHomeIndicator: Bool {
-        let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene
-        return (scene?.windows.first?.safeAreaInsets.bottom ?? 0) > 0
-    }
 
     // The edge swipe opens Your Maps only from the home and Mind screens, never over a map,
     // a chat or the paywall (where it fought with panning and scrolling).
@@ -1155,7 +1169,7 @@ struct ContentView: View {
     private func openLink(_ url: URL) {
         guard url.scheme == SharedContainer.scheme else { return }
         // Onboarding covers everything (sheets can't show above it): the link waits for it.
-        guard didOnboard else {
+        guard !showOnboarding else {
             pendingLink = url
             return
         }

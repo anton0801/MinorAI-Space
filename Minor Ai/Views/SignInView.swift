@@ -420,11 +420,21 @@ struct SignInView: View {
         }
     }
 
-    // A purchase made before signing in is linked to the new account here.
+    // A purchase made before signing in is linked to the new account here. The screen closes once
+    // the plan is known, or after 2 seconds on a slow network while the rest loads in the
+    // background (up to five requests used to keep the spinner up).
     private func didSignIn() async {
         Haptics.success()
-        await SubscriptionStore.shared.refreshEntitlements()
-        await AccountStore.shared.refresh()
+        let refresh = Task {
+            await SubscriptionStore.shared.refreshEntitlements()
+            await AccountStore.shared.refresh()
+        }
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await refresh.value }
+            group.addTask { try? await Task.sleep(nanoseconds: 2_000_000_000) }
+            await group.next()
+            group.cancelAll()
+        }
         onFinish()
     }
 
