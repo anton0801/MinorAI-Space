@@ -336,6 +336,7 @@ struct NewDeckView: View {
                     ?? Deck(title: generated.title, slides: generated.slides, theme: theme, sourceMapID: mapSource)
                 deck.sourceMapID = mapSource
                 DeckStore.shared.save(deck)
+                Telemetry.log("deck_created", ["source": kind.rawValue, "slides": deck.slides.count, "template": template?.id ?? "none"])
                 account.noteDeckCreated()
                 Haptics.success()
                 dismiss()
@@ -356,6 +357,7 @@ extension NewDeckView {
         guard let template else { return }
         let deck = template.instantiate(title: previewTitle == L("Presentation") ? template.name : previewTitle)
         DeckStore.shared.save(deck)
+        Telemetry.log("deck_created", ["source": "template", "slides": deck.slides.count, "template": template.id])
         Haptics.success()
         dismiss()
         onCreated(deck.id)

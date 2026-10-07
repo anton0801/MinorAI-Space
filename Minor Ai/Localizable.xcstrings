@@ -372,6 +372,54 @@
         }
       }
     },
+    "%@ free" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ free"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ бесплатно"
+          }
+        }
+      }
+    },
+    "%@ free, then %@ billed every month. Cancel anytime." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ free, then %@ billed every month. Cancel anytime."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ бесплатно, затем %2$@ списывается каждый месяц. Отменить можно в любой момент."
+          }
+        }
+      }
+    },
+    "%@ free, then %@ billed every year%@. Cancel anytime." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ free, then %@ billed every year%@. Cancel anytime."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ бесплатно, затем %2$@ списывается раз в год%3$@. Отменить можно в любой момент."
+          }
+        }
+      }
+    },
     "%@ is shared with you to view only, so ideas can’t be added to it." : {
       "localizations" : {
         "en" : {
@@ -1269,7 +1317,6 @@
       }
     },
     "+4 ideas" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1462,7 +1509,6 @@
       }
     },
     "1 changed" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18605,6 +18651,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "этого человека"
+          }
+        }
+      }
+    },
+    "This plan isn’t available in the App Store right now. Try again later or choose another plan." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This plan isn’t available in the App Store right now. Try again later or choose another plan."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот тариф сейчас недоступен в App Store. Попробуйте позже или выберите другой тариф."
           }
         }
       }

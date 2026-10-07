@@ -1,135 +1,190 @@
 {
-  "identifier": "8E2B1F3A",
-  "nonRenewingSubscriptions": [],
-  "products": [],
-  "settings": {
-    "_developerTeamID": "7X47AV9RN8",
-    "_failTransactionsEnabled": false,
-    "_locale": "en_US",
-    "_storefront": "USA",
-    "_storeKitErrors": []
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
   },
-  "subscriptionGroups": [
+  "identifier" : "8E2B1F3A",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_developerTeamID" : "7X47AV9RN8",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA"
+  },
+  "subscriptionGroups" : [
     {
-      "id": "21500001",
-      "localizations": [],
-      "name": "Minor",
-      "subscriptions": [
+      "id" : "21500001",
+      "localizations" : [
+
+      ],
+      "name" : "Minor",
+      "subscriptions" : [
         {
-          "adHocOffers": [],
-          "codeOffers": [],
-          "displayPrice": "24.99",
-          "familyShareable": false,
-          "groupNumber": 1,
-          "internalID": "6500000003",
-          "introductoryOffer": null,
-          "localizations": [
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "24.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6500000003",
+          "introductoryOffer" : null,
+          "localizations" : [
             {
-              "description": "Frontier AI maps, 600 maps a month, Xmind export",
-              "displayName": "Minor PRO",
-              "locale": "en_US"
+              "description" : "Frontier AI maps, 600 maps a month, Xmind export",
+              "displayName" : "Minor PRO",
+              "locale" : "en_US"
             }
           ],
-          "productID": "com.minorailifegroup.MinorAI.proMonthlyPlan",
-          "recurringSubscriptionPeriod": "P1M",
-          "referenceName": "proMonthlyPlan",
-          "subscriptionGroupID": "21500001",
-          "type": "RecurringSubscription",
-          "winbackOffers": []
+          "productID" : "com.minorailifegroup.MinorAI.proMonthlyPlan",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "proMonthlyPlan",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
-          "adHocOffers": [],
-          "codeOffers": [],
-          "displayPrice": "219.99",
-          "familyShareable": false,
-          "groupNumber": 1,
-          "internalID": "6500000004",
-          "introductoryOffer": null,
-          "localizations": [
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "219.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6500000004",
+          "introductoryOffer" : {
+            "internalID" : "73000001",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
             {
-              "description": "Frontier AI maps, 600 maps a month, Xmind export",
-              "displayName": "Minor PRO",
-              "locale": "en_US"
+              "description" : "Frontier AI maps, 600 maps a month, Xmind export",
+              "displayName" : "Minor PRO",
+              "locale" : "en_US"
             }
           ],
-          "productID": "com.minorailifegroup.MinorAI.proYearlyPlan",
-          "recurringSubscriptionPeriod": "P1Y",
-          "referenceName": "proYearlyPlan",
-          "subscriptionGroupID": "21500001",
-          "type": "RecurringSubscription",
-          "winbackOffers": []
+          "productID" : "com.minorailifegroup.MinorAI.proYearlyPlan",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "proYearlyPlan",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
-          "adHocOffers": [],
-          "codeOffers": [],
-          "displayPrice": "12.99",
-          "familyShareable": false,
-          "groupNumber": 2,
-          "internalID": "6500000001",
-          "introductoryOffer": null,
-          "localizations": [
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "12.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6500000001",
+          "introductoryOffer" : null,
+          "localizations" : [
             {
-              "description": "Up to 300 maps a month, all sources, Claude Opus maps.",
-              "displayName": "Minor Plus",
-              "locale": "en_US"
+              "description" : "Up to 300 maps a month, all sources, Claude Opus maps.",
+              "displayName" : "Minor Plus",
+              "locale" : "en_US"
             }
           ],
-          "productID": "com.minorailifegroup.MinorAI.plusMonthlyPlan",
-          "recurringSubscriptionPeriod": "P1M",
-          "referenceName": "plusMonthlyPlan",
-          "subscriptionGroupID": "21500001",
-          "type": "RecurringSubscription",
-          "winbackOffers": []
+          "productID" : "com.minorailifegroup.MinorAI.plusMonthlyPlan",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "plusMonthlyPlan",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
-          "adHocOffers": [],
-          "codeOffers": [],
-          "displayPrice": "119.99",
-          "familyShareable": false,
-          "groupNumber": 2,
-          "internalID": "6500000002",
-          "introductoryOffer": null,
-          "localizations": [
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "119.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6500000002",
+          "introductoryOffer" : {
+            "internalID" : "73000002",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
             {
-              "description": "Up to 300 maps a month, all sources, Claude Opus maps.",
-              "displayName": "Minor Plus",
-              "locale": "en_US"
+              "description" : "Up to 300 maps a month, all sources, Claude Opus maps.",
+              "displayName" : "Minor Plus",
+              "locale" : "en_US"
             }
           ],
-          "productID": "com.minorailifegroup.MinorAI.plusYearlyPlan",
-          "recurringSubscriptionPeriod": "P1Y",
-          "referenceName": "plusYearlyPlan",
-          "subscriptionGroupID": "21500001",
-          "type": "RecurringSubscription",
-          "winbackOffers": []
+          "productID" : "com.minorailifegroup.MinorAI.plusYearlyPlan",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "plusYearlyPlan",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         },
         {
-          "adHocOffers": [],
-          "codeOffers": [],
-          "displayPrice": "54.99",
-          "familyShareable": false,
-          "groupNumber": 2,
-          "internalID": "6500000005",
-          "introductoryOffer": null,
-          "localizations": [
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "54.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6500000005",
+          "introductoryOffer" : null,
+          "localizations" : [
             {
-              "description": "Legacy half-year Plus plan.",
-              "displayName": "Minor Plus (6 months)",
-              "locale": "en_US"
+              "description" : "Legacy half-year Plus plan.",
+              "displayName" : "Minor Plus (6 months)",
+              "locale" : "en_US"
             }
           ],
-          "productID": "com.minorailifegroup.MinorAI.plusHalfYearPlan",
-          "recurringSubscriptionPeriod": "P6M",
-          "referenceName": "plusHalfYearPlan",
-          "subscriptionGroupID": "21500001",
-          "type": "RecurringSubscription",
-          "winbackOffers": []
+          "productID" : "com.minorailifegroup.MinorAI.plusHalfYearPlan",
+          "recurringSubscriptionPeriod" : "P6M",
+          "referenceName" : "plusHalfYearPlan",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
         }
       ]
     }
   ],
-  "version": {
-    "major": 4,
-    "minor": 0
+  "version" : {
+    "major" : 4,
+    "minor" : 0
   }
 }

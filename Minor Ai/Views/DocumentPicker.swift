@@ -43,7 +43,8 @@ enum DocumentPicker {
         }
     }
 
-    private static func topViewController() -> UIViewController? {
+    // The screen on top, to present system controllers from (also used by SystemShare).
+    static func topViewController() -> UIViewController? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
         var top = (scene?.windows.first { $0.isKeyWindow } ?? scene?.windows.first)?.rootViewController

@@ -1,0 +1,33 @@
+{
+  "duration": 10,
+  "sample_rate": 48000,
+  "music": "Original locally synthesized instrumental bed",
+  "sfx_provider": "ElevenLabs",
+  "events": [
+    {
+      "asset": "sweep.mp3",
+      "at": 1.54,
+      "gain": 0.25
+    },
+    {
+      "asset": "nodes.mp3",
+      "at": 2.26,
+      "gain": 0.22
+    },
+    {
+      "asset": "sweep.mp3",
+      "at": 4.03,
+      "gain": 0.27
+    },
+    {
+      "asset": "sweep.mp3",
+      "at": 4.6,
+      "gain": 0.12
+    },
+    {
+      "asset": "logo.mp3",
+      "at": 7.1,
+      "gain": 0.42
+    }
+  ]
+}

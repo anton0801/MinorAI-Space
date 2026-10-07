@@ -18,6 +18,8 @@ final class SubscriptionStore: ObservableObject {
     enum Outcome { case purchased, cancelled, pending }
 
     @Published private(set) var products: [String: Product] = [:]
+    // Free trials this Apple ID can still take (one per subscription group), by product ID.
+    @Published private(set) var freeTrials: [String: Product.SubscriptionPeriod] = [:]
     @Published private(set) var activeProductID: String? {
         didSet { AccountStore.shared.syncPaidFlag() }
     }
@@ -105,6 +107,38 @@ final class SubscriptionStore: ObservableObject {
     func loadProducts() async {
         guard let loaded = try? await Product.products(for: Self.allIDs), !loaded.isEmpty else { return }
         products = Dictionary(uniqueKeysWithValues: loaded.map { ($0.id, $0) })
+        await refreshTrials()
+    }
+
+    // The free trial set in App Store Connect (e.g. 3 days on the yearly plans), while this
+    // Apple ID hasn't used one in the group.
+    private func refreshTrials() async {
+        var trials: [String: Product.SubscriptionPeriod] = [:]
+        for product in products.values {
+            guard let subscription = product.subscription, let offer = subscription.introductoryOffer,
+                  offer.paymentMode == .freeTrial, await subscription.isEligibleForIntroOffer else { continue }
+            trials[product.id] = offer.period
+        }
+        freeTrials = trials
+    }
+
+    // "3 days" in the app's language, when the plan comes with a free trial for this Apple ID.
+    func freeTrial(_ tier: Tier, _ period: Period) -> String? {
+        guard let length = freeTrials[Self.productID(tier, period)] else { return nil }
+        var parts = DateComponents()
+        switch length.unit {
+        case .day: parts.day = length.value
+        case .week: parts.weekOfMonth = length.value
+        case .month: parts.month = length.value
+        case .year: parts.year = length.value
+        @unknown default: parts.day = length.value
+        }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = AppLanguage.current.locale
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        formatter.calendar = calendar
+        return formatter.string(from: parts)
     }
 
     func purchase(_ tier: Tier, _ period: Period) async throws -> Outcome {
@@ -112,7 +146,8 @@ final class SubscriptionStore: ObservableObject {
         isPurchasing = true
         defer { isPurchasing = false }
 
-        if products.isEmpty { await loadProducts() }
+        // Also when only this plan is missing: the App Store may not have had it the first time.
+        if products[Self.productID(tier, period)] == nil { await loadProducts() }
         guard let product = products[Self.productID(tier, period)] else { throw StoreError.unavailable }
 
         // Buying doesn't require an account (App Store Review 5.1.1(v)). When signed in, the purchase
@@ -123,7 +158,8 @@ final class SubscriptionStore: ObservableObject {
         }
         switch try await product.purchase(options: options) {
         case .success(let result):
-            guard case .verified = result else { throw StoreError.unverified }
+            guard case .verified(let transaction) = result else { throw StoreError.unverified }
+            Telemetry.purchase(transaction)
             await handle(result)
             return .purchased
         case .pending:
@@ -146,6 +182,7 @@ final class SubscriptionStore: ObservableObject {
     func restore() async throws -> Bool {
         try await AppStore.sync()
         await refreshEntitlements()
+        Telemetry.log("restore_purchases", ["found": activeProductID == nil ? 0 : 1])
         if activeProductID != nil && ownedElsewhere { throw StoreError.ownedElsewhere }
         return activeProductID != nil
     }
@@ -184,6 +221,8 @@ final class SubscriptionStore: ObservableObject {
         let jws = result.jwsRepresentation
         await transaction.finish()
         await refreshEntitlements()
+        // A trial taken (here or on another device) can't be taken again.
+        await refreshTrials()
         // Every transaction (renewals, other products) is recorded on the server too.
         Task { await sync(jws) }
     }

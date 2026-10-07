@@ -48,6 +48,23 @@ final class StoreKitPurchaseTests {
         #expect((store.yearlySavings(.plus) ?? 0) > 0 && (store.yearlySavings(.pro) ?? 0) > 0)
     }
 
+    // The yearly plans start with 3 free days (as in App Store Connect); monthly ones don't.
+    @Test func yearlyPlansShowTheirFreeTrial() async throws {
+        let threeDays = DateComponentsFormatter.localizedString(from: DateComponents(day: 3), unitsStyle: .full)
+        #expect(store.freeTrial(.plus, .yearly) != nil && store.freeTrial(.pro, .yearly) != nil)
+        #expect(store.freeTrial(.plus, .monthly) == nil && store.freeTrial(.pro, .monthly) == nil)
+        if AppLanguage.current.locale.language.languageCode == Locale.current.language.languageCode {
+            #expect(store.freeTrial(.pro, .yearly) == threeDays)
+        }
+    }
+
+    // A trial is offered once per Apple ID in the group: after subscribing it isn't shown again.
+    @Test func freeTrialIsGoneOnceUsed() async throws {
+        #expect(try await store.purchase(.plus, .yearly) == .purchased)
+        await waitFor { self.store.freeTrial(.pro, .yearly) == nil }
+        #expect(store.freeTrial(.plus, .yearly) == nil && store.freeTrial(.pro, .yearly) == nil)
+    }
+
     @Test func buyPlusThenUpgradeToPro() async throws {
         #expect(store.activeTier == nil)
         #expect(try await store.purchase(.plus, .monthly) == .purchased)

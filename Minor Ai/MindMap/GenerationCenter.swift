@@ -122,6 +122,10 @@ final class GenerationCenter: ObservableObject {
                 var source = input.source
                 if generated.truncated { source.label += L(" · first part") }
                 MapStore.shared.save(MindMap(id: id, root: root, source: source))
+                Telemetry.log("map_created", [
+                    "source": input.source.kind.rawValue, "model": job.model.apiModelID,
+                    "branches": root.children.count, "seconds": Int(Date().timeIntervalSince(job.startedAt)),
+                ])
                 // The map exists now; the job goes at once so it is never listed twice.
                 self.jobs[id] = nil
                 self.tasks[id] = nil
@@ -136,6 +140,7 @@ final class GenerationCenter: ObservableObject {
                 return
             } catch {
                 guard !Task.isCancelled, self.jobs[id] != nil else { return }
+                Telemetry.log("map_failed", ["source": input.source.kind.rawValue])
                 if case BackendError.limitReached(let kind) = error { AccountStore.shared.noteLimitReached(kind: kind) }
                 Haptics.error()
                 self.jobs[id]?.error = (error as? BackendError) ?? .aiFailed

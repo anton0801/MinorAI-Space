@@ -90,7 +90,10 @@ struct StudyView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onAppear { restartCards() }
+        .onAppear {
+            Telemetry.log("study_start", ["cards": deck.count])
+            restartCards()
+        }
         .onChange(of: mode) { newMode in
             if newMode == .quiz, questions.isEmpty, !loadingQuiz { loadQuiz() }
         }
@@ -414,6 +417,7 @@ struct StudyView: View {
             defer { loadingQuiz = false }
             do {
                 questions = try await MapService.shared.quiz(snapshot)
+                Telemetry.log("quiz_start", ["questions": questions.count])
                 question = 0
                 score = 0
                 picked = nil

@@ -1,0 +1,390 @@
+[
+  {
+    "file": "en-US/header.jpg",
+    "placement": "header",
+    "language": "en-US",
+    "concept": "glass",
+    "size": [
+      3840,
+      1646
+    ],
+    "elements": [
+      {
+        "kind": "logo",
+        "source": "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png",
+        "bounds": [
+          2340,
+          656,
+          2660,
+          970
+        ],
+        "uniform_scale": 0.7191011235955056,
+        "source_alpha_bounds": [
+          128,
+          124,
+          573,
+          561
+        ]
+      },
+      {
+        "kind": "headline",
+        "text": "Give your thoughts shape.",
+        "lines": [
+          "Give your",
+          "thoughts shape."
+        ],
+        "bounds": [
+          1132,
+          642,
+          2229,
+          958
+        ],
+        "font": "SF Pro / SFNS Heavy",
+        "font_px": 150,
+        "cap_height_px": 106,
+        "tracking_px": -3.75
+      },
+      {
+        "kind": "hero_branches",
+        "bounds": [
+          1159,
+          530,
+          2691,
+          1120
+        ]
+      }
+    ]
+  },
+  {
+    "file": "en-US/header.png",
+    "placement": "header",
+    "language": "en-US",
+    "concept": "glass",
+    "size": [
+      3840,
+      1646
+    ],
+    "elements": [
+      {
+        "kind": "logo",
+        "source": "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png",
+        "bounds": [
+          2340,
+          656,
+          2660,
+          970
+        ],
+        "uniform_scale": 0.7191011235955056,
+        "source_alpha_bounds": [
+          128,
+          124,
+          573,
+          561
+        ]
+      },
+      {
+        "kind": "headline",
+        "text": "Give your thoughts shape.",
+        "lines": [
+          "Give your",
+          "thoughts shape."
+        ],
+        "bounds": [
+          1132,
+          642,
+          2229,
+          958
+        ],
+        "font": "SF Pro / SFNS Heavy",
+        "font_px": 150,
+        "cap_height_px": 106,
+        "tracking_px": -3.75
+      },
+      {
+        "kind": "hero_branches",
+        "bounds": [
+          1159,
+          530,
+          2691,
+          1120
+        ]
+      }
+    ]
+  },
+  {
+    "file": "en-US/search.jpg",
+    "placement": "search",
+    "language": "en-US",
+    "concept": "duet",
+    "size": [
+      3840,
+      2560
+    ],
+    "elements": [
+      {
+        "kind": "logo",
+        "source": "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png",
+        "bounds": [
+          1840,
+          192,
+          2000,
+          349
+        ],
+        "uniform_scale": 0.3595505617977528,
+        "source_alpha_bounds": [
+          128,
+          124,
+          573,
+          561
+        ]
+      },
+      {
+        "kind": "headline",
+        "text": "AI mind maps & slides",
+        "lines": [
+          "AI mind maps & slides"
+        ],
+        "bounds": [
+          943,
+          442,
+          2897,
+          628
+        ],
+        "font": "SF Pro / SFNS Heavy",
+        "font_px": 200,
+        "cap_height_px": 141,
+        "tracking_px": -5.0
+      },
+      {
+        "kind": "real_ui_crop",
+        "source": "shots/raw/en/03-assistant.png",
+        "source_crop": [
+          0,
+          350,
+          1320,
+          1760
+        ],
+        "bounds": [
+          375,
+          790,
+          1825,
+          2339
+        ],
+        "uniform_scale": 1.0984848484848484,
+        "retouching": "none; rectangular crop, uniform resize, outside framing only"
+      },
+      {
+        "kind": "real_ui_crop",
+        "source": "shots/raw/en/04-slides.png",
+        "source_crop": [
+          0,
+          165,
+          1320,
+          1240
+        ],
+        "bounds": [
+          1985,
+          945,
+          3465,
+          2150
+        ],
+        "uniform_scale": 1.121212121212121,
+        "retouching": "none; rectangular crop, uniform resize, outside framing only"
+      }
+    ]
+  },
+  {
+    "file": "ru/header.jpg",
+    "placement": "header",
+    "language": "ru",
+    "concept": "glass",
+    "size": [
+      3840,
+      1646
+    ],
+    "elements": [
+      {
+        "kind": "logo",
+        "source": "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png",
+        "bounds": [
+          2340,
+          656,
+          2660,
+          970
+        ],
+        "uniform_scale": 0.7191011235955056,
+        "source_alpha_bounds": [
+          128,
+          124,
+          573,
+          561
+        ]
+      },
+      {
+        "kind": "headline",
+        "text": "Придайте мыслям форму.",
+        "lines": [
+          "Придайте",
+          "мыслям форму."
+        ],
+        "bounds": [
+          1137,
+          642,
+          2274,
+          957
+        ],
+        "font": "SF Pro / SFNS Heavy",
+        "font_px": 150,
+        "cap_height_px": 106,
+        "tracking_px": -3.75
+      },
+      {
+        "kind": "hero_branches",
+        "bounds": [
+          1159,
+          530,
+          2691,
+          1120
+        ]
+      }
+    ]
+  },
+  {
+    "file": "ru/header.png",
+    "placement": "header",
+    "language": "ru",
+    "concept": "glass",
+    "size": [
+      3840,
+      1646
+    ],
+    "elements": [
+      {
+        "kind": "logo",
+        "source": "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png",
+        "bounds": [
+          2340,
+          656,
+          2660,
+          970
+        ],
+        "uniform_scale": 0.7191011235955056,
+        "source_alpha_bounds": [
+          128,
+          124,
+          573,
+          561
+        ]
+      },
+      {
+        "kind": "headline",
+        "text": "Придайте мыслям форму.",
+        "lines": [
+          "Придайте",
+          "мыслям форму."
+        ],
+        "bounds": [
+          1137,
+          642,
+          2274,
+          957
+        ],
+        "font": "SF Pro / SFNS Heavy",
+        "font_px": 150,
+        "cap_height_px": 106,
+        "tracking_px": -3.75
+      },
+      {
+        "kind": "hero_branches",
+        "bounds": [
+          1159,
+          530,
+          2691,
+          1120
+        ]
+      }
+    ]
+  },
+  {
+    "file": "ru/search.jpg",
+    "placement": "search",
+    "language": "ru",
+    "concept": "duet",
+    "size": [
+      3840,
+      2560
+    ],
+    "elements": [
+      {
+        "kind": "logo",
+        "source": "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png",
+        "bounds": [
+          1840,
+          192,
+          2000,
+          349
+        ],
+        "uniform_scale": 0.3595505617977528,
+        "source_alpha_bounds": [
+          128,
+          124,
+          573,
+          561
+        ]
+      },
+      {
+        "kind": "headline",
+        "text": "ИИ-карты мыслей и слайды",
+        "lines": [
+          "ИИ-карты мыслей и слайды"
+        ],
+        "bounds": [
+          584,
+          441,
+          3260,
+          628
+        ],
+        "font": "SF Pro / SFNS Heavy",
+        "font_px": 200,
+        "cap_height_px": 141,
+        "tracking_px": -5.0
+      },
+      {
+        "kind": "real_ui_crop",
+        "source": "shots/raw/ru/03-assistant.png",
+        "source_crop": [
+          0,
+          350,
+          1320,
+          1760
+        ],
+        "bounds": [
+          375,
+          790,
+          1825,
+          2339
+        ],
+        "uniform_scale": 1.0984848484848484,
+        "retouching": "none; rectangular crop, uniform resize, outside framing only"
+      },
+      {
+        "kind": "real_ui_crop",
+        "source": "shots/raw/ru/04-slides.png",
+        "source_crop": [
+          0,
+          165,
+          1320,
+          1240
+        ],
+        "bounds": [
+          1985,
+          945,
+          3465,
+          2150
+        ],
+        "uniform_scale": 1.121212121212121,
+        "retouching": "none; rectangular crop, uniform resize, outside framing only"
+      }
+    ]
+  }
+]

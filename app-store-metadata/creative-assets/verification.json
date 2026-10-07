@@ -1,0 +1,102 @@
+{
+  "files": [
+    {
+      "file": "en-US/header.jpg",
+      "size": [
+        3840,
+        1646
+      ],
+      "mode": "RGB",
+      "profile": "sRGB built-in",
+      "sha256": "6b674d2495d9828a132f63a9d6ac9b99d887e2b69ea84b9936bd802c22ba8b49",
+      "source_sha256": {
+        "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695"
+      },
+      "header_key_art_inside_safe_area": true,
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/creative-assets/en-US/header.jpg\n  pixelWidth: 3840\n  pixelHeight: 1646\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "en-US/header.png",
+      "size": [
+        3840,
+        1646
+      ],
+      "mode": "RGB",
+      "profile": "sRGB built-in",
+      "sha256": "f657f45911ce2001554fa12fc2f39c1458825eeeceb1b7e414ead98f67585b92",
+      "source_sha256": {
+        "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695"
+      },
+      "header_key_art_inside_safe_area": true,
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/creative-assets/en-US/header.png\n  pixelWidth: 3840\n  pixelHeight: 1646\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "en-US/search.jpg",
+      "size": [
+        3840,
+        2560
+      ],
+      "mode": "RGB",
+      "profile": "sRGB built-in",
+      "sha256": "2985f75de4144138941beec05e4b7a14bb95123f01ad50c0c032543615acc062",
+      "source_sha256": {
+        "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695",
+        "shots/raw/en/03-assistant.png": "3ae9c1996019cd1d75a9ac2323bcf5d11b6bf665f76afd591153b0aa469bdbf6",
+        "shots/raw/en/04-slides.png": "9c2c2437710a542fda9b0ef0861a06d807e1b620c7a6f2a7051c8ef9c2e82634"
+      },
+      "header_key_art_inside_safe_area": false,
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/creative-assets/en-US/search.jpg\n  pixelWidth: 3840\n  pixelHeight: 2560\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "ru/header.jpg",
+      "size": [
+        3840,
+        1646
+      ],
+      "mode": "RGB",
+      "profile": "sRGB built-in",
+      "sha256": "41bd82e9251dc2faa1942c7a2b98ecea0ae32a94a6e234d86d5116786506d4b8",
+      "source_sha256": {
+        "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695"
+      },
+      "header_key_art_inside_safe_area": true,
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/creative-assets/ru/header.jpg\n  pixelWidth: 3840\n  pixelHeight: 1646\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "ru/header.png",
+      "size": [
+        3840,
+        1646
+      ],
+      "mode": "RGB",
+      "profile": "sRGB built-in",
+      "sha256": "9e68cefb72f6f81e2fe24f7ca52e083a5c374617002e1b7482740e76b19aa158",
+      "source_sha256": {
+        "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695"
+      },
+      "header_key_art_inside_safe_area": true,
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/creative-assets/ru/header.png\n  pixelWidth: 3840\n  pixelHeight: 1646\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "ru/search.jpg",
+      "size": [
+        3840,
+        2560
+      ],
+      "mode": "RGB",
+      "profile": "sRGB built-in",
+      "sha256": "e37f198387a064c9f70814abb7eb08843f548d84730c56dd22e653c2bc1a619a",
+      "source_sha256": {
+        "Minor Ai/Assets.xcassets/logo.imageset/minor_plus-3.png": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695",
+        "shots/raw/ru/03-assistant.png": "998352a76892d0397cc153a7cf015f989f906f952a243a1db088552c823d2a41",
+        "shots/raw/ru/04-slides.png": "e41e0ca128ec7b3c0c15206046cf0fedc73e2e919ceac5cf3b00c1a1e4ad89a4"
+      },
+      "header_key_art_inside_safe_area": false,
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/creative-assets/ru/search.jpg\n  pixelWidth: 3840\n  pixelHeight: 2560\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    }
+  ],
+  "header_artwork_identical_outside_text": true,
+  "search_geometry_identical": true,
+  "ocr_forbidden_text_scan": "passed for six final files; also visually reviewed",
+  "visual_review": "Final contact sheet, full composition previews and phone-size previews checked. No prices, URLs, awards, other-platform logos, or age-inappropriate content visible. Russian headline and source UI text reviewed; no headline clipping. Screens are genuine localized app captures."
+}

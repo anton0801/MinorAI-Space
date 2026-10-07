@@ -50,6 +50,7 @@ struct MinorApp: App {
 // Opens a map when the user taps its "ready" notification.
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        Telemetry.start()
         LaunchSplash.shared.install()
         UNUserNotificationCenter.current().delegate = self
         // Earlier test builds could keep provider API keys on the device; AI now runs only on

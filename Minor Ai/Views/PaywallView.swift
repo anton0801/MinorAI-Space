@@ -55,6 +55,8 @@ struct PaywallView: View {
 
     private var isCurrentPlan: Bool { store.activeProductID == SubscriptionStore.productID(tier, period) }
     private var billedPrice: String? { store.billedPrice(tier, period) }
+    // "3 days" when this plan starts with a free trial for this Apple ID.
+    private var trial: String? { isCurrentPlan ? nil : store.freeTrial(tier, period) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -100,6 +102,19 @@ struct PaywallView: View {
                     PaywallParticles(paused: reduceMotion)
                         .frame(height: compact ? 36 : 96)
                         .accessibilityHidden(true)
+
+                    // Above the button, smaller than the price: Apple wants the amount billed to be
+                    // the most prominent price on the screen.
+                    if let trial, billedPrice != nil {
+                        Label(L("\(trial) free"), systemImage: "gift.fill")
+                            .minorFont(14, .semibold, style: .subheadline, maxScale: 1.4)
+                            .foregroundColor(MinorColor.accent)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(MinorColor.accent.opacity(0.14)))
+                            .padding(.bottom, 10)
+                            .accessibilityHidden(true)
+                    }
 
                     priceButton
 
@@ -253,18 +268,22 @@ struct PaywallView: View {
     private var priceAccessibilityLabel: String {
         if isCurrentPlan { return L("Your current plan") }
         guard let billedPrice else { return L("Load prices") }
-        return L("Subscribe to Minor \(tier == .plus ? "Plus" : "PRO") for \(billedPrice)")
+        let subscribe = L("Subscribe to Minor \(tier == .plus ? "Plus" : "PRO") for \(billedPrice)")
+        return trial.map { subscribe + ", " + L("\($0) free") } ?? subscribe
     }
 
     private var priceDetail: String? {
         guard let price = store.price(tier, period), !isCurrentPlan else { return nil }
         let billing: String
-        switch period {
-        case .monthly:
+        switch (period, trial) {
+        case (.monthly, nil):
             billing = L("\(price) billed every month. Cancel anytime.")
-        case .yearly:
+        case (.monthly, let trial?):
+            billing = L("\(trial) free, then \(price) billed every month. Cancel anytime.")
+        case (.yearly, let trial):
             let perMonth = store.monthlyEquivalent(tier).map { " (\($0))" } ?? ""
-            billing = L("\(price) billed every year\(perMonth). Cancel anytime.")
+            billing = trial.map { L("\($0) free, then \(price) billed every year\(perMonth). Cancel anytime.") }
+                ?? L("\(price) billed every year\(perMonth). Cancel anytime.")
         }
         return [billing, switchNote].compactMap { $0 }.joined(separator: " ")
     }
@@ -306,9 +325,12 @@ struct PaywallView: View {
         isLoadingPrices = true
         await store.loadProducts()
         isLoadingPrices = false
-        // Also when only the chosen plan is missing (not yet approved, or not attached to the build).
-        if store.products.isEmpty || billedPrice == nil {
+        if store.products.isEmpty {
             message = L("Couldn’t load prices from the App Store. Check your connection and try again.")
+        } else if billedPrice == nil {
+            // The App Store answered without this plan (not available in this country yet, or
+            // just approved and not everywhere yet): the connection isn't the problem.
+            message = L("This plan isn’t available in the App Store right now. Try again later or choose another plan.")
         }
     }
 
@@ -319,6 +341,7 @@ struct PaywallView: View {
             return
         }
         message = nil
+        Telemetry.log("purchase_start", ["tier": tier == .pro ? "pro" : "plus", "period": period == .yearly ? "yearly" : "monthly", "trial": trial == nil ? 0 : 1])
         Task {
             do {
                 switch try await store.purchase(tier, period) {

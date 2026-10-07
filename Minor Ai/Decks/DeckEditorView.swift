@@ -295,7 +295,10 @@ struct DeckEditorView: View {
                 renaming = true
             }
             Spacer(minLength: 8)
-            Button { presenting = true } label: {
+            Button {
+                Telemetry.log("deck_present", ["slides": deck.slides.count])
+                presenting = true
+            } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.black)
@@ -927,6 +930,7 @@ struct DeckEditorView: View {
             }
             do {
                 exportURL = kind == .pdf ? try DeckExport.pdf(deck) : try DeckExport.pptx(deck)
+                Telemetry.log("deck_export", ["format": kind == .pdf ? "pdf" : "pptx", "slides": deck.slides.count])
             } catch {
                 banner = L("Couldn’t export. Try again.")
                 bannerIsLimit = false

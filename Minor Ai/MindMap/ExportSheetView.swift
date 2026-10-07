@@ -168,6 +168,7 @@ struct ExportSheetView: View {
                 try map.outline.write(to: url, atomically: true, encoding: .utf8)
                 shareURL = url
             }
+            Telemetry.log("map_export", ["format": "\(format)"])
         } catch {
             flash(L("Couldn’t export. Try again."))
         }
@@ -200,6 +201,7 @@ struct ExportSheetView: View {
                     "share", body: Body(mapId: map.id.uuidString.lowercased(), png: data.base64EncodedString())
                 )
                 SharedMaps.insert(map.id)
+                Telemetry.log("map_share_link")
                 isShared = true
                 UIPasteboard.general.string = reply.url
                 flash(L("Link copied"))

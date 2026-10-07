@@ -1,0 +1,29 @@
+[
+  {
+    "file": "sweep.mp3",
+    "endpoint": "sound-generation",
+    "request": {
+      "text": "One short premium UI motion transition: silky stereo air whoosh accelerating inward, ending with a tight soft low thump and a tiny bright glass click. Clean, polished technology advertising sound design. No voice, no music, isolated sound with a brief decay.",
+      "duration_seconds": 1.0,
+      "prompt_influence": 0.55
+    }
+  },
+  {
+    "file": "nodes.mp3",
+    "endpoint": "sound-generation",
+    "request": {
+      "text": "A cascade of five beautifully tactile soft digital glass bubble clicks, ascending gently in pitch, like little mind map nodes magnetically snapping into place. Crisp, delicate, premium futuristic user interface. No music or voices. Isolated clean sound.",
+      "duration_seconds": 1.5,
+      "prompt_influence": 0.55
+    }
+  },
+  {
+    "file": "logo.mp3",
+    "endpoint": "sound-generation",
+    "request": {
+      "text": "Premium futuristic app sonic logo. A rounded deep soft impact followed immediately by two pure shimmering glass bell notes rising to a satisfying bright major resolution. Elegant wide stereo air and smooth short reverb tail, clean luxurious modern technology feel. No speech or vocals.",
+      "duration_seconds": 2.0,
+      "prompt_influence": 0.55
+    }
+  }
+]

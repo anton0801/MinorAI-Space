@@ -108,6 +108,7 @@ struct ChatView: View {
             Spacer()
             Button {
                 guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { voiceMode = true } }
+                Telemetry.log("voice_mode_start")
                 voiceMode = true
             } label: {
                 Image(systemName: "waveform")

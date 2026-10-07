@@ -368,16 +368,20 @@ struct SignInView: View {
                 switch step {
                 case .signIn:
                     try await auth.signIn(email: trimmedEmail, password: password)
+                    Telemetry.log("login", ["method": "email"])
                     await didSignIn()
                 case .signUp:
                     switch try await auth.signUp(email: trimmedEmail, password: password) {
-                    case .signedIn: await didSignIn()
+                    case .signedIn:
+                        Telemetry.log("sign_up", ["method": "email"])
+                        await didSignIn()
                     case .needsCode:
                         step = .confirm
                         focused = .code
                     }
                 case .confirm:
                     try await auth.verifySignUp(email: trimmedEmail, code: code)
+                    Telemetry.log("sign_up", ["method": "email"])
                     await didSignIn()
                 case .forgot:
                     try await auth.sendPasswordReset(email: trimmedEmail)
@@ -458,6 +462,7 @@ struct SignInView: View {
                 do {
                     let code = credential.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
                     try await AuthService.shared.signInWithApple(idToken: idToken, rawNonce: rawNonce, authorizationCode: code)
+                    Telemetry.log("login", ["method": "apple"])
                     await didSignIn()
                 } catch {
                     self.error = (error as? BackendError) == .offline

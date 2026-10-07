@@ -3,8 +3,8 @@
 from common import I, svg, icon, head, page
 
 B = {
- "en": {"device": "On your iPhone", "server": "Our server (EU)", "ai": "AI provider", "apple": "Apple"},
- "ru": {"device": "На вашем iPhone", "server": "Наш сервер (ЕС)", "ai": "Провайдер ИИ", "apple": "Apple"},
+ "en": {"device": "On your iPhone", "server": "Our server (EU)", "ai": "AI provider", "apple": "Apple", "google": "Google Analytics"},
+ "ru": {"device": "На вашем iPhone", "server": "Наш сервер (ЕС)", "ai": "Провайдер ИИ", "apple": "Apple", "google": "Google Analytics"},
 }
 def badges(lang, *kinds):
     return "".join(f'<span class="badge {k}">{B[lang][k]}</span>' for k in kinds)
@@ -15,7 +15,7 @@ T["en"] = dict(
  eyebrow="Privacy Policy",
  h1='Your ideas <span class="grad">stay yours.</span>',
  lead="What Minor AI does with your data, in plain words: what stays on your iPhone, what goes to our server and to AI providers, how long it’s kept and how to switch each part off.",
- updated="Updated October 4, 2026", read="About 9 minutes", owner="Regina Danilova",
+ updated="Updated October 7, 2026", read="About 9 minutes", owner="Regina Danilova",
  contents="Contents", contact_q="Questions about your data?",
  glance=[
   ("ban", "#ff8f8f", "No ads, no selling", "We don’t sell or rent your data, show ads or track you across other apps and websites."),
@@ -32,7 +32,7 @@ T["ru"] = dict(
  eyebrow="Политика конфиденциальности",
  h1='Ваши идеи <span class="grad">остаются вашими.</span>',
  lead="Что Minor AI делает с вашими данными — простыми словами: что остаётся на iPhone, что уходит на наш сервер и к провайдерам ИИ, сколько хранится и как выключить каждую часть.",
- updated="Обновлено 4 октября 2026 г.", read="Около 9 минут", owner="Regina Danilova",
+ updated="Обновлено 7 октября 2026 г.", read="Около 9 минут", owner="Regina Danilova",
  contents="Содержание", contact_q="Вопросы о ваших данных?",
  glance=[
   ("ban", "#ff8f8f", "Без рекламы и продажи данных", "Мы не продаём и не сдаём ваши данные, не показываем рекламу и не отслеживаем вас в других приложениях и на сайтах."),
@@ -84,6 +84,7 @@ en.append(("datamap", "Data map", f'''
 <tr><td>Notifications</td><td data-h="What exactly">This device’s push token, app language and which notifications you want</td><td data-h="Where it goes">{badges("en","server","apple")}</td><td data-h="How long">Until you sign out, turn them off or delete your account</td></tr>
 <tr><td>Invitations</td><td data-h="What exactly">Your invitation code, who invited whom, rewards, a one-way hash of the device ID</td><td data-h="Where it goes">{badges("en","server","apple")}</td><td data-h="How long">While your account exists</td></tr>
 <tr><td>Voice</td><td data-h="What exactly">Your speech for dictation and voice maps</td><td data-h="Where it goes">{badges("en","device","apple")}</td><td data-h="How long">Audio never reaches us</td></tr>
+<tr><td>Usage statistics</td><td data-h="What exactly">Which features are used (for example “map created from a link”), app and iOS version, device model, country, a random app-install ID. Never your maps, chats, files, email or account</td><td data-h="Where it goes">{badges("en","google")}</td><td data-h="How long">Up to 14 months</td></tr>
 </tbody></table></div>'''))
 en.append(("collect", "Details by feature", f'''
 <h3>{svg("user")} Account</h3>
@@ -116,8 +117,10 @@ en.append(("collect", "Details by feature", f'''
 <p>Everyone gets an invitation code. When a friend signs up with yours, we store that you invited them and which rewards were given; you see only how many friends joined, made a map or subscribed — not who. So one iPhone can take only one invitation, we store a one-way hash of the device identifier and ask Apple’s DeviceCheck to remember one bit for the device; Apple doesn’t learn who you are and we don’t learn anything else about the device.</p>
 <h3>{svg("map")} Shared links (PRO)</h3>
 <p>Share Link uploads an image of the map; anyone with the link can view it until you stop sharing, delete the map or delete your account.</p>
+<h3>{svg("spark")} Usage statistics</h3>
+<p>To see which features help people and where they get stuck, the app sends anonymous usage statistics to <strong>Google Analytics for Firebase</strong>: names of actions (opened the paywall, created a map and from which kind of source, exported a presentation…), the app and iOS version, device model, country and a random identifier of this app install. It never receives the content of your maps, chats or files, your email or your account, and no advertising identifier; it isn’t used for ads or to track you across apps. To object to it, write to us.</p>
 <h3>{svg("ban")} What we don’t collect</h3>
-<p>No contacts, location, advertising identifier or browsing history. No third-party analytics or advertising SDKs. Notifications go only through Apple.</p>'''))
+<p>No contacts, location, advertising identifier or browsing history. No advertising SDKs, and no tracking across apps. Notifications go only through Apple.</p>'''))
 en.append(("ai", "AI providers", f'''
 <p>AI requests are processed by <strong>OpenAI</strong> or <strong>Anthropic</strong>, depending on the model you choose. They receive the content of the request and a random, non-reversible identifier that helps them detect abuse — not your name or email.</p>
 <div class="callout">{svg("shield")}<div>Under their API terms, content sent through the API is <strong>not used to train their models</strong>. They may keep it for a limited time to detect abuse. Please don’t send sensitive data (for example health or financial details) you don’t want processed this way.</div></div>
@@ -132,6 +135,7 @@ en.append(("use", "Why we use data", '''
 <tr><td>Subscriptions and limits</td><td data-h="Data">Purchase details, usage counts</td><td data-h="Legal basis">Contract</td></tr>
 <tr><td>Preventing abuse of free limits</td><td data-h="Data">Device identifier, usage counts, the DeviceCheck bit for invitations</td><td data-h="Legal basis">Legitimate interest in a service that stays available and affordable</td></tr>
 <tr><td>Fixing errors, security, support</td><td data-h="Data">Short-lived logs, what you write to us</td><td data-h="Legal basis">Legitimate interest; contract</td></tr>
+<tr><td>Improving the app</td><td data-h="Data">Anonymous usage statistics</td><td data-h="Legal basis">Legitimate interest in making the app better</td></tr>
 </tbody></table></div>
 <p>We don’t use your content to train AI, don’t sell or rent personal data, and don’t use it for advertising.</p>'''))
 en.append(("services", "Services we use", '''
@@ -140,6 +144,7 @@ en.append(("services", "Services we use", '''
 <div class="svc"><h4>OpenAI <span class="where">USA</span></h4><p>GPT models for maps and chat, and image generation.</p></div>
 <div class="svc"><h4>Anthropic <span class="where">USA</span></h4><p>Claude models for maps and chat.</p></div>
 <div class="svc"><h4>Apple <span class="where">Global</span></h4><p>Sign in with Apple, purchases and subscription notices, speech recognition.</p></div>
+<div class="svc"><h4>Google Analytics for Firebase <span class="where">USA</span></h4><p>Anonymous usage statistics, without advertising identifiers.</p></div>
 <div class="svc"><h4>Resend <span class="where">USA</span></h4><p>Sends sign-up and password-reset codes to your email.</p></div>
 </div>
 <p>They process data only on our behalf and under their own security and privacy commitments.</p>'''))
@@ -217,6 +222,7 @@ ru.append(("datamap", "Карта данных", f'''
 <tr><td>Уведомления</td><td data-h="Что именно">Push-токен этого устройства, язык приложения и какие уведомления вы хотите получать</td><td data-h="Куда попадают">{badges("ru","server","apple")}</td><td data-h="Сколько хранятся">Пока вы не выйдете, не выключите их или не удалите аккаунт</td></tr>
 <tr><td>Приглашения</td><td data-h="Что именно">Ваш код приглашения, кто кого пригласил, награды, необратимый хеш идентификатора устройства</td><td data-h="Куда попадают">{badges("ru","server","apple")}</td><td data-h="Сколько хранятся">Пока существует аккаунт</td></tr>
 <tr><td>Голос</td><td data-h="Что именно">Ваша речь для диктовки и голосовых карт</td><td data-h="Куда попадают">{badges("ru","device","apple")}</td><td data-h="Сколько хранятся">Звук к нам не попадает</td></tr>
+<tr><td>Статистика использования</td><td data-h="Что именно">Какие функции используются (например, «карта создана из ссылки»), версия приложения и iOS, модель устройства, страна, случайный идентификатор установки. Никогда — ваши карты, чаты, файлы, почта или аккаунт</td><td data-h="Куда попадают">{badges("ru","google")}</td><td data-h="Сколько хранятся">До 14 месяцев</td></tr>
 </tbody></table></div>'''))
 ru.append(("collect", "Подробно по функциям", f'''
 <h3>{svg("user")} Аккаунт</h3>
@@ -249,8 +255,10 @@ ru.append(("collect", "Подробно по функциям", f'''
 <p>У каждого есть код приглашения. Когда друг регистрируется с вашим кодом, мы сохраняем, что его пригласили вы, и какие награды выданы; вы видите только, сколько друзей пришли, сделали карту или подписались, — но не кто именно. Чтобы на одном iPhone можно было использовать только одно приглашение, мы храним необратимый хеш идентификатора устройства и просим Apple DeviceCheck запомнить для устройства один бит; Apple не узнаёт, кто вы, а мы — ничего больше об устройстве.</p>
 <h3>{svg("map")} Ссылки на карты (PRO)</h3>
 <p>«Поделиться ссылкой» загружает изображение карты; его может открыть любой, у кого есть ссылка, пока вы не закроете доступ, не удалите карту или аккаунт.</p>
+<h3>{svg("spark")} Статистика использования</h3>
+<p>Чтобы понимать, какие функции помогают людям и где они спотыкаются, приложение отправляет анонимную статистику в <strong>Google Analytics for Firebase</strong>: названия действий (открыт экран подписки, создана карта и из какого вида источника, экспортирована презентация…), версию приложения и iOS, модель устройства, страну и случайный идентификатор этой установки приложения. Содержимое ваших карт, чатов и файлов, почта, аккаунт и рекламный идентификатор туда не попадают; статистика не используется для рекламы и отслеживания в других приложениях. Чтобы возразить против неё, напишите нам.</p>
 <h3>{svg("ban")} Что мы не собираем</h3>
-<p>Ни контактов, ни геопозиции, ни рекламного идентификатора, ни истории браузера. Никаких сторонних SDK аналитики и рекламы. Уведомления идут только через Apple.</p>'''))
+<p>Ни контактов, ни геопозиции, ни рекламного идентификатора, ни истории браузера. Никаких рекламных SDK и никакого отслеживания в других приложениях. Уведомления идут только через Apple.</p>'''))
 ru.append(("ai", "Провайдеры ИИ", f'''
 <p>Запросы к ИИ обрабатывают <strong>OpenAI</strong> или <strong>Anthropic</strong> — в зависимости от выбранной модели. Они получают содержимое запроса и случайный необратимый идентификатор для выявления злоупотреблений — но не ваше имя и почту.</p>
 <div class="callout">{svg("shield")}<div>По условиям их API содержимое, отправленное через API, <strong>не используется для обучения моделей</strong>. Оно может храниться ограниченное время для выявления злоупотреблений. Не отправляйте чувствительные данные (например, о здоровье или финансах), если не хотите, чтобы они так обрабатывались.</div></div>
@@ -265,6 +273,7 @@ ru.append(("use", "Зачем мы используем данные", '''
 <tr><td>Подписки и лимиты</td><td data-h="Данные">Данные покупок, счётчики использования</td><td data-h="Основание">Договор</td></tr>
 <tr><td>Защита бесплатных лимитов</td><td data-h="Данные">Идентификатор устройства, счётчики, бит DeviceCheck для приглашений</td><td data-h="Основание">Законный интерес сохранять сервис доступным и недорогим</td></tr>
 <tr><td>Исправление ошибок, безопасность, поддержка</td><td data-h="Данные">Кратковременные журналы, то, что вы нам пишете</td><td data-h="Основание">Законный интерес; договор</td></tr>
+<tr><td>Улучшение приложения</td><td data-h="Данные">Анонимная статистика использования</td><td data-h="Основание">Законный интерес делать приложение лучше</td></tr>
 </tbody></table></div>
 <p>Мы не обучаем ИИ на вашем содержимом, не продаём и не сдаём персональные данные и не используем их для рекламы.</p>'''))
 ru.append(("services", "Сервисы, которые мы используем", '''
@@ -273,6 +282,7 @@ ru.append(("services", "Сервисы, которые мы используем
 <div class="svc"><h4>OpenAI <span class="where">США</span></h4><p>Модели GPT для карт и чата, создание картинок.</p></div>
 <div class="svc"><h4>Anthropic <span class="where">США</span></h4><p>Модели Claude для карт и чата.</p></div>
 <div class="svc"><h4>Apple <span class="where">По всему миру</span></h4><p>Вход с Apple, покупки и уведомления о подписках, распознавание речи.</p></div>
+<div class="svc"><h4>Google Analytics for Firebase <span class="where">США</span></h4><p>Анонимная статистика использования, без рекламных идентификаторов.</p></div>
 <div class="svc"><h4>Resend <span class="where">США</span></h4><p>Отправляет коды регистрации и сброса пароля на вашу почту.</p></div>
 </div>
 <p>Они обрабатывают данные только по нашему поручению и в рамках своих обязательств по безопасности и конфиденциальности.</p>'''))

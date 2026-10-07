@@ -276,6 +276,7 @@ struct CollabSheet: View {
         guard AuthService.shared.isSignedIn else { return AuthGate.shared.require(invite) }
         run {
             let link = try await collab.inviteLink(for: mapID, role: inviteRole)
+            Telemetry.log("collab_invite", ["role": inviteRole == .viewer ? "viewer" : "editor"])
             let title = map?.title ?? ""
             shareItems = [inviteRole == .viewer
                           ? L("Take a look at “\(title)” in Minor AI: \(link.absoluteString)")

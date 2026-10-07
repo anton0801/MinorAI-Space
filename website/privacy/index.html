@@ -60,7 +60,7 @@
         <h1>Your ideas <span class="grad">stay yours.</span></h1>
         <p class="lead">What Minor AI does with your data, in plain words: what stays on your iPhone, what goes to our server and to AI providers, how long it’s kept and how to switch each part off.</p>
         <div class="pp-meta">
-          <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Updated October 4, 2026</span>
+          <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Updated October 7, 2026</span>
           <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>About 9 minutes</span>
           <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Regina Danilova</span>
         </div>
@@ -115,6 +115,7 @@
 <tr><td>Notifications</td><td data-h="What exactly">This device’s push token, app language and which notifications you want</td><td data-h="Where it goes"><span class="badge server">Our server (EU)</span><span class="badge apple">Apple</span></td><td data-h="How long">Until you sign out, turn them off or delete your account</td></tr>
 <tr><td>Invitations</td><td data-h="What exactly">Your invitation code, who invited whom, rewards, a one-way hash of the device ID</td><td data-h="Where it goes"><span class="badge server">Our server (EU)</span><span class="badge apple">Apple</span></td><td data-h="How long">While your account exists</td></tr>
 <tr><td>Voice</td><td data-h="What exactly">Your speech for dictation and voice maps</td><td data-h="Where it goes"><span class="badge device">On your iPhone</span><span class="badge apple">Apple</span></td><td data-h="How long">Audio never reaches us</td></tr>
+<tr><td>Usage statistics</td><td data-h="What exactly">Which features are used (for example “map created from a link”), app and iOS version, device model, country, a random app-install ID. Never your maps, chats, files, email or account</td><td data-h="Where it goes"><span class="badge google">Google Analytics</span></td><td data-h="How long">Up to 14 months</td></tr>
 </tbody></table></div>
       </section>
       <section class="pp-section" id="en-collect">
@@ -149,8 +150,10 @@
 <p>Everyone gets an invitation code. When a friend signs up with yours, we store that you invited them and which rewards were given; you see only how many friends joined, made a map or subscribed — not who. So one iPhone can take only one invitation, we store a one-way hash of the device identifier and ask Apple’s DeviceCheck to remember one bit for the device; Apple doesn’t learn who you are and we don’t learn anything else about the device.</p>
 <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg> Shared links (PRO)</h3>
 <p>Share Link uploads an image of the map; anyone with the link can view it until you stop sharing, delete the map or delete your account.</p>
+<h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg> Usage statistics</h3>
+<p>To see which features help people and where they get stuck, the app sends anonymous usage statistics to <strong>Google Analytics for Firebase</strong>: names of actions (opened the paywall, created a map and from which kind of source, exported a presentation…), the app and iOS version, device model, country and a random identifier of this app install. It never receives the content of your maps, chats or files, your email or your account, and no advertising identifier; it isn’t used for ads or to track you across apps. To object to it, write to us.</p>
 <h3><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg> What we don’t collect</h3>
-<p>No contacts, location, advertising identifier or browsing history. No third-party analytics or advertising SDKs. Notifications go only through Apple.</p>
+<p>No contacts, location, advertising identifier or browsing history. No advertising SDKs, and no tracking across apps. Notifications go only through Apple.</p>
       </section>
       <section class="pp-section" id="en-ai">
         <div class="pp-head"><span class="num">05</span><h2>AI providers</h2></div>
@@ -169,6 +172,7 @@
 <tr><td>Subscriptions and limits</td><td data-h="Data">Purchase details, usage counts</td><td data-h="Legal basis">Contract</td></tr>
 <tr><td>Preventing abuse of free limits</td><td data-h="Data">Device identifier, usage counts, the DeviceCheck bit for invitations</td><td data-h="Legal basis">Legitimate interest in a service that stays available and affordable</td></tr>
 <tr><td>Fixing errors, security, support</td><td data-h="Data">Short-lived logs, what you write to us</td><td data-h="Legal basis">Legitimate interest; contract</td></tr>
+<tr><td>Improving the app</td><td data-h="Data">Anonymous usage statistics</td><td data-h="Legal basis">Legitimate interest in making the app better</td></tr>
 </tbody></table></div>
 <p>We don’t use your content to train AI, don’t sell or rent personal data, and don’t use it for advertising.</p>
       </section>
@@ -179,6 +183,7 @@
 <div class="svc"><h4>OpenAI <span class="where">USA</span></h4><p>GPT models for maps and chat, and image generation.</p></div>
 <div class="svc"><h4>Anthropic <span class="where">USA</span></h4><p>Claude models for maps and chat.</p></div>
 <div class="svc"><h4>Apple <span class="where">Global</span></h4><p>Sign in with Apple, purchases and subscription notices, speech recognition.</p></div>
+<div class="svc"><h4>Google Analytics for Firebase <span class="where">USA</span></h4><p>Anonymous usage statistics, without advertising identifiers.</p></div>
 <div class="svc"><h4>Resend <span class="where">USA</span></h4><p>Sends sign-up and password-reset codes to your email.</p></div>
 </div>
 <p>They process data only on our behalf and under their own security and privacy commitments.</p>
@@ -243,7 +248,7 @@
         <h1>Ваши идеи <span class="grad">остаются вашими.</span></h1>
         <p class="lead">Что Minor AI делает с вашими данными — простыми словами: что остаётся на iPhone, что уходит на наш сервер и к провайдерам ИИ, сколько хранится и как выключить каждую часть.</p>
         <div class="pp-meta">
-          <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Обновлено 4 октября 2026 г.</span>
+          <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Обновлено 7 октября 2026 г.</span>
           <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Около 9 минут</span>
           <span class="pp-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Regina Danilova</span>
         </div>
@@ -298,6 +303,7 @@
 <tr><td>Уведомления</td><td data-h="Что именно">Push-токен этого устройства, язык приложения и какие уведомления вы хотите получать</td><td data-h="Куда попадают"><span class="badge server">Наш сервер (ЕС)</span><span class="badge apple">Apple</span></td><td data-h="Сколько хранятся">Пока вы не выйдете, не выключите их или не удалите аккаунт</td></tr>
 <tr><td>Приглашения</td><td data-h="Что именно">Ваш код приглашения, кто кого пригласил, награды, необратимый хеш идентификатора устройства</td><td data-h="Куда попадают"><span class="badge server">Наш сервер (ЕС)</span><span class="badge apple">Apple</span></td><td data-h="Сколько хранятся">Пока существует аккаунт</td></tr>
 <tr><td>Голос</td><td data-h="Что именно">Ваша речь для диктовки и голосовых карт</td><td data-h="Куда попадают"><span class="badge device">На вашем iPhone</span><span class="badge apple">Apple</span></td><td data-h="Сколько хранятся">Звук к нам не попадает</td></tr>
+<tr><td>Статистика использования</td><td data-h="Что именно">Какие функции используются (например, «карта создана из ссылки»), версия приложения и iOS, модель устройства, страна, случайный идентификатор установки. Никогда — ваши карты, чаты, файлы, почта или аккаунт</td><td data-h="Куда попадают"><span class="badge google">Google Analytics</span></td><td data-h="Сколько хранятся">До 14 месяцев</td></tr>
 </tbody></table></div>
       </section>
       <section class="pp-section" id="ru-collect">
@@ -332,8 +338,10 @@
 <p>У каждого есть код приглашения. Когда друг регистрируется с вашим кодом, мы сохраняем, что его пригласили вы, и какие награды выданы; вы видите только, сколько друзей пришли, сделали карту или подписались, — но не кто именно. Чтобы на одном iPhone можно было использовать только одно приглашение, мы храним необратимый хеш идентификатора устройства и просим Apple DeviceCheck запомнить для устройства один бит; Apple не узнаёт, кто вы, а мы — ничего больше об устройстве.</p>
 <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg> Ссылки на карты (PRO)</h3>
 <p>«Поделиться ссылкой» загружает изображение карты; его может открыть любой, у кого есть ссылка, пока вы не закроете доступ, не удалите карту или аккаунт.</p>
+<h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg> Статистика использования</h3>
+<p>Чтобы понимать, какие функции помогают людям и где они спотыкаются, приложение отправляет анонимную статистику в <strong>Google Analytics for Firebase</strong>: названия действий (открыт экран подписки, создана карта и из какого вида источника, экспортирована презентация…), версию приложения и iOS, модель устройства, страну и случайный идентификатор этой установки приложения. Содержимое ваших карт, чатов и файлов, почта, аккаунт и рекламный идентификатор туда не попадают; статистика не используется для рекламы и отслеживания в других приложениях. Чтобы возразить против неё, напишите нам.</p>
 <h3><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg> Что мы не собираем</h3>
-<p>Ни контактов, ни геопозиции, ни рекламного идентификатора, ни истории браузера. Никаких сторонних SDK аналитики и рекламы. Уведомления идут только через Apple.</p>
+<p>Ни контактов, ни геопозиции, ни рекламного идентификатора, ни истории браузера. Никаких рекламных SDK и никакого отслеживания в других приложениях. Уведомления идут только через Apple.</p>
       </section>
       <section class="pp-section" id="ru-ai">
         <div class="pp-head"><span class="num">05</span><h2>Провайдеры ИИ</h2></div>
@@ -352,6 +360,7 @@
 <tr><td>Подписки и лимиты</td><td data-h="Данные">Данные покупок, счётчики использования</td><td data-h="Основание">Договор</td></tr>
 <tr><td>Защита бесплатных лимитов</td><td data-h="Данные">Идентификатор устройства, счётчики, бит DeviceCheck для приглашений</td><td data-h="Основание">Законный интерес сохранять сервис доступным и недорогим</td></tr>
 <tr><td>Исправление ошибок, безопасность, поддержка</td><td data-h="Данные">Кратковременные журналы, то, что вы нам пишете</td><td data-h="Основание">Законный интерес; договор</td></tr>
+<tr><td>Улучшение приложения</td><td data-h="Данные">Анонимная статистика использования</td><td data-h="Основание">Законный интерес делать приложение лучше</td></tr>
 </tbody></table></div>
 <p>Мы не обучаем ИИ на вашем содержимом, не продаём и не сдаём персональные данные и не используем их для рекламы.</p>
       </section>
@@ -362,6 +371,7 @@
 <div class="svc"><h4>OpenAI <span class="where">США</span></h4><p>Модели GPT для карт и чата, создание картинок.</p></div>
 <div class="svc"><h4>Anthropic <span class="where">США</span></h4><p>Модели Claude для карт и чата.</p></div>
 <div class="svc"><h4>Apple <span class="where">По всему миру</span></h4><p>Вход с Apple, покупки и уведомления о подписках, распознавание речи.</p></div>
+<div class="svc"><h4>Google Analytics for Firebase <span class="where">США</span></h4><p>Анонимная статистика использования, без рекламных идентификаторов.</p></div>
 <div class="svc"><h4>Resend <span class="where">США</span></h4><p>Отправляет коды регистрации и сброса пароля на вашу почту.</p></div>
 </div>
 <p>Они обрабатывают данные только по нашему поручению и в рамках своих обязательств по безопасности и конфиденциальности.</p>

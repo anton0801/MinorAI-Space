@@ -1,0 +1,19 @@
+{
+  "file": "Minor-AI-Promo-10s.mp4",
+  "duration_seconds": 10.0,
+  "resolution": [
+    1080,
+    1920
+  ],
+  "fps": 60,
+  "video_frames": 600,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "audio_sample_rate": 48000,
+  "audio_channels": 2,
+  "integrated_loudness_LUFS": -16.8,
+  "true_peak_dBTP": -1.4,
+  "full_decode": "passed",
+  "visual_review": "storyboard and encoded final frame reviewed",
+  "bytes": 2816213
+}

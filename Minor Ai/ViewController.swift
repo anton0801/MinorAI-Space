@@ -142,7 +142,7 @@ struct ContentView: View {
             
             // Кнопка "Minor Plus" в центре (only for people without a plan)
             Button(action: {
-                openPaywall()
+                openPaywall(from: "get_plus_button")
             }) {
                 // "Get Plus", not the plan's name: free users read "Minor Plus" as their plan. As
                 // narrow as the old pill, so it never reaches the model name on an iPhone SE.
@@ -451,8 +451,8 @@ struct ContentView: View {
                     }
                 },
                 onOpenSidebar: openSidebar,
-                onUpgrade: openPaywall,
-                onUpgradePro: { openPaywall(pro: true) },
+                onUpgrade: { openPaywall(from: "create_map") },
+                onUpgradePro: { openPaywall(pro: true, from: "create_map") },
                 onStart: { input, model in
                     withConsent { generatingJobID = GenerationCenter.shared.start(input, model: model) }
                 },
@@ -642,7 +642,7 @@ struct ContentView: View {
                             generatingJobID = GenerationCenter.shared.start(.text(answer, source: MapSource(kind: .chat, label: title)))
                         }
                     },
-                    onUpgrade: openPaywall
+                    onUpgrade: { openPaywall(from: "chat") }
                 )
                 .transition(.move(edge: .bottom))
                 .modifier(TopLayer(isTop: topLayer == .chat))
@@ -660,7 +660,7 @@ struct ContentView: View {
                         isMindActive = false
                     },
                     onClose: { generatingJobID = nil },
-                    onUpgrade: openPaywall
+                    onUpgrade: { openPaywall(from: "generating") }
                 )
                 .id(jobID)
                 .transition(.move(edge: .bottom))
@@ -709,7 +709,7 @@ struct ContentView: View {
                     mapID: id,
                     theme: theme,
                     onClose: { openMapID = nil },
-                    onUpgrade: { pro in openPaywall(pro: pro) },
+                    onUpgrade: { pro in openPaywall(pro: pro, from: "map_editor") },
                     onCreateDeck: { map in newDeck = NewDeckRequest(mapID: map) }
                 )
                 .id(id)
@@ -727,7 +727,7 @@ struct ContentView: View {
                         openDeckID = nil
                         openMapID = map
                     },
-                    onUpgrade: { pro in openPaywall(pro: pro) }
+                    onUpgrade: { pro in openPaywall(pro: pro, from: "deck_editor") }
                 )
                 .id(id)
                 .transition(.move(edge: .bottom))
@@ -774,7 +774,7 @@ struct ContentView: View {
         .sheet(item: $newDeck) { request in
             NewDeckView(theme: theme, preselectedMap: request.mapID, onCreated: { id in
                 openDeckID = id
-            }, onUpgrade: { openPaywall() })
+            }, onUpgrade: { openPaywall(from: "new_deck") })
         }
         .onChange(of: generation.routeRequest) { url in
             guard let url else { return }
@@ -900,9 +900,10 @@ struct ContentView: View {
                 _ = GenerationCenter.shared.start(.topic("Photosynthesis"))
                 openSidebar()
             }
-            if args.contains("-demoPaywall") { openPaywall() }
+            if args.contains("-demoPaywall") { openPaywall(from: "debug") }
             if args.contains("-demoUsage") {
                 AccountStore.shared.installDemo()
+                InviteService.shared.installDemo()
                 showUsage = true
             }
             if args.contains("-demoInvite") {
@@ -919,7 +920,7 @@ struct ContentView: View {
                 onUpgrade: { pro in
                     showSettings = false
                     closeSidebar()
-                    openPaywall(pro: pro)
+                    openPaywall(pro: pro, from: "settings")
                 },
                 onDataDeleted: {
                     chatVM.deleteAll()
@@ -931,7 +932,7 @@ struct ContentView: View {
         .sheet(isPresented: $showUsage) {
             UsageView(onUpgrade: { pro in
                 showUsage = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { openPaywall(pro: pro) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { openPaywall(pro: pro, from: "limits") }
             })
         }
         .sheet(item: $inviteSheet) { request in InviteView(initialCode: request.code) }
@@ -966,6 +967,7 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView(onFinish: {
+                Telemetry.log("onboarding_complete", ["method": AuthService.shared.isSignedIn ? "signed_in" : "not_now"])
                 didOnboard = true
                 showOnboarding = false
                 if let url = pendingLink {
@@ -1017,13 +1019,15 @@ struct ContentView: View {
         )
     }
 
-    private func openPaywall() {
-        openPaywall(pro: false)
+    // `source` says what opened it, for the paywall funnel in analytics.
+    private func openPaywall(from source: String) {
+        openPaywall(pro: false, from: source)
     }
 
     // Opens the paywall with Plus or PRO already selected (PRO for PRO-only features).
-    private func openPaywall(pro: Bool) {
+    private func openPaywall(pro: Bool, from source: String) {
         paywallTier = pro || account.effectivePlan == .plus ? .pro : .plus
+        Telemetry.log("paywall_view", ["tier": paywallTier == .pro ? "pro" : "plus", "source": source])
         withAnimation(.easeInOut(duration: 0.35)) {
             isBlurActive = true
         }
@@ -1232,6 +1236,7 @@ struct ContentView: View {
         Task {
             do {
                 let id = try await CollabService.shared.join(token: token)
+                Telemetry.log("collab_join")
                 if isBlurActive { closePaywall() }
                 closeSidebar()
                 chatVM.endSession()

@@ -117,6 +117,10 @@ final class ChatViewModel: ObservableObject {
         )
         // "Plan My Day": the tasks go with the message, so the plan never depends on the model asking.
         if withTasks { message.tasksText = Workspace.openTasks() }
+        Telemetry.log("chat_message", [
+            "model": model.apiModelID, "maps": attached.count, "images": images.count, "file": file == nil ? 0 : 1,
+            "plan_day": withTasks ? 1 : 0, "new_chat": messages.isEmpty ? 1 : 0,
+        ])
         messages.append(message)
         let conversationID = persistCurrent()
         runAnswer(history: messages, model: model, messageID: message.id, conversationID: conversationID)
@@ -221,6 +225,7 @@ final class ChatViewModel: ObservableObject {
         limitReached = false
         var message = ChatMessage(role: .user, text: prompt)
         message.imageRequest = true
+        Telemetry.log("image_generate", ["where": "chat"])
         messages.append(message)
         let conversationID = persistCurrent()
         runImage(prompt: prompt, quality: quality, messageID: message.id, conversationID: conversationID)

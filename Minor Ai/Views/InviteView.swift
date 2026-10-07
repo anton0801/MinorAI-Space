@@ -158,7 +158,10 @@ struct InviteView: View {
             }
             .buttonStyle(.plain)
             if let url = status.url {
-                ShareLink(item: url, subject: Text("Minor AI"), message: Text(shareMessage(status))) {
+                Button {
+                    Telemetry.log("invite_share")
+                    SystemShare.present(text: shareMessage(status), url: url, subject: "Minor AI")
+                } label: {
                     Label("Share Invite", systemImage: "square.and.arrow.up")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.black)
@@ -403,6 +406,7 @@ struct InviteView: View {
         Task {
             do {
                 let days = try await invites.redeem(friendCode)
+                Telemetry.log("invite_redeem", ["days": days])
                 redeemFailed = false
                 redeemMessage = L("Done! You have \(days) days of Minor Plus.")
                 friendCode = ""

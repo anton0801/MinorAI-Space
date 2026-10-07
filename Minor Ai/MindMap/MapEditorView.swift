@@ -1678,6 +1678,7 @@ struct MapEditorView: View {
                     }
                 }
                 flash(Set(children.map(\.id)))
+                Telemetry.log("idea_expand", ["kind": hint.rawValue.isEmpty ? "more" : hint.rawValue, "added": children.count])
                 Haptics.success()
             } catch is CancellationError {
                 generating.remove(id)

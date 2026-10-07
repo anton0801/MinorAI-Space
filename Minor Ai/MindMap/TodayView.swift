@@ -148,6 +148,7 @@ struct TodayView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear { Telemetry.log("today_open", ["tasks": tasks.filter { !$0.isDone }.count]) }
     }
 
     private var summary: some View {

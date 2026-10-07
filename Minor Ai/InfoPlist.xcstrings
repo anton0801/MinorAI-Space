@@ -27,6 +27,7 @@
     },
     "NSCalendarsFullAccessUsageDescription" : {
       "comment" : "Privacy - usage description",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

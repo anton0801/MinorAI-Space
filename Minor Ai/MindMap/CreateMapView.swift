@@ -673,6 +673,7 @@ struct CreateMapView: View {
                 account.noteMapCreated()
                 let map = template.makeMap()
                 store.save(map)
+                Telemetry.log("map_created", ["source": "template", "template": template.id])
                 onOpenMap(map.id)
             } catch BackendError.limitReached(let kind) {
                 account.noteLimitReached(kind: kind)

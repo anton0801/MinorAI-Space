@@ -240,6 +240,7 @@ final class AccountStore: ObservableObject {
 
     // The server said the free map quota is used up; show it right away instead of after a refresh.
     func noteLimitReached(kind: String) {
+        Telemetry.log("limit_reached", ["kind": kind, "plan": effectivePlan.rawValue])
         if kind == "maps" { mapsUsed = max(mapsUsed, freeMapLimit) }
         if kind == "budget" { spendMicros = max(spendMicros, allowanceMicros) }
         if kind == "decks" { decksUsed = max(decksUsed, freeDeckLimit) }
@@ -256,6 +257,7 @@ final class AccountStore: ObservableObject {
 
     func syncPaidFlag() {
         BackendError.isPaidUser = effectivePlan != .free
+        Telemetry.setPlan(effectivePlan.rawValue)
     }
 
     private static let utc: Calendar = {
