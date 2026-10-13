@@ -14,6 +14,8 @@ final class DeckStore: ObservableObject {
     static let shared = DeckStore()
 
     @Published private(set) var decks: [Deck] = []
+    // Presentations whose last write to the disk failed: their editor says "Not saved".
+    @Published private(set) var failedSaves: Set<UUID> = []
 
     private let folder: URL
     private let encoder = JSONEncoder()
@@ -35,6 +37,7 @@ final class DeckStore: ObservableObject {
 
     func save(_ deck: Deck) {
         var deck = deck
+        deck.alignBulletIDs(from: self.deck(deck.id))
         deck.updatedAt = Date()
         if let index = decks.firstIndex(where: { $0.id == deck.id }) {
             decks[index] = deck
@@ -49,12 +52,63 @@ final class DeckStore: ObservableObject {
     func update(_ id: UUID, _ change: (inout Deck) -> Void) -> Deck? {
         guard let index = decks.firstIndex(where: { $0.id == id }) else { return nil }
         var deck = decks[index]
+        let before = deck
         change(&deck)
+        deck.alignBulletIDs(from: before)
         deck.updatedAt = Date()
         decks[index] = deck
         sort()
         write(deck)
         return deck
+    }
+
+    func togglePin(_ id: UUID) {
+        guard let index = decks.firstIndex(where: { $0.id == id }) else { return }
+        decks[index].isPinned.toggle()
+        write(decks[index])
+    }
+
+    // An empty name keeps the old one.
+    func rename(_ id: UUID, to title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        update(id) { $0.title = String(trimmed.prefix(200)) }
+    }
+
+    // A copy with the same slides and design; pictures are shared (they are kept while any
+    // presentation uses them).
+    @discardableResult
+    func duplicate(_ id: UUID) -> Deck? {
+        guard var copy = deck(id) else { return nil }
+        copy.id = UUID()
+        copy.title = L("\(copy.title) copy")
+        copy.isPinned = false
+        copy.createdAt = Date()
+        save(copy)
+        return copy
+    }
+
+    // MARK: - Files that couldn't be read
+
+    @Published private(set) var unreadable = 0
+
+    // Reads the set-aside files again and brings back the ones that open now.
+    func retryUnreadable() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "unreadable" {
+            guard let data = try? Data(contentsOf: url), let deck = try? decoder.decode(Deck.self, from: data),
+                  self.deck(deck.id) == nil else { continue }
+            let restored = url.deletingPathExtension().appendingPathExtension("json")
+            guard (try? FileManager.default.moveItem(at: url, to: restored)) != nil else { continue }
+            decks.append(deck)
+        }
+        sort()
+        countUnreadable()
+    }
+
+    private func countUnreadable() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        unreadable = files.filter { $0.pathExtension == "unreadable" }.count
     }
 
     func delete(_ id: UUID) {
@@ -67,6 +121,7 @@ final class DeckStore: ObservableObject {
 
     func deleteAll() {
         decks = []
+        failedSaves = []
         let folder = folder
         io.async {
             let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
@@ -77,6 +132,12 @@ final class DeckStore: ObservableObject {
     // MARK: - Sync
 
     func applySynced(_ deck: Deck) {
+        // Ids that came with the deck stay (its links point at them); missing ones follow this copy.
+        var deck = deck
+        let local = self.deck(deck.id)
+        for i in deck.slides.indices where deck.slides[i].bulletIDs?.count != deck.slides[i].bullets.count {
+            deck.slides[i].alignBulletIDs(from: local?.slides.first { $0.id == deck.slides[i].id })
+        }
         if let index = decks.firstIndex(where: { $0.id == deck.id }) {
             decks[index] = deck
         } else {
@@ -96,9 +157,23 @@ final class DeckStore: ObservableObject {
     nonisolated func flush() { io.sync {} }
 
     private func write(_ deck: Deck) {
-        guard let data = try? encoder.encode(deck) else { return }
-        let url = file(for: deck.id)
-        io.async { try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]) }
+        let id = deck.id
+        guard let data = try? encoder.encode(deck) else {
+            failedSaves.insert(id)
+            return
+        }
+        let url = file(for: id)
+        io.async {
+            let saved = (try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])) != nil
+            Task { @MainActor in
+                let store = DeckStore.shared
+                if saved {
+                    if store.failedSaves.contains(id) { store.failedSaves.remove(id) }
+                } else if store.deck(id) != nil {
+                    store.failedSaves.insert(id)
+                }
+            }
+        }
     }
 
     private func load() {
@@ -112,6 +187,7 @@ final class DeckStore: ObservableObject {
             return nil
         }
         sort()
+        countUnreadable()
     }
 
     private func sort() { decks.sort { $0.updatedAt > $1.updatedAt } }
@@ -132,23 +208,33 @@ final class DeckService {
     struct Generated {
         let title: String
         let slides: [Slide]
+        var lineage: DeckLineage?   // made from a map: which slide and bullet comes from which idea
     }
 
     // `layouts`: a template's slides in order, for the AI to fill instead of choosing its own.
     func generate(_ source: Source, slides: Int, audience: String = "", quality: String? = nil, layouts: [SlideLayout]? = nil) async throws -> Generated {
         struct SourceBody: Encodable { let kind: String; let value: String?; let map: APINode? }
-        struct Body: Encodable { let action = "deck"; let source: SourceBody; let slides: Int; let audience: String?; let quality: String?; let layouts: [String]? }
+        struct Body: Encodable { let action = "deck"; let source: SourceBody; let slides: Int; let audience: String?; let quality: String?; let layouts: [String]?; let lineage: Bool? }
         struct Reply: Decodable { let deck: APIDeck }
         let sourceBody: SourceBody
+        var refs: [String: UUID] = [:]
         switch source {
-        case .map(let map): sourceBody = SourceBody(kind: "map", value: nil, map: APINode(map.root))
+        case .map(let map):
+            // Ideas carry short refs, so each slide can say which idea it comes from.
+            let made = MapRefs.make(map.root)
+            refs = made.refs
+            sourceBody = SourceBody(kind: "map", value: nil, map: made.tree)
         case .topic(let topic): sourceBody = SourceBody(kind: "topic", value: topic, map: nil)
         case .text(let text): sourceBody = SourceBody(kind: "text", value: String(text.suffix(200_000)), map: nil)
         }
         let body = Body(source: sourceBody, slides: layouts?.count ?? slides, audience: audience.isEmpty ? nil : audience, quality: quality,
-                        layouts: layouts?.map(\.rawValue))
+                        layouts: layouts?.map(\.rawValue), lineage: refs.isEmpty ? nil : true)
         let reply: Reply = try await BackendClient.shared.invoke("ai", body: body)
-        return Generated(title: reply.deck.title, slides: reply.deck.toSlides())
+        var made = reply.deck.toSlides()
+        for i in made.indices { made[i].alignBulletIDs(from: nil) }
+        var lineage: DeckLineage?
+        if case .map(let map) = source { lineage = DeckLineage.build(slides: made, api: reply.deck.slides, refs: refs, map: map) }
+        return Generated(title: reply.deck.title, slides: made, lineage: lineage)
     }
 
     // One slide again, following an instruction; pictures and the slide's id stay.

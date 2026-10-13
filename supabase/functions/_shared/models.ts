@@ -1,7 +1,8 @@
 // The AI models Minor can use, what they cost, and what each plan may do with them.
 //
-// Chat: every model is open to every plan. Each request is charged its real API cost against the
-// plan's monthly AI allowance (BUDGET_USD), so a frontier model simply uses the allowance faster.
+// Chat: the free plan chats with the light models, Plus adds the standard ones and Claude Opus, PRO
+// the frontier ones (CHAT_TIERS). Each request is charged its real API cost against the plan's
+// monthly AI allowance (BUDGET_USD), so a stronger model uses the allowance faster.
 // Maps: the strongest models are part of paid plans (MAP_TIERS).
 
 export type Plan = "free" | "plus" | "pro";
@@ -30,6 +31,13 @@ export const CATALOG: ModelInfo[] = [
 
 const TIER_ORDER: Tier[] = ["lite", "standard", "advanced", "frontier"];
 
+// Chat models each plan may choose.
+export const CHAT_TIERS: Record<Plan, Tier[]> = {
+  free: ["lite"],
+  plus: ["lite", "standard", "advanced"],
+  pro: ["lite", "standard", "advanced", "frontier"],
+};
+
 // Map quality each plan may choose. Free maps are built with a standard model.
 export const MAP_TIERS: Record<Plan, Tier[]> = {
   free: ["standard"],
@@ -51,7 +59,7 @@ export const BONUS_BUDGET_USD = 2;
 export type Area = "maps" | "decks" | "chat" | "images";
 
 export function areaOf(action: string): Area | null {
-  if (["map", "template", "expand", "edit", "summarize", "quiz"].includes(action)) return "maps";
+  if (["map", "template", "expand", "edit", "summarize", "quiz", "material", "nextSteps", "memory"].includes(action)) return "maps";
   if (["deck", "slide", "deckEdit", "deckStyle", "slideElements"].includes(action)) return "decks";
   if (action === "chat") return "chat";
   if (action === "image") return "images";
@@ -95,18 +103,46 @@ export function modelForTier(
   throw new Error("no_provider");
 }
 
-// Chat: the requested model when it is known and its provider is configured, otherwise the cheapest
-// model of the same provider family. Every plan may use every model.
+// Chat: the requested model when the plan includes its tier and its provider is configured (an
+// unknown model means the light one). Without that provider's key: the same tier on the other
+// provider, else a lighter one, never past what the plan includes.
 export function resolveChatModel(
+  plan: Plan,
   requested: string | undefined,
   keys: { openai: boolean; anthropic: boolean },
   overrides: Partial<Record<string, string>> = {},
 ): ResolvedModel {
   const info = requested ? modelInfo(requested) : null;
+  const tier: Tier = info?.tier ?? "lite";
+  if (!CHAT_TIERS[plan].includes(tier)) throw new ModelLockedError(tier);
   if (info && keys[info.provider]) {
-    return { provider: info.provider, tier: info.tier, model: overrides[info.id] ?? info.id, info };
+    return { provider: info.provider, tier, model: overrides[info.id] ?? info.id, info };
   }
-  return modelForTier(info?.tier ?? "lite", keys, info?.provider, overrides);
+  const order: Provider[] = info?.provider === "anthropic" ? ["anthropic", "openai"] : ["openai", "anthropic"];
+  for (const t of TIER_ORDER.slice(0, TIER_ORDER.indexOf(tier) + 1).reverse()) {
+    for (const p of order) {
+      if (!keys[p]) continue;
+      const found = CATALOG.find((m) => m.provider === p && m.tier === t);
+      if (found) return { provider: p, tier: t, model: overrides[found.id] ?? found.id, info: found };
+    }
+  }
+  throw new Error("no_provider");
+}
+
+// The other provider's model to retry with when a provider refuses a request (out of credit, an
+// outage): the same tier, or the nearest one below, so a retry never costs more than was allowed.
+export function fallbackModel(
+  resolved: ResolvedModel,
+  keys: { openai: boolean; anthropic: boolean },
+  overrides: Partial<Record<string, string>> = {},
+): ResolvedModel | null {
+  const other: Provider = resolved.provider === "openai" ? "anthropic" : "openai";
+  if (!keys[other]) return null;
+  for (const t of TIER_ORDER.slice(0, TIER_ORDER.indexOf(resolved.tier) + 1).reverse()) {
+    const info = CATALOG.find((m) => m.provider === other && m.tier === t);
+    if (info) return { provider: other, tier: t, model: overrides[info.id] ?? info.id, info };
+  }
+  return null;
 }
 
 // Maps: the requested model (or tier name) if the plan includes its tier. Lite models are not used

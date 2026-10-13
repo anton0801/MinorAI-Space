@@ -6,9 +6,19 @@
 //  Prices come from StoreKit/Minor.storekit (selected in the "Minor Ai UI Checks" scheme).
 //
 
+import StoreKitTest
 import XCTest
 
 final class PaywallTrialUITests: XCTestCase {
+    // A test purchase left on the simulator (the release audit's taps can make one) uses up the
+    // trial; start from no purchases.
+    override func setUpWithError() throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("StoreKit/Minor.storekit")
+        let session = try SKTestSession(contentsOf: file)
+        session.clearTransactions()
+    }
+
     private func paywall(_ language: String) {
         let app = XCUIApplication()
         app.launchArguments = ["-didOnboard", "YES", "-appLanguage", language, "-auditSignedOut", "-demoPaywall"]

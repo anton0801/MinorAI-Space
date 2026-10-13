@@ -30,7 +30,7 @@ final class AccountStore: ObservableObject {
 
     var isPaid: Bool {
         #if DEBUG
-        if Self.demoPlan != nil { return true }
+        if let demo = Self.demoPlan { return demo != .free }
         #endif
         return plan != .free || SubscriptionStore.shared.activeTier != nil || bonusActive
     }
@@ -60,9 +60,13 @@ final class AccountStore: ObservableObject {
         return (allowsMaps(with: chosen) ? chosen : AIModelCatalog.defaultMap).apiModelID
     }
 
-    // Every plan chats with every model; maps with the strongest ones need a paid plan.
-    func allowsMaps(with model: AIModelOption) -> Bool {
-        switch model.mapPlan {
+    // Chat with the light models and maps with the standard ones are for everyone; stronger models
+    // need a paid plan.
+    func allowsMaps(with model: AIModelOption) -> Bool { includes(model.mapPlan) }
+    func allowsChat(with model: AIModelOption) -> Bool { includes(model.chatPlan) }
+
+    private func includes(_ plan: Plan) -> Bool {
+        switch plan {
         case .free: return true
         case .plus: return effectivePlan != .free
         case .pro: return effectivePlan == .pro
@@ -179,11 +183,13 @@ final class AccountStore: ObservableObject {
 
     #if DEBUG
     // -demoPlus / -demoPro: the app acts as if that plan were bought (screens and gates only;
-    // the server still applies the real plan).
+    // the server still applies the real plan). -demoFree: as if nothing were bought, even when a
+    // StoreKit test purchase is left on the simulator.
     static var demoPlan: Plan? {
         let args = ProcessInfo.processInfo.arguments
         if args.contains("-demoPro") { return .pro }
         if args.contains("-demoPlus") { return .plus }
+        if args.contains("-demoFree") { return .free }
         return nil
     }
 

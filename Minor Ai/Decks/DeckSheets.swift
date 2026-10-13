@@ -106,8 +106,15 @@ struct SlideInspector: View {
             tableEditor
         case .diagram:
             field(L("Title"), text: $draft.title)
-            field(L("Center"), text: Binding(get: { draft.diagram?.center ?? "" }, set: { draft.diagram = SlideDiagram(center: $0, nodes: draft.diagram?.nodes ?? []) }))
-            listEditor(L("Around it"), items: Binding(get: { draft.diagram?.nodes ?? [] }, set: { draft.diagram = SlideDiagram(center: draft.diagram?.center ?? "", nodes: $0) }), max: 6)
+            if draft.diagram?.isStructured == true {
+                // Steps, connections and the kind are edited in the Diagram panel (tap the diagram).
+                Text("Steps and connections are edited on the slide: tap the diagram.")
+                    .font(.system(size: 13))
+                    .foregroundColor(MinorColor.textTertiary)
+            } else {
+                field(L("Center"), text: Binding(get: { draft.diagram?.center ?? "" }, set: { draft.diagram = SlideDiagram(center: $0, nodes: draft.diagram?.nodes ?? []) }))
+                listEditor(L("Around it"), items: Binding(get: { draft.diagram?.nodes ?? [] }, set: { draft.diagram = SlideDiagram(center: draft.diagram?.center ?? "", nodes: $0) }), max: 12)
+            }
         }
     }
 
@@ -219,7 +226,9 @@ struct SlideInspector: View {
     }
 }
 
-// Layouts with the slide's own content in each, so the choice is easy to see.
+// Layouts with the slide's own content in each, so the choice is easy to see. Choosing one shows
+// it selected; Apply changes the slide. Its text is kept in every layout, and a layout that can't
+// show all of it says so.
 struct LayoutPicker: View {
     let slide: Slide?
     let deck: Deck
@@ -227,47 +236,107 @@ struct LayoutPicker: View {
     var onPick: (SlideLayout) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var chosen: SlideLayout?
 
     private var sample: Slide {
         slide ?? Slide(layout: .bullets, title: L("New slide"), bullets: [L("First point"), L("Second point"), L("Third point")])
     }
 
+    private var number: Int { slide.flatMap { s in deck.slides.firstIndex { $0.id == s.id } }.map { $0 + 1 } ?? deck.slides.count + 1 }
+    private var current: SlideLayout? { slide?.layout }
+    private var selection: SlideLayout? { chosen ?? current }
+
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            EditorSheetHeader(
+                title: slide == nil ? L("Add Slide") : L("Slide Layout"),
+                subtitle: slide == nil ? L("Choose how it looks") : L("Slide \(number) of \(deck.slides.count)")
+            ) { dismiss() }
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
             ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 14) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)], spacing: 10) {
                     ForEach(SlideLayout.allCases) { layout in
-                        Button {
-                            Haptics.selection()
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onPick(layout) }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                SlideCanvas(slide: sample.converted(to: layout), deck: deck)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(slide?.layout == layout ? MinorColor.accent : theme.chatStroke, lineWidth: slide?.layout == layout ? 2 : 1))
-                                Label(layout.name, systemImage: layout.icon)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(MinorColor.textPrimary)
-                                    .lineLimit(1)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(layout.name)
+                        card(layout)
                     }
                 }
-                .padding(16)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
             }
-            .background(theme.background.ignoresSafeArea())
-            .navigationTitle(slide == nil ? "Add Slide" : "Layout")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(MinorColor.textSecondary)
+            VStack(spacing: 8) {
+                if slide != nil {
+                    Label("Text is kept when the layout changes.", systemImage: "doc.text")
+                        .minorFont(12, style: .caption1, maxScale: 1.3)
+                        .foregroundColor(MinorColor.textTertiary)
+                }
+                Button {
+                    guard let layout = selection else { return }
+                    Haptics.selection()
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onPick(layout) }
+                } label: {
+                    Text(slide == nil ? L("Add Slide") : L("Apply to Slide"))
+                        .minorFont(16, .semibold, maxScale: 1.3)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color.white))
+                }
+                .buttonStyle(PressScale())
+                .disabled(selection == nil || (slide != nil && selection == current))
+                .opacity(selection == nil || (slide != nil && selection == current) ? 0.5 : 1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+        }
+        .foregroundColor(MinorColor.textPrimary)
+        .background(MinorColor.editorSheet.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+
+    private func card(_ layout: SlideLayout) -> some View {
+        let preview = sample.converted(to: layout)
+        let isChosen = selection == layout
+        // The deck with this slide in the new layout, so a section gets its real number.
+        var previewDeck = deck
+        let place = number - 1
+        if previewDeck.slides.indices.contains(place) { previewDeck.slides[place] = preview } else { previewDeck.slides.append(preview) }
+        return Button {
+            Haptics.selection()
+            chosen = layout
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                SlideCanvas(slide: preview, deck: previewDeck, index: min(place, previewDeck.slides.count - 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(isChosen ? MinorColor.accent : Color.white.opacity(0.1), lineWidth: isChosen ? 2.5 : 1))
+                    .overlay(alignment: .topTrailing) {
+                        if isChosen {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.black)
+                                .frame(width: 22, height: 22)
+                                .background(Circle().fill(MinorColor.accent))
+                                .padding(6)
+                        }
+                    }
+                Text(layout.name)
+                    .minorFont(13, maxScale: 1.3)
+                    .lineLimit(1)
+                if let overflow = preview.overflow {
+                    Text(L("Shows \(overflow.shown) of \(overflow.total)"))
+                        .minorFont(12, style: .caption1, maxScale: 1.3)
+                        .foregroundColor(BranchColor.sun.color)
+                } else if layout == .bigNumber, preview.stat?.value.isEmpty != false {
+                    Text("Needs a number")
+                        .minorFont(12, style: .caption1, maxScale: 1.3)
+                        .foregroundColor(BranchColor.sun.color)
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .buttonStyle(.plain)
+        .accessibilityLabel(layout.name + (layout == current ? L(", current") : ""))
+        .accessibilityAddTraits(isChosen ? [.isButton, .isSelected] : .isButton)
     }
 }
 

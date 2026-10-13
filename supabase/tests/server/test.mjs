@@ -1,10 +1,11 @@
 import { isPrivateAddress, checkURL, htmlToText, decodeEntities, fetchPublicText, NetError } from "./build/net.mjs";
 import { clientSecret } from "./build/apple.mjs";
-import { isYouTube } from "./build/youtube.mjs";
-import { resolveChatModel, resolveMapModel, modelForTier, costMicros, estimateMicros, modelInfo, BUDGET_USD, ModelLockedError, imageQuality, estimateImageMicros, imageCostMicros, LIMITS } from "./build/models.mjs";
+import { isYouTube, cuesFromXML, transcriptFromXML } from "./build/youtube.mjs";
+import { cleanSegments, cutSegments, timedSegments, markedText, cleanSrc, SEGMENT_ID } from "./build/sources.mjs";
+import { resolveChatModel, resolveMapModel, modelForTier, fallbackModel, costMicros, estimateMicros, modelInfo, BUDGET_USD, ModelLockedError, imageQuality, estimateImageMicros, imageCostMicros, LIMITS } from "./build/models.mjs";
 import { time, later } from "./build/subscriptions.mjs";
 import { parseIntent, cleanWorkspace, workspaceBlock } from "./build/intent.mjs";
-import { deckRules, normalizeDeck, normalizeElements, normalizeLook, normalizeSlide, planFrom } from "./build/deck.mjs";
+import { deckRules, normalizeDeck, normalizeElements, normalizeLook, normalizeSlide, planFrom, LINEAGE_RULE, REF } from "./build/deck.mjs";
 import { signJWT } from "./build/es256.mjs";
 import { PUSH, ruDays } from "./build/pushText.mjs";
 import { apnsPayload } from "./build/push.mjs";
@@ -12,6 +13,7 @@ import { parseBits } from "./build/devicecheck.mjs";
 import { newCode, cleanCode, isPaidTransaction, INVITE_DAYS, INVITE_LIMIT, DISCOUNT_PERCENT, DISCOUNT_PRODUCTS, redeemURL } from "./build/referrals.mjs";
 import { budgetMicros } from "./build/plan.mjs";
 import { areaOf, BONUS_BUDGET_USD, textUnits, clip } from "./build/models.mjs";
+import { cleanSteps, cleanMemory, memoryBlock, cleanQuiz, treeRefs, QUIZ_LINK_RULE } from "./build/project.mjs";
 import crypto from "node:crypto";
 globalThis.Deno = { env: { get: () => undefined } };
 let pass = 0, fail = 0;
@@ -55,10 +57,21 @@ for (const ip of ["::7f00:1", "::ffff:0:7f00:1", "fec0::1", "2001:db8::1", "2002
 ok(!isPrivateAddress("2a00:1450:4001:81b::200e"), "public 2a00:1450::");
 // models: chat is open to everyone, maps by plan
 const both = { openai: true, anthropic: true };
-ok(resolveChatModel("gpt-6-astra", both).model === "gpt-6-astra", "free chat may use Astra");
-ok(resolveChatModel("claude-fable-5-1", { openai: true, anthropic: false }).model === "gpt-6-astra", "Fable falls back to the same tier on OpenAI");
-ok(resolveChatModel(undefined, both).model === "gpt-6-luna", "default chat model is the lite one");
-ok(resolveChatModel("unknown-model", both).tier === "lite", "unknown model → lite");
+// chat models by plan: free gets the light ones, Plus adds standard and Opus, PRO everything
+ok(resolveChatModel("free", "gpt-6-luna", both).model === "gpt-6-luna" && resolveChatModel("free", "claude-haiku-4-5-20251001", both).model === "claude-haiku-4-5-20251001", "free chats with the light models");
+throws(() => resolveChatModel("free", "gpt-6.1-sol", both), "free can't chat with Sol");
+throws(() => resolveChatModel("free", "claude-sonnet-5-5", both), "free can't chat with Sonnet");
+throws(() => resolveChatModel("free", "claude-opus-5-5", both), "free can't chat with Opus");
+throws(() => resolveChatModel("free", "gpt-6-astra", both), "free can't chat with Astra");
+try { resolveChatModel("free", "claude-fable-5-1", both); } catch (e) { ok(e instanceof ModelLockedError, "locked chat model → model_locked"); }
+ok(resolveChatModel("plus", "claude-opus-5-5", both).model === "claude-opus-5-5" && resolveChatModel("plus", "gpt-6.1-sol", both).model === "gpt-6.1-sol", "plus chats with standard models and Opus");
+throws(() => resolveChatModel("plus", "gpt-6-astra", both), "plus can't chat with Astra");
+throws(() => resolveChatModel("plus", "claude-fable-5-1", both), "plus can't chat with Fable");
+ok(resolveChatModel("pro", "claude-fable-5-1", both).model === "claude-fable-5-1", "pro chats with Fable");
+ok(resolveChatModel("pro", "claude-fable-5-1", { openai: true, anthropic: false }).model === "gpt-6-astra", "Fable falls back to the same tier on OpenAI");
+ok(resolveChatModel("plus", "claude-opus-5-5", { openai: true, anthropic: false }).model === "gpt-6.1-sol", "Opus without Anthropic steps down to Sol, never up to a PRO model");
+ok(resolveChatModel("free", undefined, both).model === "gpt-6-luna", "default chat model is the lite one");
+ok(resolveChatModel("free", "unknown-model", both).tier === "lite", "unknown model → lite");
 throws(() => resolveMapModel("free", "frontier", both), "free maps can't use frontier");
 throws(() => resolveMapModel("plus", "frontier", both), "plus maps can't use frontier");
 ok(resolveMapModel("pro", "frontier", both).tier === "frontier", "pro maps may use frontier");
@@ -68,6 +81,14 @@ ok(resolveMapModel("pro", "claude-fable-5-1", both).model === "claude-fable-5-1"
 throws(() => resolveMapModel("plus", "gpt-6-astra", both), "plus can't pick Astra for maps");
 ok(resolveMapModel("free", "gpt-6-luna", both).tier === "standard", "lite request for maps → standard");
 ok(modelForTier("lite", { openai: false, anthropic: true }).model === "claude-haiku-4-5-20251001", "lite on Anthropic is Haiku");
+// fallback when a provider refuses: the other provider, same tier or below, never above
+const fallbackTo = (id, keys = both) => fallbackModel(resolveChatModel("pro", id, both), keys)?.model ?? null;
+ok(fallbackTo("claude-sonnet-5-5") === "gpt-6.1-sol", "Sonnet falls back to Sol");
+ok(fallbackTo("gpt-6.1-sol") === "claude-sonnet-5-5", "Sol falls back to Sonnet");
+ok(fallbackTo("claude-haiku-4-5-20251001") === "gpt-6-luna", "Haiku falls back to Luna");
+ok(fallbackTo("claude-fable-5-1") === "gpt-6-astra", "Fable falls back to Astra");
+ok(fallbackTo("claude-opus-5-5") === "gpt-6.1-sol", "Opus falls back down to Sol, never up to Astra");
+ok(fallbackTo("claude-sonnet-5-5", { openai: false, anthropic: true }) === null, "no fallback without the other key");
 try { resolveMapModel("free", "advanced", both); } catch (e) { ok(e instanceof ModelLockedError, "locked error type"); }
 // cost: 1M input + 1M output on Astra = $60 = 60,000,000 micros
 ok(costMicros(modelInfo("gpt-6-astra"), 1_000_000, 1_000_000) === 60_000_000, "cost in micros");
@@ -212,5 +233,81 @@ ok(budgetMicros({ plan: "plus", subscription: null, sandbox: false, bonusUntil: 
 ok(budgetMicros({ plan: "free", subscription: null, sandbox: false }) === 250_000, "free allowance");
 ok(areaOf("expand") === "maps" && areaOf("quiz") === "maps" && areaOf("deckStyle") === "decks" && areaOf("chat") === "chat" && areaOf("image") === "images" && areaOf("report") === null, "actions map to areas");
 
+ok(areaOf("material") === "maps" && areaOf("nextSteps") === "maps" && areaOf("memory") === "maps", "project actions count as maps");
+{
+  const steps = cleanSteps({ steps: [
+    { title: "1. Write five questions", detail: "For the interview" },
+    { title: "Invite a guest", detail: "" },
+    { title: "write five questions" },
+    { title: "Record a pilot", detail: "x".repeat(300) },
+    { title: "Find a studio" },
+  ] }, ["Invite a guest"]);
+  ok(steps.length === 3, "at most three steps");
+  ok(steps[0].title === "Write five questions", "numbering dropped");
+  ok(!steps.some((s) => s.title === "Invite a guest"), "existing children are not repeated");
+  ok(steps.filter((s) => s.title.toLowerCase() === "write five questions").length === 1, "duplicates dropped");
+  ok(steps[1].detail.length <= 100, "details are short");
+  ok(cleanSteps(null, []).length === 0 && cleanSteps({ steps: "no" }, []).length === 0, "bad replies give no steps");
+}
+{
+  const reply = { goal: "Launch three episodes", decisions: ["Weekly episodes", "Interviews", "Video too"], questions: ["Who is the first guest?", "weekly episodes"] };
+  const fresh = cleanMemory(reply, {});
+  ok(fresh.goal === "Launch three episodes", "goal suggested when there is none");
+  ok(fresh.decisions.length === 2, "at most two decisions");
+  ok(fresh.questions.length === 1 && fresh.questions[0] === "Who is the first guest?", "a question repeating a decision is dropped");
+  const known = cleanMemory(reply, { goal: "Grow the show", decisions: ["Interviews"], questions: [] });
+  ok(known.goal === "", "the user's goal is never replaced");
+  ok(!known.decisions.includes("Interviews"), "known decisions are not suggested again");
+  ok(memoryBlock({ goal: "", decisions: ["A"], questions: [] }).includes("Goal: none yet"), "summary block for the AI");
+}
+
+// sources: passages the AI may point to, and what it may answer
+{
+  const segs = cleanSegments([{ id: "s1", text: " First  line " }, { id: "s1", text: "dup" }, { id: "x2", text: "bad id" }, { id: "s0", text: "zero" }, { id: "s3", text: "" }, { id: "s4", text: "Fourth" }, "junk", null]);
+  ok(segs.length === 2 && segs[0].text === "First line" && segs[1].id === "s4", "cleanSegments keeps well-formed unique passages");
+  ok(cleanSegments("nope").length === 0 && cleanSegments(undefined).length === 0, "cleanSegments ignores non-arrays");
+  const cut = cutSegments("One. Two! Three? " + "Long sentence without an end ".repeat(60), 120);
+  ok(cut.length > 3 && cut.every((x, i) => x.id === `s${i + 1}` && x.text.length <= 240), "cutSegments numbers passages and bounds their size");
+  ok(cut.map((x) => x.text).join(" ").replace(/\s+/g, " ").startsWith("One. Two! Three?"), "cutSegments keeps the text in order");
+  ok(cutSegments("   ").length === 0, "cutSegments of empty text");
+  const timed = timedSegments([{ start: 0, dur: 4, text: "a" }, { start: 4, dur: 4, text: "b" }, { start: 8, dur: 15, text: "c" }, { start: 23, dur: 3, text: "d" }, { start: -1, dur: 2, text: "skip" }], 20);
+  ok(timed.length === 2 && timed[0].start === 0 && timed[0].end === 23 && timed[0].text === "a b c" && timed[1].start === 23 && timed[1].end === 26, "timedSegments groups captions with their times");
+  const marked = markedText([{ id: "s1", text: "aaaa" }, { id: "s2", text: "bbbb" }, { id: "s3", text: "cccc" }], 20);
+  ok(marked.text === "[s1] aaaa\n[s2] bbbb" && marked.used.length === 2 && marked.truncated, "markedText marks ids and stops at the cap");
+  ok(markedText([{ id: "s1", text: "x".repeat(50) }], 10).used.length === 1, "markedText always keeps the first passage");
+  ok(JSON.stringify(cleanSrc(["s2", "s2", "s9", 3, "q1", "s01"])) === JSON.stringify(["s2", "s9"]), "cleanSrc keeps well-formed ids once");
+  ok(cleanSrc([]) === undefined && cleanSrc("s1") === undefined, "cleanSrc of nothing");
+  ok(SEGMENT_ID.test("s123456") && !SEGMENT_ID.test("s1234567"), "segment id length");
+  const xml = '<transcript><text start="1.5" dur="2.25">Hello &amp;amp; welcome</text><text start="3.75" dur="2">to <b>the</b> show</text><text dur="1">no start</text></transcript>';
+  const cues = cuesFromXML(xml);
+  ok(cues.length === 3 && cues[0].start === 1.5 && cues[0].dur === 2.25 && cues[1].text === "to the show" && cues[2].start === -1, "cuesFromXML reads times");
+  ok(transcriptFromXML(xml).startsWith("Hello &amp; welcome to the show"), "transcriptFromXML unchanged");
+}
+// lineage: where slides and bullets come from
+{
+  const s = normalizeSlide({ layout: "bullets", title: "Audience", src: "n3", bullets: ["Students", "", "Creators", "Teams"], bulletSrc: ["n4", "n9", "bad", "n6"] });
+  ok(s.src === "n3" && JSON.stringify(s.bullets) === JSON.stringify(["Students", "Creators", "Teams"]) && JSON.stringify(s.bulletSrc) === JSON.stringify(["n4", "", "n6"]), "bullets keep their refs in step");
+  const plain = normalizeSlide({ layout: "bullets", title: "T", bullets: ["a", "b"] });
+  ok(plain.bulletSrc === undefined && plain.src === undefined, "no refs, no lineage fields");
+  const t = normalizeSlide({ layout: "timeline", title: "Plan", items: [{ title: "Beta", src: "n2" }, { title: "Launch", src: "x" }] });
+  ok(t.items[0].src === "n2" && t.items[1].src === undefined, "timeline items keep valid refs");
+  ok(REF.test("n12") && !REF.test("n0") && !REF.test("s1") && LINEAGE_RULE.includes("bulletSrc"), "ref format and rule");
+}
+// Quiz: valid questions only, and a question names only an idea the map has.
+{
+  const refs = treeRefs({ title: "Root", ref: "n1", children: [{ title: "A", ref: "n2" }, { title: "B", ref: "n3", children: [{ title: "C", ref: "n4" }] }] });
+  ok(refs.size === 4 && refs.has("n4"), "refs of every idea");
+  const q = cleanQuiz({ questions: [
+    { question: "Why A?", options: ["x", "y", "z", "w"], answer: 1, why: "Because.", src: "n2" },
+    { question: "Made up", options: ["x", "y"], answer: 0, why: "", src: "n99" },
+    { question: "Bad answer", options: ["x", "y"], answer: 5 },
+    { question: "", options: ["x", "y"], answer: 0 },
+    { question: "No link", options: ["x", "y", "z"], answer: 2, why: 3 },
+  ] }, 8, refs);
+  ok(q.length === 3, "invalid questions dropped");
+  ok(q[0].src === "n2" && q[1].src === undefined && q[2].src === undefined && q[2].why === "", "only known refs kept");
+  ok(cleanQuiz({ questions: q }, 2, refs).length === 2 && cleanQuiz(null, 8, refs).length === 0, "count and bad replies");
+  ok(treeRefs({ title: "Old app" }).size === 0 && QUIZ_LINK_RULE.includes("src"), "no refs from apps that don't send them");
+}
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

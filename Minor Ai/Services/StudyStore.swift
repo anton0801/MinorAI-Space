@@ -103,9 +103,19 @@ final class StudyStore: ObservableObject {
     }
 
     // "10 min", "1 d", "3 d", "2 wk" for the answer buttons.
+    // The same, in words for the grade buttons: "In 10 minutes", "In 3 days".
+    static func longLabel(for card: CardState, now: Date = Date()) -> String {
+        let seconds = card.due.timeIntervalSince(now)
+        if seconds < 3_600 { return L("In \(max(1, Int((seconds / 60).rounded()))) minutes") }
+        let days = Int((seconds / 86_400).rounded())
+        if days < 14 { return L("In \(max(1, days)) days") }
+        if days < 60 { return L("In \(days / 7) weeks") }
+        return L("In \(days / 30) months")
+    }
+
     static func label(for card: CardState, now: Date = Date()) -> String {
         let seconds = card.due.timeIntervalSince(now)
-        if seconds < 3_600 { return L("\(max(1, Int(seconds / 60))) min") }
+        if seconds < 3_600 { return L("\(max(1, Int((seconds / 60).rounded()))) min") }
         let days = Int((seconds / 86_400).rounded())
         if days < 14 { return L("\(max(1, days)) d") }
         if days < 60 { return L("\(days / 7) wk") }

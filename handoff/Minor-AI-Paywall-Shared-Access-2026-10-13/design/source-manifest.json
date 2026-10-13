@@ -1,0 +1,42 @@
+[
+  {
+    "file": "01-paywall-a.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-ac6dead6-37e8-488c-a872-03224fb6acc5.png",
+    "sha256": "87b94f4cbfe37a9b458802c5a2514d930e1b7dfab2718e0e9c23a1898915d44d"
+  },
+  {
+    "file": "02-paywall-b.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-4aed7615-3fad-40e4-83b5-56088a63b856.png",
+    "sha256": "bf890b4205a99010f178e712d9d25a704ea8f663340309739829562538110d91"
+  },
+  {
+    "file": "03-invite.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-26248ee9-d431-4a72-839b-5b4894119507.png",
+    "sha256": "f64ed4f4f9a7214bf6b6d9f3086ffbd7744250044e551113a79ed8c0b77f96dc"
+  },
+  {
+    "file": "04-members.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-e3f92346-626e-4f6b-a72a-f0e7a36abfcc.png",
+    "sha256": "cf9ea70000782c39fa3a09340be8c21d991870fe8529bc00658ad41179ea1637"
+  },
+  {
+    "file": "07-join-map.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-694ebf62-a2a0-4e18-aebf-ace0f75843cc.png",
+    "sha256": "8c44a96dad00ecac6cc17ac6eeb0b609586e0ff7ec8868a661c4efc50f685ef0"
+  }
+]

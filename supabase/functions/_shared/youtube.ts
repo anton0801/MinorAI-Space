@@ -1,6 +1,7 @@
 // YouTube source: the transcript (captions) when the video has them, otherwise the title and
 // description. Best effort: YouTube changes its page often, so every step degrades gracefully.
 import { decodeEntities } from "./net.ts";
+import type { Cue } from "./sources.ts";
 
 export class YouTubeError extends Error {}
 
@@ -38,6 +39,7 @@ export interface VideoText {
   title: string;
   text: string;
   hasTranscript: boolean;
+  cues?: Cue[]; // the captions with their times, when the transcript came from them
 }
 
 export async function fetchVideoText(url: string, fetcher: typeof fetch = fetch): Promise<VideoText> {
@@ -70,8 +72,9 @@ export async function fetchVideoText(url: string, fetcher: typeof fetch = fetch)
   const candidates = [pickTrack(await playerCaptionTracks(id, apiKey, fetcher)), pickTrack(extractCaptionTracks(html))];
   for (const track of candidates) {
     if (!track) continue;
-    const transcript = await fetchTranscript(track.baseUrl, fetcher);
-    if (transcript.length > 200) return { title, text: `${title}\n\n${transcript}`, hasTranscript: true };
+    const cues = await fetchCues(track.baseUrl, fetcher);
+    const transcript = cues.map((cue) => cue.text).join(" ");
+    if (transcript.length > 200) return { title, text: `${title}\n\n${transcript}`, hasTranscript: true, cues };
   }
   if (description.length > 200) {
     return { title, text: `${title}\n\n${description}`, hasTranscript: false };
@@ -120,27 +123,36 @@ async function playerCaptionTracks(id: string, apiKey: string | undefined, fetch
   return (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? []).filter((t) => typeof t.baseUrl === "string");
 }
 
-async function fetchTranscript(baseUrl: string, fetcher: typeof fetch): Promise<string> {
+async function fetchCues(baseUrl: string, fetcher: typeof fetch): Promise<Cue[]> {
   const url = baseUrl.replace(/\\u0026/g, "&").replace("&fmt=srv3", "");
   // Captions must come from YouTube itself.
   try {
     const host = new URL(url).hostname;
-    if (host !== "www.youtube.com" && host !== "youtube.com" && !host.endsWith(".youtube.com")) return "";
+    if (host !== "www.youtube.com" && host !== "youtube.com" && !host.endsWith(".youtube.com")) return [];
   } catch {
-    return "";
+    return [];
   }
   const response = await fetcher(url, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
-  if (!response?.ok) return "";
-  return transcriptFromXML(await response.text());
+  if (!response?.ok) return [];
+  return cuesFromXML(await response.text());
 }
 
 export function transcriptFromXML(xml: string): string {
-  const lines: string[] = [];
-  for (const match of xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)) {
-    const line = decodeEntities(match[1].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
-    if (line) lines.push(line);
+  return cuesFromXML(xml).map((cue) => cue.text).join(" ");
+}
+
+// Each caption line with the second it starts at and how long it shows (attributes "start" and
+// "dur" of the timed-text format); a line without a readable start keeps -1.
+export function cuesFromXML(xml: string): Cue[] {
+  const cues: Cue[] = [];
+  for (const match of xml.matchAll(/<text([^>]*)>([\s\S]*?)<\/text>/g)) {
+    const text = decodeEntities(match[2].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const start = Number(match[1].match(/\bstart="([\d.]+)"/)?.[1] ?? NaN);
+    const dur = Number(match[1].match(/\bdur="([\d.]+)"/)?.[1] ?? NaN);
+    cues.push({ start: Number.isFinite(start) ? start : -1, dur: Number.isFinite(dur) ? dur : 0, text });
   }
-  return lines.join(" ");
+  return cues;
 }
 
 function extractJSONString(html: string, marker: string): string | null {

@@ -253,16 +253,16 @@ PRICING = f'''
         <div class="plans">''' + plan(b("Free", "Бесплатно"), "$0", "$0", "&nbsp;", "&nbsp;", [
             ("3 maps a month", "3 карты в месяц"),
             ("1 presentation a month", "1 презентация в месяц"),
-            ("Chat with every model within a small AI allowance", "Чат со всеми моделями в пределах небольшого лимита ИИ"),
+            ("Chat with the light models: GPT-6 Luna and Claude Haiku 4.5", "Чат с лёгкими моделями: GPT-6 Luna и Claude Haiku 4.5"),
             ("3 AI images a month", "3 картинки ИИ в месяц"),
         ]) + plan("Minor Plus", "$12.99<small> / month</small>", "$12.99<small> / мес.</small>", "or $119.99 a year — save 23%", "или $119.99 в год — экономия 23%", [
             ("Up to 300 maps and 20 presentations a month", "До 300 карт и 20 презентаций в месяц"),
             ("YouTube and voice maps; invite up to 5 people per map", "Карты из YouTube и голоса; до 5 человек в карте"),
             ("Presentation design: own styles, charts, animations, PowerPoint", "Дизайн презентаций: свои стили, диаграммы, анимации, PowerPoint"),
-            ("20× the AI allowance, 60 AI images a month", "Лимит ИИ ×20, 60 картинок в месяц"),
+            ("Chat with GPT-6.1 Sol, Claude Sonnet and Opus; 20× the AI allowance, 60 AI images a month", "Чат с GPT-6.1 Sol, Claude Sonnet и Opus; лимит ИИ ×20, 60 картинок в месяц"),
         ], "featured") + plan('Minor <span class="pro">PRO</span>', "$24.99<small> / month</small>", "$24.99<small> / мес.</small>", "or $219.99 a year — save 27%", "или $219.99 в год — экономия 27%", [
             ("Everything in Plus, up to 600 maps and 60 presentations", "Всё из Plus, до 600 карт и 60 презентаций"),
-            ("The strongest models for maps", "Самые мощные модели для карт"),
+            ("The strongest models for maps and chat: GPT-6 Astra and Claude Fable", "Самые мощные модели для карт и чата: GPT-6 Astra и Claude Fable"),
             ("40× the AI allowance, 150 AI images a month", "Лимит ИИ ×40, 150 картинок ИИ в месяц"),
             ("Up to 25 people per map, Xmind and MindNode export", "До 25 человек в карте, экспорт в Xmind и MindNode"),
         ]) + f'''
@@ -270,8 +270,8 @@ PRICING = f'''
         <details class="disclose">
           <summary>{b("AI models and the monthly allowance", "Модели ИИ и месячный лимит")}</summary>
           <div class="disclose-body">
-            <p>{b("Every plan can chat with every model. Each request uses part of your monthly AI allowance; the number shows how much faster a model uses it than the lightest one. For building maps: standard models for everyone, Claude Opus 5.5 with Plus, GPT-6 Astra and Claude Fable 5.1 with PRO.",
-                  "В любом тарифе в чате доступны все модели. Каждый запрос расходует часть месячного лимита ИИ; число показывает, во сколько раз быстрее модель тратит лимит, чем самая лёгкая. Для построения карт: стандартные модели — всем, Claude Opus 5.5 — с Plus, GPT-6 Astra и Claude Fable 5.1 — с PRO.")}</p>
+            <p>{b("In chat: GPT-6 Luna and Claude Haiku 4.5 for everyone, GPT-6.1 Sol, Claude Sonnet 5.5 and Claude Opus 5.5 with Plus, GPT-6 Astra and Claude Fable 5.1 with PRO. Each request uses part of your monthly AI allowance; the number shows how much faster a model uses it than the lightest one. For building maps: standard models for everyone, Claude Opus 5.5 with Plus, GPT-6 Astra and Claude Fable 5.1 with PRO.",
+                  "В чате: GPT-6 Luna и Claude Haiku 4.5 — всем, GPT-6.1 Sol, Claude Sonnet 5.5 и Claude Opus 5.5 — с Plus, GPT-6 Astra и Claude Fable 5.1 — с PRO. Каждый запрос расходует часть месячного лимита ИИ; число показывает, во сколько раз быстрее модель тратит лимит, чем самая лёгкая. Для построения карт: стандартные модели — всем, Claude Opus 5.5 — с Plus, GPT-6 Astra и Claude Fable 5.1 — с PRO.")}</p>
             <div class="models">''' + "".join(f'<span class="model">{m} <span>{x}</span></span>' for m, x in MODELS) + f'''</div>
           </div>
         </details>

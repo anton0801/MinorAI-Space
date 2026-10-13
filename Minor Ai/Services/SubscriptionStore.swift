@@ -24,6 +24,9 @@ final class SubscriptionStore: ObservableObject {
         didSet { AccountStore.shared.syncPaidFlag() }
     }
     @Published private(set) var isPurchasing = false
+    // The App Store's answer about this Apple ID's subscriptions has come (until then "no
+    // subscription" isn't known yet).
+    @Published private(set) var entitlementsChecked = false
 
     private var updates: Task<Void, Never>?
     private var lastRefresh = Date.distantPast
@@ -208,6 +211,7 @@ final class SubscriptionStore: ObservableObject {
             }
         }
         activeProductID = best?.0.productID
+        entitlementsChecked = true
         // The server is told in the background: the paywall closes as soon as Apple confirms.
         if let jws = best?.1 {
             Task { await sync(jws) }

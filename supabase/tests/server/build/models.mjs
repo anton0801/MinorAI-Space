@@ -9,6 +9,11 @@ var CATALOG = [
   { id: "claude-fable-5-1", provider: "anthropic", tier: "frontier", input: 10, output: 50, tokenizer: 1.3 }
 ];
 var TIER_ORDER = ["lite", "standard", "advanced", "frontier"];
+var CHAT_TIERS = {
+  free: ["lite"],
+  plus: ["lite", "standard", "advanced"],
+  pro: ["lite", "standard", "advanced", "frontier"]
+};
 var MAP_TIERS = {
   free: ["standard"],
   plus: ["standard", "advanced"],
@@ -17,7 +22,7 @@ var MAP_TIERS = {
 var BUDGET_USD = { free: 0.25, plus: 5, pro: 10 };
 var BONUS_BUDGET_USD = 2;
 function areaOf(action) {
-  if (["map", "template", "expand", "edit", "summarize", "quiz"].includes(action)) return "maps";
+  if (["map", "template", "expand", "edit", "summarize", "quiz", "material", "nextSteps", "memory"].includes(action)) return "maps";
   if (["deck", "slide", "deckEdit", "deckStyle", "slideElements"].includes(action)) return "decks";
   if (action === "chat") return "chat";
   if (action === "image") return "images";
@@ -42,12 +47,31 @@ function modelForTier(tier, keys, provider, overrides = {}) {
   }
   throw new Error("no_provider");
 }
-function resolveChatModel(requested, keys, overrides = {}) {
+function resolveChatModel(plan, requested, keys, overrides = {}) {
   const info = requested ? modelInfo(requested) : null;
+  const tier = info?.tier ?? "lite";
+  if (!CHAT_TIERS[plan].includes(tier)) throw new ModelLockedError(tier);
   if (info && keys[info.provider]) {
-    return { provider: info.provider, tier: info.tier, model: overrides[info.id] ?? info.id, info };
+    return { provider: info.provider, tier, model: overrides[info.id] ?? info.id, info };
   }
-  return modelForTier(info?.tier ?? "lite", keys, info?.provider, overrides);
+  const order = info?.provider === "anthropic" ? ["anthropic", "openai"] : ["openai", "anthropic"];
+  for (const t of TIER_ORDER.slice(0, TIER_ORDER.indexOf(tier) + 1).reverse()) {
+    for (const p of order) {
+      if (!keys[p]) continue;
+      const found = CATALOG.find((m) => m.provider === p && m.tier === t);
+      if (found) return { provider: p, tier: t, model: overrides[found.id] ?? found.id, info: found };
+    }
+  }
+  throw new Error("no_provider");
+}
+function fallbackModel(resolved, keys, overrides = {}) {
+  const other = resolved.provider === "openai" ? "anthropic" : "openai";
+  if (!keys[other]) return null;
+  for (const t of TIER_ORDER.slice(0, TIER_ORDER.indexOf(resolved.tier) + 1).reverse()) {
+    const info = CATALOG.find((m) => m.provider === other && m.tier === t);
+    if (info) return { provider: other, tier: t, model: overrides[info.id] ?? info.id, info };
+  }
+  return null;
 }
 function resolveMapModel(plan, requested, keys, overrides = {}) {
   const info = requested ? modelInfo(requested) : null;
@@ -142,6 +166,7 @@ export {
   CAPS,
   CATALOG,
   CHAT_MAX_OUTPUT,
+  CHAT_TIERS,
   DECK_SLIDES,
   FETCH_LIMITS,
   IMAGE_MODEL,
@@ -154,6 +179,7 @@ export {
   costMicros,
   estimateImageMicros,
   estimateMicros,
+  fallbackModel,
   imageCostMicros,
   imageQuality,
   modelForTier,

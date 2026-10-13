@@ -65,104 +65,266 @@ enum ThemeChoice {
     case look(DeckLook)
 }
 
+// The presentation's style, or (Plus) one slide's own: ready-made themes, saved ones, your own
+// style or one described to the AI. Changing the style never changes text, numbers or order.
 struct ThemePicker: View {
+    enum Scope: Hashable { case deck, slide }
+
     let deck: Deck
+    let slideIndex: Int
     let theme: AppTheme
     let isPaid: Bool
-    var onPick: (ThemeChoice) -> Void
-    var onCreate: () -> Void
+    var onPick: (_ choice: ThemeChoice, _ forSlide: Bool) -> Void
+    var onResetSlide: () -> Void
+    var onCreate: (_ forSlide: Bool) -> Void
     var onDescribe: () -> Void
+    var onUpgrade: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = LookStore.shared
+    @State private var scope: Scope = .deck
 
-    private var sample: Slide { deck.slides.first ?? Slide(layout: .cover, title: deck.title) }
+    private var slide: Slide? { deck.slides.indices.contains(slideIndex) ? deck.slides[slideIndex] : nil }
+    private var slideHasOwn: Bool { slide?.look != nil || slide?.theme != nil }
+    private var ownStyleCount: Int { deck.slides.filter { $0.look != nil || $0.theme != nil }.count }
+
+    // The slide on screen, drawn with a choice: as it would look for the whole deck, or for itself.
+    private func preview(_ choice: ThemeChoice) -> (Deck, Slide) {
+        var copy = deck
+        var sample = slide ?? Slide(layout: .cover, title: deck.title)
+        switch (scope, choice) {
+        case (.deck, .builtIn(let ready)):
+            copy.theme = ready.rawValue
+            copy.look = nil
+            sample.look = nil
+            sample.theme = nil
+        case (.deck, .look(let look)):
+            copy.look = look
+            sample.look = nil
+            sample.theme = nil
+        case (.slide, .builtIn(let ready)):
+            sample.look = nil
+            sample.theme = ready.rawValue
+        case (.slide, .look(let look)):
+            sample.look = look
+            sample.theme = nil
+        }
+        if copy.slides.indices.contains(slideIndex) { copy.slides[slideIndex] = sample }
+        return (copy, sample)
+    }
+
+    private func isCurrent(_ choice: ThemeChoice) -> Bool {
+        switch (scope, choice) {
+        case (.deck, .builtIn(let ready)): return deck.look == nil && deck.deckTheme == ready
+        case (.deck, .look(let look)): return deck.look?.id == look.id
+        case (.slide, .builtIn(let ready)): return slide?.look == nil && slide?.theme == ready.rawValue
+        case (.slide, .look(let look)): return slide?.look?.id == look.id
+        }
+    }
+
+    // The style the chosen scope shows now: the slide's own, or the presentation's.
+    private var current: SlideStyle {
+        if scope == .slide, let slide { return deck.style(for: slide) }
+        return deck.style
+    }
+
+    // The look "Save My Style" keeps: the scope's own look, or the ready-made theme as a look.
+    private var currentLook: DeckLook {
+        if scope == .slide, let slide {
+            if let look = slide.look { return look }
+            if let ready = slide.theme.flatMap(DeckTheme.init(rawValue:)) { return DeckLook(theme: ready) }
+        }
+        return deck.look ?? DeckLook(theme: deck.deckTheme)
+    }
+
+    @State private var savedNote = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(spacing: 10) {
-                        bigButton(L("Own Style"), icon: "paintbrush.pointed.fill") { onCreate() }
-                        bigButton(L("Describe a Style"), icon: "sparkles") { onDescribe() }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                EditorSheetHeader(title: L("Presentation Style")) { dismiss() }
+                MinorSegments(
+                    items: [(Scope.deck, "Whole Presentation", nil), (.slide, "This Slide", isPaid ? nil : "lock.fill")],
+                    selection: Binding(get: { scope }, set: { value in
+                        if value == .slide && !isPaid { return onUpgrade() }
+                        scope = value
+                    }),
+                    height: 30
+                )
+                .padding(.top, 10)
+
+                themes.padding(.top, 10)
+
+                VStack(spacing: 0) {
+                    row("paintpalette", L("Palette")) {
+                        HStack(spacing: 6) {
+                            ForEach(Array(current.palette.prefix(4).enumerated()), id: \.offset) { _, color in
+                                Circle().fill(color).frame(width: 18, height: 18)
+                            }
+                        }
                     }
-                    if !store.looks.isEmpty {
-                        title(L("My Themes"))
-                        grid(store.looks.map { look in
-                            var preview = deck
-                            preview.look = look
-                            return (look.id.uuidString, look.name, preview, deck.look?.id == look.id, { onPick(.look(look)) }, look.id)
-                        })
+                    divider
+                    row("textformat", L("Headings")) { value("\(current.titleFont.name) Bold") }
+                    divider
+                    row("textformat", L("Body Text")) { value(current.bodyFont.name) }
+                    divider
+                    row("rectangle.portrait", L("Background")) {
+                        HStack(spacing: 8) {
+                            value(backgroundName(current.background))
+                            Circle()
+                                .fill(LinearGradient(colors: [current.background.first, current.background.last], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
+                                .frame(width: 18, height: 18)
+                        }
                     }
-                    title(L("Ready-Made"))
-                    grid(DeckTheme.allCases.map { choice in
-                        var preview = deck
-                        preview.theme = choice.rawValue
-                        preview.look = nil
-                        return (choice.rawValue, choice.name, preview, deck.look == nil && deck.deckTheme == choice, { onPick(.builtIn(choice)) }, nil)
-                    })
                 }
-                .padding(16)
-            }
-            .background(theme.background.ignoresSafeArea())
-            .navigationTitle("Theme")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.foregroundColor(MinorColor.accent)
+                .padding(.top, 8)
+
+                if scope == .slide && slideHasOwn {
+                    divider
+                    Button(action: onResetSlide) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.uturn.backward").font(.system(size: 15)).frame(width: 24)
+                            Text("Use the Presentation’s Style").minorFont(14, maxScale: 1.3)
+                            Spacer()
+                        }
+                        .frame(minHeight: 40)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                HStack(spacing: 8) {
+                    footerButton(savedNote ? L("Saved") : L("Save My Style"), icon: savedNote ? "checkmark" : "square.and.arrow.down") {
+                        guard isPaid else { return onUpgrade() }
+                        LookStore.shared.save(currentLook)
+                        Haptics.success()
+                        withAnimation(.minorMenu) { savedNote = true }
+                    }
+                    if scope == .deck {
+                        footerButton(L("AI: Describe a Style"), icon: "sparkles") { onDescribe() }
+                    }
+                }
+                .padding(.top, 10)
+
+                if scope == .slide || ownStyleCount > 0 {
+                    Text(footnote)
+                        .minorFont(12, style: .caption1, maxScale: 1.4)
+                        .foregroundColor(MinorColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 10)
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 22)
         }
+        .ignoresSafeArea(.container, edges: .bottom)
         .foregroundColor(MinorColor.textPrimary)
+        .background(MinorColor.editorSheet.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onChange(of: scope) { _ in savedNote = false }
     }
 
-    private func title(_ text: String) -> some View {
-        Text(text.uppercased()).font(.system(size: 12, weight: .semibold)).foregroundColor(MinorColor.textTertiary)
+    private var footnote: String {
+        if scope == .slide { return L("Only this slide changes. Its text, numbers and order stay the same.") }
+        if ownStyleCount > 0 { return L("Text, numbers and order stay the same. Slides with their own style keep it: \(ownStyleCount).") }
+        return L("Text, numbers and order stay the same.")
     }
 
-    private func bigButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Image(systemName: icon).font(.system(size: 20))
-                    Spacer()
-                    if !isPaid { PlusBadge() }
-                }
-                Text(title).font(.system(size: 15, weight: .semibold))
+    private var divider: some View {
+        Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1)
+    }
+
+    private func value(_ text: String) -> some View {
+        Text(text).minorFont(13, maxScale: 1.3).foregroundColor(MinorColor.textSecondary).lineLimit(1)
+    }
+
+    private func backgroundName(_ background: SlideBackground) -> String {
+        switch background.kind {
+        case .solid: return L("Color")
+        case .gradient: return L("Gradient")
+        case .image: return L("Photo")
+        }
+    }
+
+    // A setting of the style; all of them open the style editor (Plus).
+    private func row<Value: View>(_ icon: String, _ title: String, @ViewBuilder value: () -> Value) -> some View {
+        Button { onCreate(scope == .slide) } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon).font(.system(size: 16)).foregroundColor(MinorColor.textSecondary).frame(width: 24)
+                Text(title).minorFont(14, maxScale: 1.3).foregroundColor(MinorColor.textPrimary)
+                Spacer(minLength: 8)
+                value()
+                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundColor(MinorColor.textTertiary)
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14).fill(theme.chatRectangle))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.chatStroke, lineWidth: 1))
+            .frame(minHeight: 42)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    private func grid(_ items: [(String, String, Deck, Bool, () -> Void, UUID?)]) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 14) {
-            ForEach(items, id: \.0) { item in
-                Button {
-                    Haptics.selection()
-                    item.4()
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        SlideCanvas(slide: sample, deck: item.2)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(item.3 ? MinorColor.accent : theme.chatStroke, lineWidth: item.3 ? 2 : 1))
-                        Text(item.1).font(.system(size: 13, weight: .medium)).lineLimit(1)
+    private func footerButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 14))
+                Text(title).minorFont(13, .medium, maxScale: 1.3).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.1), lineWidth: 1))
+        }
+        .buttonStyle(PressScale())
+    }
+
+    // My themes first, then the ready-made ones; three fill the row and the rest scroll.
+    private var themes: some View {
+        let items: [(String, String, ThemeChoice, UUID?)] =
+            store.looks.map { ($0.id.uuidString, $0.name, ThemeChoice.look($0), $0.id) }
+            + DeckTheme.allCases.map { ($0.rawValue, $0.name, ThemeChoice.builtIn($0), nil) }
+        return GeometryReader { geo in
+            let width = (geo.size.width - 2 * 8) / 3
+            ScrollViewReader { reader in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(items, id: \.0) { item in
+                            let selected = isCurrent(item.2)
+                            let (previewDeck, sample) = preview(item.2)
+                            Button {
+                                Haptics.selection()
+                                onPick(item.2, scope == .slide)
+                            } label: {
+                                VStack(spacing: 6) {
+                                    SlideCanvas(slide: sample, deck: previewDeck, index: slideIndex)
+                                        .frame(width: width)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(selected ? MinorColor.accent : Color.white.opacity(0.1), lineWidth: selected ? 2 : 1))
+                                    Text(item.1)
+                                        .minorFont(12, selected ? .semibold : .regular, maxScale: 1.2)
+                                        .foregroundColor(selected ? MinorColor.textPrimary : MinorColor.textSecondary)
+                                        .lineLimit(1)
+                                        .frame(width: width)
+                                }
+                                .padding(.vertical, 1)
+                            }
+                            .buttonStyle(.plain)
+                            .id(item.0)
+                            .accessibilityLabel(item.1)
+                            .accessibilityAddTraits(selected ? .isSelected : [])
+                            .contextMenu {
+                                if let id = item.3 {
+                                    Button(role: .destructive) { store.delete(id) } label: { Label("Delete Theme", systemImage: "trash") }
+                                }
+                            }
+                        }
                     }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.1)
-                .accessibilityAddTraits(item.3 ? .isSelected : [])
-                .contextMenu {
-                    if let id = item.5 {
-                        Button(role: .destructive) { store.delete(id) } label: { Label("Delete Theme", systemImage: "trash") }
-                    }
+                .onAppear {
+                    if let chosen = items.first(where: { isCurrent($0.2) }) { reader.scrollTo(chosen.0, anchor: .center) }
                 }
             }
         }
+        .frame(height: 90)
     }
 }
 
@@ -172,25 +334,41 @@ struct LookEditor: View {
     let deck: Deck
     let slideIndex: Int
     let theme: AppTheme
+    var forSlide = false            // the slide's own style instead of the presentation's
     var onApply: (DeckLook) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var look: DeckLook
     @State private var saveToMine = true
 
-    init(deck: Deck, slideIndex: Int, theme: AppTheme, start: DeckLook? = nil, onApply: @escaping (DeckLook) -> Void) {
+    init(deck: Deck, slideIndex: Int, theme: AppTheme, start: DeckLook? = nil, forSlide: Bool = false, onApply: @escaping (DeckLook) -> Void) {
         self.deck = deck
         self.slideIndex = slideIndex
         self.theme = theme
+        self.forSlide = forSlide
         self.onApply = onApply
-        var initial = start ?? deck.look ?? DeckLook(theme: deck.deckTheme)
-        if start == nil && deck.look == nil { initial.name = "" }
+        let slide = deck.slides.indices.contains(slideIndex) ? deck.slides[slideIndex] : nil
+        let current = forSlide
+            ? (slide?.look ?? slide?.theme.flatMap(DeckTheme.init(rawValue:)).map(DeckLook.init(theme:)) ?? deck.look)
+            : deck.look
+        var initial = start ?? current ?? DeckLook(theme: deck.deckTheme)
+        if start == nil && current == nil { initial.name = "" }
         _look = State(initialValue: initial)
     }
 
     private var preview: Deck {
         var copy = deck
-        copy.look = look
+        if forSlide, copy.slides.indices.contains(slideIndex) {
+            copy.slides[slideIndex].look = look
+            copy.slides[slideIndex].theme = nil
+        } else {
+            copy.look = look
+            // The slide on screen shows the presentation's style while it is edited.
+            if copy.slides.indices.contains(slideIndex) {
+                copy.slides[slideIndex].look = nil
+                copy.slides[slideIndex].theme = nil
+            }
+        }
         return copy
     }
 
@@ -239,7 +417,7 @@ struct LookEditor: View {
                 .scrollContentBackground(.hidden)
             }
             .background(theme.background.ignoresSafeArea())
-            .navigationTitle("Own Style")
+            .navigationTitle(forSlide ? Text("This Slide’s Style") : Text("Own Style"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

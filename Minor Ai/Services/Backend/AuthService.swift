@@ -51,6 +51,23 @@ final class AuthService: ObservableObject {
 
     // Signed in with email or Apple (anonymous sessions don't count).
     var isSignedIn: Bool { session.map { !$0.isAnonymous } ?? false }
+
+    enum Provider { case apple, email }
+
+    // How this account signs in, read from the access token's app_metadata (no request needed).
+    var provider: Provider? {
+        guard isSignedIn, let token = session?.accessToken else { return nil }
+        let parts = token.split(separator: ".")
+        guard parts.count > 1 else { return nil }
+        var payload = String(parts[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        while payload.count % 4 != 0 { payload += "=" }
+        guard let data = Data(base64Encoded: payload),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let meta = json["app_metadata"] as? [String: Any],
+              let name = meta["provider"] as? String
+        else { return session?.email?.hasSuffix("privaterelay.appleid.com") == true ? .apple : .email }
+        return name == "apple" ? .apple : .email
+    }
     var isAnonymous: Bool { !isSignedIn }
 
     // MARK: - Email and password

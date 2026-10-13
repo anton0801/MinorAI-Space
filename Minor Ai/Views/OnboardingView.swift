@@ -2,8 +2,9 @@
 //  OnboardingView.swift
 //  Minor Ai
 //
-//  Four first-launch pages, then Sign in. Each page plays a short scene of the real thing:
-//  a topic grows into a map, the sources, Expand with AI, tasks and presentations.
+//  First launch, a short tour in three steps: a map from any thought, the assistant that
+//  changes it on request, and the results (slides, tasks, flashcards). Start goes straight to
+//  the assistant; signing in waits until AI is needed, or happens here from "Sign In".
 //
 
 import SwiftUI
@@ -13,17 +14,22 @@ struct OnboardingView: View {
 
     @State private var page = 0
     @State private var showSignIn = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let theme = AppTheme(sphere: UserDefaults.standard.integer(forKey: "SelectedSphere"))
 
     private var pages: [(title: String, text: String)] {
         [
-            (L("Give Your Thoughts Shape"), L("Type a topic, and Minor builds a map you can grow — in seconds.")),
-            (L("Start From Anything"), L("A document, a link, a YouTube video, your voice or a photo of your notes.")),
-            (L("Go Deeper"), L("Tap an idea and Expand: AI adds examples and explanations. The assistant knows all your maps.")),
-            (L("Turn Ideas Into Action"), L("Tasks with dates, the Today screen, reminders and presentations from any map.")),
+            (L("Give Your Thoughts Shape"), L("From a topic, a link or a note to a clear map.")),
+            (L("Discuss. Refine. Expand.").replacingOccurrences(of: ". ", with: ".\n"), L("Minor sees your map and changes it when you ask.")),
+            (L("From Idea to Result"), L("Slides, tasks and flashcards from your map.")),
         ]
     }
+    // Each page's title and text sizes and the room under its words.
+    private let titleSizes: [CGFloat] = [38, 38, 34]
+    private let textSizes: [CGFloat] = [20, 18, 19]
+    private let bottoms: [CGFloat] = [44, 23, 20]
+    private var isLast: Bool { page == pages.count - 1 }
 
     var body: some View {
         ZStack {
@@ -34,6 +40,7 @@ struct OnboardingView: View {
             }
             .ignoresSafeArea()
             .allowsHitTesting(false)
+            .accessibilityHidden(true)
 
             if showSignIn {
                 SignInView(onFinish: onFinish)
@@ -41,127 +48,140 @@ struct OnboardingView: View {
             } else {
                 VStack(spacing: 0) {
                     HStack {
+                        Text(verbatim: "Minor AI")
+                            .minorFont(22, .bold, maxScale: 1.2)
+                            .accessibilityHidden(true)
                         Spacer()
-                        Button("Skip") { withAnimation { showSignIn = true } }
-                            .font(.system(size: 17))
+                        Button("Skip", action: onFinish)
+                            .minorFont(14, maxScale: 1.3)
                             .foregroundColor(MinorColor.textSecondary)
-                            .frame(height: 44)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                            .padding(.vertical, -8)   // a full-size target on a slim bar
+                            .opacity(isLast ? 0 : 1)
+                            .disabled(isLast)
+                            .accessibilityHidden(isLast)
                     }
+                    .frame(minHeight: 28)
                     .padding(.horizontal, 20)
 
                     TabView(selection: $page) {
                         ForEach(pages.indices, id: \.self) { index in
-                            VStack(spacing: 0) {
-                                scene(index)
-                                    .frame(height: 340)
-                                    .frame(maxWidth: .infinity)
-                                    .accessibilityHidden(true)
-                                Text(pages[index].title)
-                                    .font(.system(size: 26, weight: .bold))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.top, 28)
-                                    .padding(.horizontal, 24)
-                                Text(pages[index].text)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(MinorColor.textSecondary)
-                                    .multilineTextAlignment(.center)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding(.top, 10)
-                                    .padding(.horizontal, 36)
-                                Spacer(minLength: 0)
-                            }
-                            .tag(index)
+                            pageView(index).tag(index)
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         ForEach(pages.indices, id: \.self) { index in
-                            Capsule()
-                                .fill(index == page ? Color.white : theme.chatStroke)
-                                .frame(width: index == page ? 22 : 7, height: 7)
+                            Circle()
+                                .fill(index == page ? MinorColor.accent : Color.white.opacity(0.22))
+                                .frame(width: 9, height: 9)
                         }
                     }
                     .animation(.minorMenu, value: page)
-                    .padding(.bottom, 24)
-                    .accessibilityHidden(true)
+                    .padding(.bottom, 26)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text(L("Page \(page + 1) of \(pages.count)")))
 
                     Button {
                         if page < pages.count - 1 {
-                            withAnimation(.minorSheet) { page += 1 }
+                            withAnimation(reduceMotion ? nil : .minorSheet) { page += 1 }
                         } else {
-                            withAnimation { showSignIn = true }
+                            onFinish()
                         }
                     } label: {
-                        Text(page < pages.count - 1 ? "Continue" : "Get Started")
-                            .font(.system(size: 17, weight: .semibold))
+                        Text(isLast ? "Get Started" : "Continue")
+                            .minorFont(17, .semibold, maxScale: 1.3)
                             .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Capsule().fill(MinorColor.sendFill))
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white))
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+                    .buttonStyle(PressScale())
+                    .padding(.horizontal, 20)
+
+                    Button {
+                        withAnimation { showSignIn = true }
+                    } label: {
+                        (Text("Already have an account?").foregroundColor(MinorColor.textSecondary) + Text(verbatim: " ") + Text("Sign In").bold())
+                            .minorFont(15, maxScale: 1.3)
+                            .frame(minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(isLast ? 1 : 0)
+                    .disabled(!isLast)
+                    .accessibilityHidden(!isLast)
+                    .padding(.top, 4)
+                    // Only the last page has the sign-in line; the others keep the button lower.
+                    .frame(height: isLast ? 48 : 18, alignment: .top)
+                    .clipped()
                 }
+                .animation(.minorMenu, value: isLast)
             }
         }
         .foregroundColor(MinorColor.textPrimary)
+        #if DEBUG
+        .onAppear {
+            // -onboardingPage 2: open on a page, for screenshots.
+            let args = ProcessInfo.processInfo.arguments
+            if let i = args.firstIndex(of: "-onboardingPage"), i + 1 < args.count, let n = Int(args[i + 1]) { page = min(max(n, 0), 2) }
+        }
+        #endif
+    }
+
+    // Each page: its scene and its words. The assistant page leads with the words, as a chat does.
+    // The scene takes the room the words leave and shrinks only when a short screen needs it.
+    private func pageView(_ index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if index == 1 {
+                words(index).padding(.top, 20)
+                GeometryReader { g in
+                    scene(index).modifier(FitScale(room: g.size)).frame(width: g.size.width, height: g.size.height)
+                }
+                .padding(.top, 12)
+            } else {
+                GeometryReader { g in
+                    scene(index).modifier(FitScale(room: g.size)).frame(width: g.size.width, height: g.size.height)
+                }
+                .background(DotGrid().padding(.horizontal, -20).accessibilityHidden(true))
+                .padding(.bottom, 12)
+                words(index)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, bottoms[index])
+    }
+
+    private func words(_ index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(pages[index].title)
+                .minorFont(titleSizes[index], .heavy, style: .largeTitle, maxScale: 1.2)
+                .lineLimit(index == 2 ? 1 : nil)
+                .minimumScaleFactor(index == 2 ? 0.6 : 0.7)
+                .fixedSize(horizontal: false, vertical: index != 2)
+                .accessibilityAddTraits(.isHeader)
+            Text(pages[index].text)
+                .minorFont(textSizes[index], maxScale: 1.3)
+                .foregroundColor(MinorColor.textSecondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
     private func scene(_ index: Int) -> some View {
         let active = page == index && !showSignIn
         switch index {
-        case 0: GrowScene(active: active)
-        case 1: SourcesScene(active: active)
-        case 2: ExpandScene(active: active)
-        default: ActionScene(active: active)
+        case 0: ShapeScene(active: active)
+        case 1: AssistantScene(active: active)
+        default: ResultScene(active: active)
         }
+        // The scenes illustrate the words; VoiceOver reads the words.
     }
 }
 
 // MARK: - Pieces
-
-// A node as it looks on a map.
-private struct Chip: View {
-    let title: String
-    var color: BranchColor? = nil
-    var badge: String? = nil
-    var selected = false
-    var glowing = false
-    var sparkle = false
-
-    var body: some View {
-        let root = color == nil
-        let shape = RoundedRectangle(cornerRadius: root ? 13 : 10, style: .continuous)
-        HStack(spacing: 6) {
-            if sparkle {
-                Image(systemName: "sparkle").font(.system(size: 10, weight: .bold)).foregroundColor(color?.color)
-            }
-            Text(title)
-                .font(.system(size: root ? 15 : 13.5, weight: root ? .bold : .semibold))
-                .lineLimit(1)
-        }
-        .foregroundColor(root ? .black : .white)
-        .padding(.horizontal, root ? 15 : 11)
-        .padding(.vertical, root ? 10 : 7)
-        .background(shape.fill(root ? Color(white: 0.95) : color!.tint))
-        .overlay(shape.stroke(root ? Color.clear : color!.line, lineWidth: 1))
-        .overlay(shape.stroke(color?.color ?? .white, lineWidth: 2).opacity(selected ? 1 : 0))
-        .shadow(color: (color?.color ?? .white).opacity(glowing ? 0.7 : (root ? 0.18 : 0)), radius: glowing ? 14 : 18)
-        .overlay(alignment: .trailing) {
-            if let badge {
-                Text(badge)
-                    .font(.system(size: 10, weight: .semibold))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .overlay(Capsule().stroke(color?.line ?? .white, lineWidth: 1))
-                    .fixedSize()
-                    .offset(x: 30)
-            }
-        }
-    }
-}
 
 // Rings that run out of a selected idea a few times, like on a map.
 private struct PulseRings: ViewModifier {
@@ -197,17 +217,24 @@ private extension View {
         anchorPreference(key: NodeAnchors.self, value: .bounds) { [id: $0] }
     }
 
+    // Lines from a node on the left to a node on the right, whichever is the parent.
+    func connectorsBetween(_ links: [(from: String, to: String, color: Color, shown: Bool)]) -> some View {
+        connectors(links)
+    }
+
     // Draws a curved line from each parent to its child, growing in when `shown` says so.
-    func connectors(_ links: [(from: String, to: String, color: Color, shown: Bool)]) -> some View {
+    // `spread` lets lines leave the parent above or below its middle, toward their child.
+    func connectors(_ links: [(from: String, to: String, color: Color, shown: Bool)], spread: CGFloat = 0, width: CGFloat = 2) -> some View {
         backgroundPreferenceValue(NodeAnchors.self) { anchors in
             GeometryReader { geo in
                 ForEach(links.indices, id: \.self) { i in
                     let link = links[i]
                     if let a = anchors[link.from], let b = anchors[link.to] {
                         let from = geo[a], to = geo[b]
-                        Curve(start: CGPoint(x: from.maxX, y: from.midY), end: CGPoint(x: to.minX, y: to.midY))
+                        let lift = max(-from.height * 0.3, min(from.height * 0.3, (to.midY - from.midY) * spread))
+                        Curve(start: CGPoint(x: from.maxX - (lift == 0 ? 0 : 4), y: from.midY + lift), end: CGPoint(x: to.minX, y: to.midY))
                             .trim(from: 0, to: link.shown ? 1 : 0)
-                            .stroke(link.color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                            .stroke(link.color, style: StrokeStyle(lineWidth: width, lineCap: .round))
                             .animation(.easeOut(duration: 0.45), value: link.shown)
                     }
                 }
@@ -251,312 +278,566 @@ private struct Steps: ViewModifier {
     }
 }
 
-// MARK: - Page 1: a topic grows into a map
+// MARK: - Page 1: notes, links and ideas become one map
 
-private struct GrowScene: View {
+private struct ShapeScene: View {
     let active: Bool
     @State private var step = 0
-    @State private var typed = ""
-    @State private var pulse = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var topic: String { L("Project launch") }
-    private var branches: [(title: String, color: BranchColor, count: Int)] {
-        [(L("Audience"), .mint, 3), (L("Product"), .lilac, 4), (L("Marketing"), .pink, 3), (L("Launch"), .sun, 2)]
+    private var sources: [(icon: String?, title: String, color: BranchColor)] {
+        [(nil, L("Idea"), .mint), ("link", L("Link"), .sky), ("doc.text", L("Note"), .lilac)]
     }
+    private let branches: [BranchColor] = [.sun, .pink, .coral]
 
     var body: some View {
-        VStack(spacing: 34) {
-            HStack(spacing: 8) {
-                Group {
-                    if typed.isEmpty {
-                        Text(L("Map any topic or paste a link")).foregroundColor(MinorColor.textTertiary)
-                    } else {
-                        Text(typed) + Text("|").foregroundColor(MinorColor.accent)
-                    }
+        HStack(spacing: 0) {
+            VStack(spacing: 21) {
+                ForEach(sources.indices, id: \.self) { i in
+                    card(i)
+                        .node("s\(i)")
+                        .opacity(step > i ? 1 : 0)
+                        .offset(x: step > i ? 0 : -10)
                 }
-                .font(.system(size: 15))
+            }
+            Spacer(minLength: 24)
+            Text(L("My Project"))
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.black)
                 .lineLimit(1)
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(step >= 1 ? .black : MinorColor.textTertiary)
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(step >= 1 ? Color.white : Color.white.opacity(0.12)))
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 14)
+                .frame(minWidth: 122, minHeight: 54)
+                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(white: 0.96)))
+                .shadow(color: .white.opacity(0.16), radius: 18)
+                .fixedSize()
+                .node("root")
+                .opacity(step >= 4 ? 1 : 0)
+                .scaleEffect(step >= 4 ? 1 : 0.7)
+            Spacer(minLength: 28)
+            VStack(spacing: 48) {
+                ForEach(branches.indices, id: \.self) { i in
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(branches[i].color.opacity(0.16))
+                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(branches[i].color, lineWidth: 2))
+                        .overlay(Capsule().fill(branches[i].color.opacity(0.85)).frame(width: 33, height: 6))
+                        .frame(width: 61, height: 33)
+                        .node("b\(i)")
+                        .opacity(step >= 5 + i ? 1 : 0)
+                        .offset(x: step >= 5 + i ? 0 : -10)
+                }
             }
-            .padding(.leading, 16)
-            .padding(.trailing, 6)
-            .frame(width: 300, height: 44)
-            .background(Capsule().fill(Color.white.opacity(0.06)))
-            .overlay(Capsule().stroke(typed.isEmpty ? Color.white.opacity(0.14) : MinorColor.accent.opacity(0.6), lineWidth: 1))
+        }
+        .frame(maxWidth: 360)
+        .hubLinks(
+            into: sources.indices.map { i in ("s\(i)", sources[i].color.color, step >= 4) },
+            out: branches.indices.map { i in ("b\(i)", branches[i].color, step >= 5 + i) }
+        )
+        .modifier(Steps(active: active, step: $step, last: 7, delays: [0.25, 0.2, 0.2, 0.45, 0.4, 0.18, 0.18]))
+    }
 
-            HStack(spacing: 48) {
-                Chip(title: topic)
-                    .node("root")
-                    .opacity(step >= 2 ? 1 : 0)
-                    .scaleEffect(step >= 2 ? 1 : 0.7)
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(branches.indices, id: \.self) { i in
-                        let branch = branches[i]
-                        let isLaunch = i == branches.count - 1
-                        Chip(title: branch.title, color: branch.color, badge: "+\(branch.count)", selected: isLaunch && step >= 7)
-                            .modifier(PulseRings(color: branch.color.color, trigger: isLaunch ? pulse : 0))
-                            .node("b\(i)")
-                            .opacity(step >= 3 + i ? 1 : 0)
-                            .offset(x: step >= 3 + i ? 0 : -12)
+    private func card(_ i: Int) -> some View {
+        let source = sources[i]
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 11) {
+                Group {
+                    if let icon = source.icon {
+                        Image(systemName: icon).font(.system(size: 19, weight: .medium))
+                    } else {
+                        PageGlyph()
                     }
                 }
-                .padding(.trailing, 30)
+                .foregroundColor(source.color.color)
+                .frame(width: 24, height: 24)
+                Text(source.title).font(.system(size: 15)).lineLimit(1).minimumScaleFactor(0.8)
             }
-            .connectors(branches.indices.map { i in ("root", "b\(i)", branches[i].color.line, step >= 3 + i) })
+            Capsule().fill(Color.white.opacity(0.16)).frame(width: 75, height: 5).padding(.top, 14)
+            Capsule().fill(Color.white.opacity(0.11)).frame(width: 39, height: 5).padding(.top, 9)
         }
-        .task(id: active) {
-            typed = ""
-            pulse = 0
-            guard active else { return }
-            if reduceMotion { typed = topic; return }
-            try? await Task.sleep(nanoseconds: 450_000_000)
-            for count in 1...topic.count {
-                guard !Task.isCancelled else { return }
-                typed = String(topic.prefix(count))
-                try? await Task.sleep(nanoseconds: 55_000_000)
-            }
-        }
-        .modifier(Steps(active: active, step: $step, last: 7,
-                        delays: [0.45 + Double(topic.count) * 0.055 + 0.3, 0.5, 0.45, 0.2, 0.2, 0.2, 0.7]))
-        .onChange(of: step) { value in if value == 7 { pulse += 1 } }
+        .padding(.leading, 16)
+        .padding(.vertical, 14)
+        .frame(width: 116, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Color.white.opacity(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 1))
     }
 }
 
-// MARK: - Page 2: the sources
-
-private struct SourcesScene: View {
-    let active: Bool
-    @State private var step = 0
-    @State private var selected = 0
-
-    private var tiles: [(icon: String, title: String, caption: String)] {
-        [
-            ("textformat", L("Topic"), L("Type any subject")),
-            ("doc.text", L("Document"), L("PDF, TXT or RTF")),
-            ("link", L("Link"), L("Article or web page")),
-            ("play.rectangle", L("YouTube"), L("Video transcript")),
-            ("mic", L("Voice"), L("Talk it through")),
-            ("doc.viewfinder", L("Scan"), L("Notes, slides, a whiteboard")),
-        ]
-    }
-
+// A page with lines of text, the Idea card's mark.
+private struct PageGlyph: View {
     var body: some View {
-        LazyVGrid(columns: [GridItem(.fixed(160), spacing: 10), GridItem(.fixed(160), spacing: 10)], spacing: 10) {
-            ForEach(tiles.indices, id: \.self) { i in
-                let tile = tiles[i]
-                VStack(alignment: .leading, spacing: 4) {
-                    Image(systemName: tile.icon).font(.system(size: 20))
-                    Spacer(minLength: 10)
-                    Text(tile.title).font(.system(size: 15, weight: .semibold))
-                    Text(tile.caption).font(.system(size: 11)).foregroundColor(MinorColor.textTertiary).lineLimit(1)
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .stroke(lineWidth: 2)
+            .frame(width: 18, height: 22)
+            .overlay(
+                VStack(alignment: .leading, spacing: 3.5) {
+                    Capsule().frame(width: 9, height: 2)
+                    Capsule().frame(width: 9, height: 2)
+                    Capsule().frame(width: 6, height: 2)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .frame(height: 100)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white.opacity(0.04)))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(selected == i && step >= tiles.count ? MinorColor.accent : Color.white.opacity(0.14), lineWidth: selected == i && step >= tiles.count ? 1.5 : 1)
-                )
-                .shadow(color: MinorColor.accent.opacity(selected == i && step >= tiles.count ? 0.25 : 0), radius: 14)
-                .opacity(step > i ? 1 : 0)
-                .scaleEffect(step > i ? 1 : 0.85)
+            )
+    }
+}
+
+private extension View {
+    // Lines from the cards into the topic and from the topic out to its branches, with a dot where
+    // each line meets a card or a branch. A line that isn't level with the topic bends into its top
+    // or bottom edge, as on the map.
+    func hubLinks(into: [(id: String, color: Color, shown: Bool)], out: [(id: String, color: Color, shown: Bool)]) -> some View {
+        backgroundPreferenceValue(NodeAnchors.self) { anchors in
+            GeometryReader { geo in
+                if let r = anchors["root"].map({ geo[$0] }) {
+                    ForEach(into.indices, id: \.self) { i in
+                        if let a = anchors[into[i].id].map({ geo[$0] }) {
+                            HubCurve(edge: CGPoint(x: a.maxX, y: a.minY + a.height * 0.43), hub: r, outward: false)
+                                .trim(from: 0, to: into[i].shown ? 1 : 0)
+                                .stroke(into[i].color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                .animation(.easeOut(duration: 0.45), value: into[i].shown)
+                        }
+                    }
+                    ForEach(out.indices, id: \.self) { i in
+                        if let b = anchors[out[i].id].map({ geo[$0] }) {
+                            HubCurve(edge: CGPoint(x: b.minX, y: b.midY), hub: r, outward: true)
+                                .trim(from: 0, to: out[i].shown ? 1 : 0)
+                                .stroke(out[i].color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                                .animation(.easeOut(duration: 0.45), value: out[i].shown)
+                        }
+                    }
+                }
             }
         }
-        .modifier(Steps(active: active, step: $step, last: tiles.count, delays: [0.25] + Array(repeating: 0.12, count: tiles.count - 1)))
-        .task(id: active) {
-            selected = 0
-            guard active else { return }
-            // The highlight moves across a few sources, as if picking one.
-            try? await Task.sleep(nanoseconds: 1_300_000_000)
-            for next in [1, 5, 3, 4, 2, 0].cycled() {
-                guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.35)) { selected = next }
-                try? await Task.sleep(nanoseconds: 1_100_000_000)
+        .overlayPreferenceValue(NodeAnchors.self) { anchors in
+            GeometryReader { geo in
+                ForEach(into.indices, id: \.self) { i in
+                    if let a = anchors[into[i].id].map({ geo[$0] }) {
+                        Circle().fill(into[i].color).frame(width: 9, height: 9)
+                            .position(x: a.maxX, y: a.minY + a.height * 0.43)
+                            .opacity(into[i].shown ? 1 : 0)
+                    }
+                }
+                ForEach(out.indices, id: \.self) { i in
+                    if let b = anchors[out[i].id].map({ geo[$0] }) {
+                        Circle().fill(out[i].color).frame(width: 9, height: 9)
+                            .position(x: b.minX, y: b.midY)
+                            .opacity(out[i].shown ? 1 : 0)
+                    }
+                }
             }
+            .allowsHitTesting(false)
         }
     }
 }
 
-private extension Array {
-    // The same items again and again, for as long as the caller keeps asking.
-    func cycled() -> AnySequence<Element> {
-        AnySequence { () -> AnyIterator<Element> in
-            var index = 0
-            return AnyIterator {
-                guard !self.isEmpty else { return nil }
-                defer { index = (index + 1) % self.count }
-                return self[index]
-            }
+// A line between a point beside the topic and the topic itself. Level with the topic it runs
+// straight in; above or below, it leaves the point flat and turns into the topic's edge.
+private struct HubCurve: Shape {
+    let edge: CGPoint
+    let hub: CGRect
+    let outward: Bool   // drawn from the topic out to the point
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let inset = hub.width * 0.2
+        if abs(edge.y - hub.midY) < 10 {
+            let end = CGPoint(x: outward ? hub.maxX - 1 : hub.minX + 1, y: edge.y)
+            path.move(to: outward ? end : edge)
+            path.addLine(to: outward ? edge : end)
+            return path
         }
+        let inner = CGPoint(x: outward ? hub.maxX - inset : hub.minX + inset, y: hub.midY)
+        let flat = CGPoint(x: edge.x + (inner.x - edge.x) * 0.55, y: edge.y)
+        let turn = CGPoint(x: inner.x, y: edge.y + (inner.y - edge.y) * 0.4)
+        if outward {
+            path.move(to: inner)
+            path.addCurve(to: edge, control1: turn, control2: flat)
+        } else {
+            path.move(to: edge)
+            path.addCurve(to: inner, control1: flat, control2: turn)
+        }
+        return path
     }
 }
 
-// MARK: - Page 3: Expand with AI
+// Shrinks a scene to the room it has (a short screen or a large text size), never grows it.
+private struct FitScale: ViewModifier {
+    let room: CGSize
+    @State private var natural: CGSize = .zero
 
-private struct ExpandScene: View {
+    func body(content: Content) -> some View {
+        let scale = natural.width > 0 && natural.height > 0
+            ? min(1, room.width / natural.width, room.height / natural.height) : 1
+        content
+            .fixedSize(horizontal: false, vertical: true)
+            // The scene's own size, read where it is laid out (before it is scaled).
+            .background(
+                GeometryReader { g in
+                    Color.clear
+                        .onAppear { natural = g.size }
+                        .onChange(of: g.size) { natural = $0 }
+                }
+            )
+            .scaleEffect(scale)
+    }
+}
+
+// MARK: - Page 2: the assistant changes the map on request
+
+private struct AssistantScene: View {
     let active: Bool
     @State private var step = 0
     @State private var pulse = 0
 
-    private var ideas: [String] { [L("Free plan"), L("Monthly and yearly"), L("Student discount")] }
+    private var ideas: [(title: String, color: BranchColor)] {
+        [(L("Story"), .sky), (L("Interview"), .lilac), (L("Breakdown"), .pink)]
+    }
 
     var body: some View {
-        VStack(spacing: 40) {
-            HStack(spacing: 46) {
-                Chip(title: L("Pricing"), color: .sky, selected: step >= 1, glowing: step == 4)
-                    .modifier(PulseRings(color: BranchColor.sky.color, trigger: pulse))
-                    .node("idea")
-                    .opacity(step >= 1 ? 1 : 0)
-                VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 0) {
+            message
+                .node("ask")
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .opacity(step >= 1 ? 1 : 0)
+                .offset(y: step >= 1 ? 0 : 8)
+            answer
+                .node("answer")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 16)
+                .opacity(step >= 2 ? 1 : 0)
+                .offset(y: step >= 2 ? 0 : 10)
+            composer
+                .padding(.top, 18)
+                .padding(.horizontal, -13)
+        }
+        .frame(maxWidth: 353)
+        // The answer hangs off the request, like a reply in a thread.
+        .backgroundPreferenceValue(NodeAnchors.self) { anchors in
+            GeometryReader { geo in
+                if let a = anchors["ask"].map({ geo[$0] }), let b = anchors["answer"].map({ geo[$0] }) {
+                    Path { path in
+                        let x = b.minX + 75, y = a.midY, r: CGFloat = 12
+                        path.move(to: CGPoint(x: a.minX, y: y))
+                        path.addLine(to: CGPoint(x: x + r, y: y))
+                        path.addQuadCurve(to: CGPoint(x: x, y: y + r), control: CGPoint(x: x, y: y))
+                        path.addLine(to: CGPoint(x: x, y: b.minY))
+                    }
+                    .stroke(BranchColor.mint.color.opacity(0.85), lineWidth: 1.5)
+                    .opacity(step >= 2 ? 1 : 0)
+                }
+            }
+        }
+        .modifier(Steps(active: active, step: $step, last: 6, delays: [0.3, 0.6, 0.35, 0.3, 0.18, 0.18]))
+        .onChange(of: step) { value in if value == 3 { pulse += 1 } }
+    }
+
+    private var message: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(L("Add ideas for the first episode"))
+                    .font(.system(size: 15))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 4) {
+                    Text(verbatim: "9:41").font(.system(size: 11).monospacedDigit()).foregroundColor(MinorColor.textTertiary)
+                    ZStack {
+                        Image(systemName: "checkmark").offset(x: -3)
+                        Image(systemName: "checkmark").offset(x: 2)
+                    }
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(BranchColor.mint.color)
+                }
+            }
+            Image(systemName: "person.fill")
+                .font(.system(size: 14))
+                .foregroundColor(MinorColor.textSecondary)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Color.white.opacity(0.12)))
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 8)
+        .padding(.vertical, 10)
+        .frame(width: 251)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.08)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 1))
+    }
+
+    private var answer: some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        return VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(MinorColor.accent)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(BranchColor.mint.color.opacity(0.12)))
+                Text(L("Added 3 ideas")).font(.system(size: 15.5))
+                Spacer(minLength: 0)
+                Text(verbatim: "9:41").font(.system(size: 11).monospacedDigit()).foregroundColor(MinorColor.textTertiary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 49)
+            .background(Color.white.opacity(0.035))
+
+            HStack(spacing: 41) {
+                Text(L("Podcast launch"))
+                    .font(.system(size: 15.5))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: 92)
+                    .frame(width: 110, height: 51)
+                    .background(Capsule().fill(Color(hex: "#0E1A15")))
+                    .overlay(Capsule().stroke(BranchColor.mint.color, lineWidth: 2.5))
+                    .modifier(PulseRings(color: BranchColor.mint.color, trigger: pulse, radius: 25.5))
+                    .node("root")
+                VStack(alignment: .leading, spacing: 15) {
                     ForEach(ideas.indices, id: \.self) { i in
-                        Chip(title: ideas[i], color: .sky, sparkle: true)
+                        Text(ideas[i].title)
+                            .font(.system(size: 15.5))
+                            .lineLimit(1)
+                            .padding(.horizontal, 24)
+                            .frame(height: 35)
+                            .background(Capsule().fill(ideas[i].color.color.opacity(0.1)))
+                            .overlay(Capsule().stroke(ideas[i].color.color, lineWidth: 2.5))
                             .node("n\(i)")
-                            .opacity(step >= 5 + i ? 1 : 0)
-                            .offset(x: step >= 5 + i ? 0 : -12)
+                            .opacity(step >= 4 + i ? 1 : 0)
+                            .offset(x: step >= 4 + i ? 0 : -10)
                     }
                 }
             }
-            .frame(height: 140)
-            .connectors(ideas.indices.map { i in ("idea", "n\(i)", BranchColor.sky.line, step >= 5 + i) })
-
-            HStack(spacing: 4) {
-                Label(L("Expand"), systemImage: "sparkles")
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
-                    .fixedSize()
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 13)
-                    .frame(height: 34)
-                    .background(Capsule().fill(MinorColor.accent))
-                    .scaleEffect(step == 3 ? 0.9 : 1)
-                    .shadow(color: MinorColor.accent.opacity(step == 3 ? 0.6 : 0), radius: 10)
-                ForEach([L("Ask"), L("Edit"), L("Style")], id: \.self) { title in
-                    Text(title)
-                        .font(.system(size: 14))
-                        .lineLimit(1)
-                        .fixedSize()
-                        .padding(.horizontal, 9)
-                        .frame(height: 34)
-                }
-            }
-            .padding(4)
-            .background(Capsule().fill(Color.white.opacity(0.06)))
-            .overlay(Capsule().stroke(Color.white.opacity(0.14), lineWidth: 1))
-            .opacity(step >= 2 ? 1 : 0)
-            .offset(y: step >= 2 ? 0 : 12)
+            .connectors(ideas.indices.map { i in ("root", "n\(i)", ideas[i].color.color, step >= 4 + i) }, spread: 0.3, width: 2.5)
+            .padding(.leading, 35)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 162)
+            .background(DotGrid().accessibilityHidden(true))
         }
-        .modifier(Steps(active: active, step: $step, last: 8, delays: [0.3, 0.7, 0.9, 0.25, 0.8, 0.18, 0.18, 0.5]))
-        .onChange(of: step) { value in if value == 1 || value == 8 { pulse += 1 } }
-        .task(id: active) { if !active { pulse = 0 } }
+        .frame(width: 341)
+        .background(shape.fill(Color.white.opacity(0.05)))
+        .clipShape(shape)
+        .overlay(shape.stroke(Color.white.opacity(0.1), lineWidth: 1))
+    }
+
+    private var composer: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "plus")
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(MinorColor.textSecondary)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Color.white.opacity(0.08)))
+            Text(L("Message Minor AI"))
+                .font(.system(size: 15.5))
+                .foregroundColor(MinorColor.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                .background(Capsule().fill(Color.white.opacity(0.05)))
+            Image(systemName: "mic.fill")
+                .font(.system(size: 15))
+                .foregroundColor(MinorColor.textSecondary)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Color.white.opacity(0.08)))
+            Image(systemName: "arrow.up")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.black)
+                .frame(width: 41, height: 41)
+                .background(Circle().fill(Color.white))
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 65)
+        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color.white.opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 1))
     }
 }
 
-// MARK: - Page 4: tasks, Today and presentations
+// MARK: - Page 3: slides, tasks and flashcards from the map
 
-private struct ActionScene: View {
+private struct ResultScene: View {
     let active: Bool
     @State private var step = 0
 
-    private var tasks: [(title: String, time: String)] {
-        [(L("Lecture notes"), ""), (L("Review flashcards"), "9:00"), (L("Practice test"), L("Fri"))]
+    private var branches: [(icon: String, title: String, color: BranchColor)] {
+        [("doc.text", L("Idea and format"), .mint), ("person.2", L("Audience"), .sky), ("mic", L("Equipment"), .lilac),
+         ("list.bullet", L("Episode plan"), .sun), ("waveform", L("Promotion"), .pink), ("checkmark.circle", L("Tasks"), .coral)]
     }
-    private var done: Int { step >= 4 ? 2 : 1 }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(L("Today")).font(.system(size: 20, weight: .bold))
-                    Spacer()
-                    Text(L("\(done) of \(tasks.count) done"))
-                        .font(.system(size: 12))
-                        .foregroundColor(MinorColor.textTertiary)
-                        .contentTransition(.numericText())
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                VStack(spacing: 15) {
+                    ForEach(0..<3, id: \.self) { i in pill(i).node("l\(i)") }
                 }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.08))
-                        Capsule().fill(MinorColor.accent).frame(width: geo.size.width * CGFloat(done) / CGFloat(tasks.count))
-                    }
-                }
-                .frame(height: 6)
-                .padding(.bottom, 2)
-                ForEach(tasks.indices, id: \.self) { i in
-                    let checked = i == 0 || (i == 1 && step >= 4)
-                    HStack(spacing: 10) {
-                        Image(systemName: checked ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 18))
-                            .foregroundColor(checked ? BranchColor.sky.color : MinorColor.textTertiary)
-                        Text(tasks[i].title)
-                            .font(.system(size: 14.5))
-                            .strikethrough(checked, color: MinorColor.textTertiary)
-                            .foregroundColor(checked ? MinorColor.textTertiary : .white)
-                        Spacer()
-                        Text(tasks[i].time).font(.system(size: 12)).foregroundColor(MinorColor.textTertiary)
-                    }
-                    .padding(.horizontal, 10)
-                    .frame(height: 40)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.05)))
-                    .opacity(step >= 1 + i ? 1 : 0)
-                    .offset(y: step >= 1 + i ? 0 : 8)
+                Spacer(minLength: 16)
+                Text(L("Podcast launch"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, 8)
+                    .frame(width: 98, height: 50)
+                    .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Color(hex: "#0E1A15")))
+                    .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(BranchColor.mint.color, lineWidth: 2))
+                    .shadow(color: BranchColor.mint.color.opacity(0.45), radius: 12)
+                    .node("root")
+                    .opacity(step >= 1 ? 1 : 0)
+                Spacer(minLength: 16)
+                VStack(spacing: 15) {
+                    ForEach(3..<6, id: \.self) { i in pill(i).node("r\(i)") }
                 }
             }
-            .padding(16)
-            .frame(width: 290)
-            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(white: 0.1)))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 1))
-            .padding(.top, 60)
-
-            // A slide made from the same map.
-            VStack(alignment: .leading, spacing: 5) {
-                Capsule().fill(MinorColor.accent).frame(width: 18, height: 3)
-                Text(L("Launch plan")).font(.system(size: 13, weight: .bold)).foregroundColor(.white)
-                ForEach([0.9, 0.7, 0.8], id: \.self) { width in
-                    Capsule().fill(Color.white.opacity(0.25)).frame(width: 96 * width, height: 4)
-                }
-            }
-            .padding(12)
-            .frame(width: 150, height: 86, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(hex: "#1B2140"), Color(hex: "#3A2463")], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .connectorsBetween(
+                (0..<3).map { i in ("l\(i)", "root", branches[i].color.color, step >= 2) }
+                + (3..<6).map { i in ("root", "r\(i)", branches[i].color.color, step >= 2) }
             )
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
-            .overlay(alignment: .bottomTrailing) {
-                Text(verbatim: "PowerPoint · PDF")
-                    .font(.system(size: 9, weight: .semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.black.opacity(0.45)))
-                    .padding(6)
-            }
-            .shadow(color: .black.opacity(0.4), radius: 16, y: 8)
-            .rotationEffect(.degrees(step >= 5 ? 6 : 14))
-            .offset(x: step >= 5 ? 14 : 60, y: step >= 5 ? -20 : -30)
-            .opacity(step >= 5 ? 1 : 0)
 
-            // The reminder.
-            HStack(spacing: 8) {
-                Image(systemName: "bell.fill").font(.system(size: 13)).foregroundColor(BranchColor.sun.color)
-                Text(L("Practice test is due on Friday")).font(.system(size: 12.5))
+            // From the map down to the slide.
+            VStack(spacing: 0) {
+                Rectangle().fill(BranchColor.mint.color).frame(width: 2, height: 80)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(BranchColor.mint.color)
+                    .padding(.top, -7)
             }
-            .padding(.horizontal, 12)
-            .frame(height: 36)
-            .background(Capsule().fill(Color(white: 0.18)))
-            .overlay(Capsule().stroke(Color.white.opacity(0.14), lineWidth: 1))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .offset(y: step >= 6 ? 0 : 14)
-            .opacity(step >= 6 ? 1 : 0)
+            .shadow(color: BranchColor.mint.color.opacity(0.6), radius: 6)
+            .opacity(step >= 3 ? 1 : 0)
+            .padding(.top, -51)
+
+            slide
+                .padding(.top, 16)
+                // Room for the rest of the deck behind it, so nothing reaches the words below.
+                .padding(.bottom, 14)
+                .padding(.leading, 10)
+                .opacity(step >= 4 ? 1 : 0)
+                .offset(y: step >= 4 ? 0 : 16)
         }
-        .frame(width: 320)
-        .modifier(Steps(active: active, step: $step, last: 6, delays: [0.3, 0.15, 0.15, 0.9, 0.6, 0.6]))
+        .frame(maxWidth: 356)
+        .modifier(Steps(active: active, step: $step, last: 4, delays: [0.25, 0.35, 0.45, 0.35]))
+    }
+
+    // A slide made from the same map, on top of the rest of the deck.
+    private var slide: some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        return HStack(alignment: .center, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: "Minor AI").font(.system(size: 8, weight: .semibold)).foregroundColor(.black.opacity(0.5))
+                Spacer(minLength: 10)
+                Text(L("Podcast launch"))
+                    .font(.system(size: 30, weight: .heavy))
+                    .foregroundColor(.black)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(L("Ideas. Plan. Recording. Promotion. Growth."))
+                    .font(.system(size: 9.5))
+                    .foregroundColor(.black.opacity(0.55))
+                    .lineLimit(2)
+                    .padding(.top, 8)
+                Spacer(minLength: 10)
+                HStack(spacing: 6) {
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.black.opacity(0.12)).frame(width: 28, height: 2)
+                        Capsule().fill(Color.black.opacity(0.7)).frame(width: 9, height: 2)
+                    }
+                    Text(verbatim: "01 / 12").font(.system(size: 7.5, weight: .medium).monospacedDigit()).foregroundColor(.black.opacity(0.45))
+                }
+            }
+            .frame(width: 160, alignment: .leading)
+            Spacer(minLength: 0)
+            ZStack {
+                HStack(spacing: 2.5) {
+                    bars([8, 16, 26, 40, 22, 52, 34, 18, 44, 26])
+                    Color.clear.frame(width: 44)
+                    bars([30, 48, 20, 38, 14, 26, 10])
+                }
+                Microphone()
+            }
+            .frame(height: 150)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(width: 344, height: 194)
+        .background(shape.fill(Color(hex: "#F3F0EA")))
+        .overlay(alignment: .topTrailing) {
+            Image(systemName: "ellipsis").font(.system(size: 10, weight: .bold)).foregroundColor(.black.opacity(0.45)).padding(12)
+        }
+        .background(
+            ZStack {
+                shape.fill(Color(white: 0.24)).rotationEffect(.degrees(-3.5)).offset(x: -9, y: 9)
+                shape.fill(Color(white: 0.34)).rotationEffect(.degrees(-1.8)).offset(x: -4, y: 4)
+            }
+        )
+        .background(
+            Ellipse().fill(BranchColor.mint.color.opacity(0.22)).frame(width: 260, height: 60).blur(radius: 30).offset(y: -96)
+        )
+        .rotationEffect(.degrees(step >= 4 ? -1.2 : 3))
+    }
+
+    private func bars(_ heights: [CGFloat]) -> some View {
+        HStack(alignment: .center, spacing: 2.5) {
+            ForEach(heights.indices, id: \.self) { i in
+                Capsule().fill(Color(hex: "#3DDC97").opacity(0.9)).frame(width: 2.5, height: heights[i])
+            }
+        }
+    }
+
+    private func pill(_ i: Int) -> some View {
+        let title = branches[i].title
+        return HStack(spacing: 7) {
+            Image(systemName: branches[i].icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(branches[i].color.color)
+                .frame(width: 17)
+            Text(title)
+                .font(.system(size: 10.5, weight: .medium))
+                .lineLimit(title.contains(" ") ? 2 : 1)
+                .minimumScaleFactor(0.6)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .frame(width: 106, height: 41)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(branches[i].color.color.opacity(0.08)))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(branches[i].color.color, lineWidth: 1.5))
+        .opacity(step >= 2 ? 1 : 0)
     }
 }
+
+// A studio microphone on its stand, drawn for the slide.
+private struct Microphone: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Capsule().fill(LinearGradient(colors: [Color(white: 0.32), Color(white: 0.04)], startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 38, height: 66)
+                VStack(spacing: 3.5) {
+                    ForEach(0..<8, id: \.self) { _ in Capsule().fill(Color.white.opacity(0.1)).frame(width: 30, height: 1.5) }
+                }
+                .padding(.bottom, 12)
+            }
+            .overlay(alignment: .bottom) {
+                // The cradle around the microphone.
+                RoundedRectangle(cornerRadius: 11).stroke(Color(white: 0.1), lineWidth: 3.5).frame(width: 50, height: 30).offset(y: 7).mask(Rectangle().frame(height: 26).offset(y: 12))
+            }
+            Rectangle().fill(Color(white: 0.1)).frame(width: 4.5, height: 34).padding(.top, 8)
+            Capsule().fill(LinearGradient(colors: [Color(white: 0.25), Color(white: 0.04)], startPoint: .top, endPoint: .bottom)).frame(width: 56, height: 9)
+        }
+        .shadow(color: .black.opacity(0.25), radius: 4, y: 3)
+    }
+}
+
+// The faint dot grid of the map canvas, behind the scenes.
+private struct DotGrid: View {
+    var body: some View {
+        Canvas { context, size in
+            var dots = Path()
+            var y: CGFloat = 8
+            while y < size.height {
+                var x: CGFloat = 8
+                while x < size.width {
+                    dots.addEllipse(in: CGRect(x: x - 1, y: y - 1, width: 2, height: 2))
+                    x += 22
+                }
+                y += 22
+            }
+            context.fill(dots, with: .color(.white.opacity(0.06)))
+        }
+        .mask(LinearGradient(colors: [.clear, .white, .white, .clear], startPoint: .top, endPoint: .bottom))
+    }
+}
+

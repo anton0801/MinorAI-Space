@@ -22,44 +22,48 @@ final class Minor_AiUITests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    // Tapping a presentation in the sidebar's Slides tab opens it.
+    // Tapping a presentation in the Library's Slides tab opens it.
     @MainActor
     func testOpenPresentationFromSidebar() throws {
         let app = XCUIApplication()
         app.launchArguments += ["-sidebarDecks", "-didOnboard", "YES", "-appLanguage", "en"]
         app.launch()
 
-        let row = app.collectionViews.buttons.matching(NSPredicate(format: "label CONTAINS 'Launch plan'")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 8), "The presentation should be listed in the sidebar")
+        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Launch plan'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 8), "The presentation should be listed in the Library")
         row.tap()
 
         XCTAssertTrue(app.buttons["Present"].waitForExistence(timeout: 5), "The presentation editor should open")
     }
 
-    // Variants: where the sidebar is opened from and where the row is tapped.
+    // Variants: where the Library is opened from and where the row is tapped.
     @MainActor
     func testOpenFromMapScreen() throws { try open(extra: ["-mindMode"], dx: 0.6) }
 
     @MainActor
     func testOpenByThumbnail() throws { try open(extra: [], dx: 0.12) }
 
-    // The first-launch pages: each one shows, and the last leads to sign-in.
+    // The first-launch pages: each one shows, the last starts the app and offers Sign In.
     @MainActor
     func testOnboardingPages() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-onboarding", "-didOnboard", "NO", "-appLanguage", "ru"]
+        app.launchArguments += ["-onboarding", "-appLanguage", "ru", "-auditSignedOut"]
         app.launch()
-        for page in 1...4 {
-            sleep(page == 1 ? 5 : 4)
+        for page in 1...3 {
+            sleep(page == 1 ? 5 : 3)
             let shot = XCTAttachment(screenshot: app.screenshot())
             shot.name = "Onboarding \(page)"
             shot.lifetime = .keepAlways
             add(shot)
-            let next = app.buttons[page < 4 ? "Продолжить" : "Начать"]
-            XCTAssertTrue(next.waitForExistence(timeout: 3))
-            next.tap()
+            if page < 3 {
+                let next = app.buttons["Продолжить"]
+                XCTAssertTrue(next.waitForExistence(timeout: 3))
+                next.tap()
+            }
         }
-        XCTAssertTrue(app.buttons["Не сейчас"].waitForExistence(timeout: 5), "Sign-in should follow the last page")
+        XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS 'Войти'")).firstMatch.exists, "The last page should offer Sign In")
+        app.buttons["Начать"].tap()
+        XCTAssertTrue(app.buttons["Меню"].waitForExistence(timeout: 5), "Начать should open the assistant")
     }
 
     // The presentation designer: elements, an element's settings, slide design, themes, own style.
@@ -119,7 +123,8 @@ final class Minor_AiUITests: XCTestCase {
         sleep(1)
         app.buttons["Готово"].firstMatch.tap()
         sleep(1)
-        app.buttons["Дизайн"].firstMatch.tap()
+        // The Design tab's "Background and Motion" opens the slide's own design.
+        app.buttons["Фон и анимация"].firstMatch.tap()
         sleep(2)
         shot("Design 3 slide design")
         app.buttons["Отмена"].firstMatch.tap()
@@ -148,10 +153,10 @@ final class Minor_AiUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-sidebarMaps", "-didOnboard", "YES", "-appLanguage", "en"]
         app.launch()
-        let row = app.collectionViews.buttons.matching(NSPredicate(format: "label CONTAINS 'Launch plan'")).firstMatch
+        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Launch plan'")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 8))
         row.tap()
-        XCTAssertTrue(app.buttons["Export Map"].waitForExistence(timeout: 5), "The map should open")
+        XCTAssertTrue(app.buttons["Edit Together"].waitForExistence(timeout: 5), "The map should open")
     }
 
     @MainActor
@@ -175,7 +180,7 @@ final class Minor_AiUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += extra + ["-sidebarDecks", "-didOnboard", "YES", "-appLanguage", "en"]
         app.launch()
-        let row = app.collectionViews.buttons.matching(NSPredicate(format: "label CONTAINS 'Launch plan'")).firstMatch
+        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Launch plan'")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 8))
         row.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).tap()
         let opened = app.buttons["Present"].waitForExistence(timeout: 5)

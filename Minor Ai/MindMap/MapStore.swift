@@ -76,6 +76,10 @@ final class MapStore: ObservableObject {
     }
 
     func delete(_ id: UUID) {
+        ProjectChatStore.shared.delete(id)
+        ProjectMaterialStore.shared.delete(id)
+        ProjectMemoryStore.shared.delete(id)
+        RecentDocuments.shared.forget(id)
         guard let map = maps.first(where: { $0.id == id }) else { return }
         // A shared map would come back from the server on the next refresh: the owner stops
         // sharing it (the others keep their copies), a member leaves it.
@@ -193,6 +197,10 @@ final class MapStore: ObservableObject {
     func removeSynced(_ id: UUID) {
         guard maps.contains(where: { $0.id == id }) else { return }
         maps.removeAll { $0.id == id }
+        // Its private chat, materials and project notes on this iPhone go with it.
+        ProjectChatStore.shared.delete(id)
+        ProjectMaterialStore.shared.delete(id)
+        ProjectMemoryStore.shared.delete(id)
         let url = file(for: id)
         io.async { try? FileManager.default.removeItem(at: url) }
     }
@@ -210,6 +218,46 @@ final class MapStore: ObservableObject {
 
     func togglePin(_ id: UUID) {
         update(id, touch: false) { $0.isPinned.toggle() }
+    }
+
+    // The map's name is its central idea; an empty name keeps the old one.
+    func rename(_ id: UUID, to title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        update(id) { $0.root.title = String(trimmed.prefix(200)) }
+    }
+
+    #if DEBUG
+    // Screenshot fixtures that are never written to disk (-demoManyMaps).
+    func addForScreenshots(_ extra: [MindMap]) {
+        maps.append(contentsOf: extra.filter { map($0.id) == nil })
+        sort()
+    }
+    #endif
+
+    // MARK: - Files that couldn't be read
+
+    // Maps set aside because they couldn't be read (see load).
+    @Published private(set) var unreadable = 0
+
+    // Reads the set-aside files again (after an update, or once space was freed) and brings back
+    // the ones that open now.
+    func retryUnreadable() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "unreadable" {
+            guard let data = try? Data(contentsOf: url), let map = try? decoder.decode(MindMap.self, from: data),
+                  self.map(map.id) == nil else { continue }
+            let restored = url.deletingPathExtension().appendingPathExtension("json")
+            guard (try? FileManager.default.moveItem(at: url, to: restored)) != nil else { continue }
+            maps.append(map)
+        }
+        sort()
+        countUnreadable()
+    }
+
+    private func countUnreadable() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        unreadable = files.filter { $0.pathExtension == "unreadable" }.count
     }
 
     // A copy with new ids for every idea, so its tasks, reminders, calendar events and flashcards
@@ -233,8 +281,10 @@ final class MapStore: ObservableObject {
         copy.isPinned = false
         copy.createdAt = Date()
         copy.updatedAt = Date()
-        copy.root.title += " copy"
+        copy.root.title = L("\(copy.root.title) copy")
         save(copy)
+        ProjectMaterialStore.shared.copy(from: id, to: copy.id, renamed: renamed)
+        ProjectMemoryStore.shared.copy(from: id, to: copy.id)
         return copy
     }
 
@@ -335,6 +385,7 @@ final class MapStore: ObservableObject {
                 return nil
             }
         sort()
+        countUnreadable()
     }
 
     private func sort() {

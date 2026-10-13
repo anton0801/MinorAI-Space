@@ -1,0 +1,167 @@
+{
+  "type": "Design concepts and UX handoff; not implemented app screens",
+  "imageGeneration": "built-in image_gen",
+  "revision": "Added free export state 12b",
+  "files": [
+    {
+      "path": "CLAUDE_PROMPT.md",
+      "bytes": 3765,
+      "sha256": "6c23d1ee5f43ef21459f96e773a9e0b359e6de1c052547d4451a0cf626a4e5b1"
+    },
+    {
+      "path": "SCREENS.md",
+      "bytes": 1169,
+      "sha256": "23904cac4335fe87384ae4952728e286ffaa76769915cf02c1a57301053cb33d"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 3973,
+      "sha256": "4d1904b773fcac2257ee3ecef75953941763923a4103870ec4ff9046c3ea45cf"
+    },
+    {
+      "path": "UX_SPEC.md",
+      "bytes": 33363,
+      "sha256": "f0550974e72a739939ce92e9a629e3b6e9b6ad331d7664f22115b2cafa99f8ed"
+    },
+    {
+      "path": "VISUAL_REVIEW.md",
+      "bytes": 4480,
+      "sha256": "d3f7c758c60355df685a651aa695796f159d8ed3f0c25ad2a0b9f047fe308e8a"
+    },
+    {
+      "path": "design/01-node-actions.png",
+      "bytes": 1321666,
+      "sha256": "ad14d3df569e58db30ea2143215c5075c19c1036963b36e942b0eee974ccca79"
+    },
+    {
+      "path": "design/02-node-more.png",
+      "bytes": 1360563,
+      "sha256": "fc2d5bb3667b43f86b71b63bfdbd52952166e69f21b435dbffa1a0b03136862c"
+    },
+    {
+      "path": "design/03-node-move.png",
+      "bytes": 1352284,
+      "sha256": "f2812ab4a128eadb3b18d8982f24d5e5c5ec927ec366d01117b9814b60c34bf0"
+    },
+    {
+      "path": "design/04-today.png",
+      "bytes": 1332351,
+      "sha256": "8de279f6d0eabadc397ed5699ddfed683037b571d8387b9a69641ba9ba428182"
+    },
+    {
+      "path": "design/05-task-detail.png",
+      "bytes": 1328775,
+      "sha256": "b7590f6981be3132ec9abeca7de3e5ef525ba6d1db902012cb323dff30e7c247"
+    },
+    {
+      "path": "design/06-today-empty.png",
+      "bytes": 1262820,
+      "sha256": "34ee037a1140197b065b6b97f647942de89752fa0dc366210eb0b003a62b04cf"
+    },
+    {
+      "path": "design/07-study-question.png",
+      "bytes": 1320073,
+      "sha256": "47cc5fc7cb771f6ff71972a4e19000eff0dbf183e494eb1d74fecc248ee98f1a"
+    },
+    {
+      "path": "design/08-study-answer.png",
+      "bytes": 1301168,
+      "sha256": "69da42d4082609b0abb55f95c5c321c4118da204651cc5d856eff5d2114b5d11"
+    },
+    {
+      "path": "design/09-quiz-feedback.png",
+      "bytes": 1327458,
+      "sha256": "00cc0de89bb6bcd7fe8d97b6b223d3a83339bbc86e6217b789c8636be52043b4"
+    },
+    {
+      "path": "design/10-study-result.png",
+      "bytes": 1251630,
+      "sha256": "5b503cfd1e048c1f48628fc7a9fee61a9b671a2362d16de9c7ad1d2e1ef0e6cd"
+    },
+    {
+      "path": "design/11-presenter.png",
+      "bytes": 1364255,
+      "sha256": "5d3f64eb58a98a64ae20648b119c1cd16031ff2c3060e65955ee51b96a357b28"
+    },
+    {
+      "path": "design/12-export-options.png",
+      "bytes": 1281399,
+      "sha256": "01f4b55aa6a54eb0e4538b6283a48812c8b925138c02a7d22d7ed43ded01f63c"
+    },
+    {
+      "path": "design/12b-export-free.png",
+      "bytes": 1472834,
+      "sha256": "0f5ca2c7ad6c5a7b61f771651ad3bd91ac3d3b5f66053dba72bb45c8bc366a1c"
+    },
+    {
+      "path": "design/13-export-ready.png",
+      "bytes": 1181696,
+      "sha256": "4156852e7de00700d35c951dd6fd3da3e91eea41c17f75f082bdf1e1d0f97d9b"
+    },
+    {
+      "path": "design/14-generation-cancel.png",
+      "bytes": 1357245,
+      "sha256": "04219484b8564b19b087e36546c447e1d099437ffdf8e76c18c4c2fadd606a0c"
+    },
+    {
+      "path": "design/15-generation-error.png",
+      "bytes": 1296608,
+      "sha256": "6e98eb0877a284f091c34189860694ca9c169c26c2cf28a69af3c77377931867"
+    },
+    {
+      "path": "design/export-states.jpg",
+      "bytes": 137500,
+      "sha256": "036ff6cb08639eb9d250c344c3a3b2d5be8c87f792be9cccbb1eb6729cf54bb0"
+    },
+    {
+      "path": "design/nodes.jpg",
+      "bytes": 207385,
+      "sha256": "66aa38612869df340b91def49a517e8b0b1e5c171dc31dee0fba54b2dd0c2b1b"
+    },
+    {
+      "path": "design/presentation.jpg",
+      "bytes": 259836,
+      "sha256": "db045e5e0ccc67dd602763a73040e6f5968804328af77364868add2354e7366d"
+    },
+    {
+      "path": "design/prompts.json",
+      "bytes": 33201,
+      "sha256": "307761de6676908955ea32864ee2e70cab3b991168c1538d0cac1127e6f3c10e"
+    },
+    {
+      "path": "design/states.jpg",
+      "bytes": 127693,
+      "sha256": "8b8a0ab82fc40cf7728837b696d79a5f302cd9194fed23966f45b8526dafecab"
+    },
+    {
+      "path": "design/study.jpg",
+      "bytes": 238907,
+      "sha256": "634e1d1bb21b4d82e5232c0b3c950e25cb416a90389e167147e1799c0169c508"
+    },
+    {
+      "path": "design/today.jpg",
+      "bytes": 198509,
+      "sha256": "0cca7a9845cdd1fc45fb631803b34b8ffa3c209f6d9dda50eea5eb5ddc83e3ed"
+    },
+    {
+      "path": "reference/CURRENT_SCOPE_2026-10-13.md",
+      "bytes": 3037,
+      "sha256": "8c6e9069b79597cb7f300983eb5a73dc6d965cd69d520867f39048529668c2df"
+    },
+    {
+      "path": "reference/DESIGN.md",
+      "bytes": 129498,
+      "sha256": "0104307db01796803d0b5621130a6b5eec2af9644f42727e75c25f3ca2e1b7df"
+    },
+    {
+      "path": "reference/tokens.css",
+      "bytes": 13140,
+      "sha256": "9f7e9b4b24f4ba4f3b55d47d1b32505ec4173345ede971cef92f4643a77d54cb"
+    },
+    {
+      "path": "reference/tokens.json",
+      "bytes": 32518,
+      "sha256": "c2e02d1616550e954e164e79743ba2469f7a68cbbe771f5a451de41919d12bdf"
+    }
+  ]
+}

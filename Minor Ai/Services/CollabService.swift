@@ -18,6 +18,25 @@ final class CollabService: ObservableObject {
     @Published private(set) var busy: Set<UUID> = []
     @Published private(set) var failed: Set<UUID> = []
     @Published private(set) var synced: [UUID: Date] = [:]
+    // What changed for this person on a map while it was open: the owner stopped sharing, removed
+    // them or changed their role. The map screen says it once and clears it.
+    @Published var notice: [UUID: Notice] = [:]
+
+    enum Notice: Equatable {
+        case lostAccess          // no longer on the map; their copy stays on this iPhone
+        case nowViewer           // the owner made them a viewer
+        case nowEditor           // the owner made them an editor
+    }
+
+    // What an invite link offers, read before joining (nothing of the map's content).
+    struct InvitePreview: Equatable {
+        enum Status: String { case ok, member, full, invalid }
+        let mapID: UUID?
+        let title: String
+        let role: CollabRole
+        let inviter: String?
+        let status: Status
+    }
 
     enum CollabError: LocalizedError {
         case invalidInvite, notFound, planRequired, mapFull
@@ -103,6 +122,34 @@ final class CollabService: ObservableObject {
         PushService.shared.askIfNeeded()
         // After "#": browsers never send it, so the secret stays out of the website's server logs.
         return URL(string: "https://minorai.site/join/#t=\(text)")!
+    }
+
+    // The title, role and inviter behind a link, and whether it still works. Allowed before
+    // sign-in: the link's secret is the permission to see this much.
+    func preview(token: String) async throws -> InvitePreview {
+        struct Args: Encodable { let p_token: String }
+        struct Row: Decodable { let map_id: UUID?; let title: String?; let role: String?; let inviter: String?; let status: String }
+        var request = URLRequest(url: BackendConfig.url.appendingPathComponent("rest/v1/rpc/collab_invite_preview"))
+        request.httpMethod = "POST"
+        request.httpBody = try JSONEncoder().encode(Args(p_token: token))
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let data: Data
+        if AuthService.shared.isSignedIn {
+            data = try await send(request)
+        } else {
+            request.setValue(BackendConfig.publishableKey, forHTTPHeaderField: "apikey")
+            let (body, response) = try await BackendClient.shared.send(request)
+            guard (200..<300).contains(response.statusCode) else { throw BackendError.server(code: "collab_\(response.statusCode)") }
+            data = body
+        }
+        guard let row = try JSONDecoder().decode([Row].self, from: data).first else { throw CollabError.invalidInvite }
+        return InvitePreview(
+            mapID: row.map_id,
+            title: row.title ?? "",
+            role: row.role == "viewer" ? .viewer : .editor,
+            inviter: row.inviter,
+            status: InvitePreview.Status(rawValue: row.status) ?? .invalid
+        )
     }
 
     func join(token: String) async throws -> UUID {
@@ -220,7 +267,10 @@ final class CollabService: ObservableObject {
             let local = MapStore.shared.map(row.id)?.collab?.version ?? 0
             if row.version > local { try? await pull(row.id) }
         }
-        for map in MapStore.shared.maps where map.collab != nil && !ids.contains(map.id) { unshare(map.id) }
+        for map in MapStore.shared.maps where map.collab != nil && !ids.contains(map.id) {
+            if map.collab?.isOwner == false { notice[map.id] = .lostAccess }
+            unshare(map.id)
+        }
     }
 
     private struct MyRole: Decodable { let role: String }
@@ -242,6 +292,7 @@ final class CollabService: ObservableObject {
             URLQueryItem(name: "id", value: "eq.\(id.uuidString)"),
         ] + roleQuery())
         guard let row = try JSONDecoder().decode([Row].self, from: data).first else {
+            if MapStore.shared.map(id)?.collab?.isOwner == false { notice[id] = .lostAccess }
             unshare(id)
             return
         }
@@ -249,6 +300,7 @@ final class CollabService: ObservableObject {
         let role = role(owner: row.owner, members: row.collab_members)
         if let current, current.role != role {
             setCollab(id, CollabInfo(isOwner: current.isOwner, version: current.version, role: role))
+            if role == .viewer { notice[id] = .nowViewer } else if current.role == .viewer && role == .editor { notice[id] = .nowEditor }
         }
         if row.version > (current?.version ?? 0) { try await pull(id) }
     }

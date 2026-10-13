@@ -19,7 +19,7 @@ final class SignInFlowUITests: XCTestCase {
     // could never close it).
     private func launchFirstTime() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-onboarding", "-appLanguage", "en", "-auditSignedOut"]
+        app.launchArguments = ["-onboarding", "-appLanguage", "en", "-auditSignedOut", "-demoFree"]
         // TEST_RUNNER_SPLASH_LEGACY=1 xcodebuild test …: the splash as in build 2.0 (2), to compare.
         if legacy { app.launchArguments.append("-splashLegacy") }
         app.launch()
@@ -35,14 +35,33 @@ final class SignInFlowUITests: XCTestCase {
         add(attachment)
     }
 
+    // The tour's last page offers "Already have an account? Sign In".
     private func openSignIn(_ app: XCUIApplication) {
-        let skip = app.buttons["Skip"]
-        XCTAssertTrue(skip.waitForExistence(timeout: 15), "Onboarding didn't appear")
+        let next = app.buttons["Continue"]
+        XCTAssertTrue(next.waitForExistence(timeout: 15), "Onboarding didn't appear")
         sleep(3) // the splash has finished
         shot(app, "1-onboarding")
-        skip.tap()
-        XCTAssertTrue(app.staticTexts["Welcome Back"].waitForExistence(timeout: 5), "Skip didn't open sign-in")
+        next.tap()
+        XCTAssertTrue(next.waitForExistence(timeout: 3))
+        next.tap()
+        let signIn = app.buttons.containing(NSPredicate(format: "label CONTAINS 'Sign In'")).firstMatch
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5), "The last page should offer Sign In")
+        signIn.tap()
+        XCTAssertTrue(app.staticTexts["Welcome Back"].waitForExistence(timeout: 5), "Sign In didn't open sign-in")
         shot(app, "2-sign-in")
+    }
+
+    // Get Started goes straight to the assistant; signing in waits until AI is needed.
+    func testGetStartedOpensAssistant() {
+        let app = launchFirstTime()
+        let next = app.buttons["Continue"]
+        XCTAssertTrue(next.waitForExistence(timeout: 15), "Onboarding didn't appear")
+        sleep(3)
+        next.tap()
+        next.tap()
+        app.buttons["Get Started"].tap()
+        XCTAssertTrue(app.buttons["Menu"].waitForExistence(timeout: 5), "The assistant should follow onboarding")
+        shot(app, "after-get-started")
     }
 
     func testNotNowClosesSignIn() {
@@ -66,7 +85,7 @@ final class SignInFlowUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-didOnboard", "YES", "-appLanguage", "en", "-auditSignedOut", "-demoMap"]
         app.launch()
-        XCTAssertTrue(app.buttons["Export Map"].waitForExistence(timeout: 10), "The demo map didn't open")
+        XCTAssertTrue(app.buttons["Edit Together"].waitForExistence(timeout: 10), "The demo map didn't open")
         shot(app, "demo-map")
     }
 

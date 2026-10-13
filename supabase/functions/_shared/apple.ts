@@ -53,7 +53,8 @@ export async function exchangeCode(code: string): Promise<string | null> {
   if (!secret) return null;
   const res = await post("token", { client_id: BUNDLE_ID, client_secret: secret, code, grant_type: "authorization_code" });
   if (!res.ok) {
-    console.warn("apple token exchange failed", res.status);
+    // Apple answers with a short reason ("invalid_client", "invalid_grant"), no secrets.
+    console.warn("apple token exchange failed", res.status, (await res.text()).slice(0, 200));
     return null;
   }
   const data = await res.json();

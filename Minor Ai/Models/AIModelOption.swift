@@ -37,7 +37,8 @@ struct AIModelOption: Identifiable, Hashable {
 }
 
 // The chat model catalog, the same ids and prices as the server (supabase/functions/_shared/models.ts).
-// Every plan may chat with every model: stronger models simply use the monthly AI allowance faster.
+// The free plan chats with the light models; stronger ones come with Plus and PRO (chatPlan) and use
+// the monthly AI allowance faster.
 enum AIModelCatalog {
     static let all: [AIModelOption] = [
         AIModelOption(displayName: "GPT-6 Luna", provider: .openai, apiModelID: "gpt-6-luna", tier: .lite, usage: 1),
@@ -58,6 +59,16 @@ enum AIModelCatalog {
 }
 
 extension AIModelOption {
+    // Plan needed to chat with this model: the light models for everyone, the standard ones and
+    // Claude Opus with Plus, the frontier models with PRO (CHAT_TIERS on the server).
+    var chatPlan: AccountStore.Plan {
+        switch tier {
+        case .lite: return .free
+        case .standard, .advanced: return .plus
+        case .frontier: return .pro
+        }
+    }
+
     // Plan needed to build maps with this model: standard models for everyone, Claude Opus with
     // Plus, the frontier models with PRO. Lite models aren't used for maps.
     var mapPlan: AccountStore.Plan {

@@ -12,16 +12,26 @@ export type Slide = {
   subtitle?: string;
   bullets?: string[];
   columns?: { title: string; bullets: string[] }[];
-  items?: { title: string; detail?: string }[];
+  items?: { title: string; detail?: string; src?: string }[];
   stat?: { value: string; label: string };
   quote?: { text: string; author?: string };
   table?: string[][];
   diagram?: { center: string; nodes: string[] };
   imagePrompt?: string;
   notes?: string;
+  src?: string; // the map idea the slide is about (asked for by apps that keep the link)
+  bulletSrc?: string[]; // the idea each bullet comes from, "" when none
 };
 
 export type Deck = { title: string; slides: Slide[] };
+
+export const REF = /^n[1-9]\d{0,4}$/;
+
+// Asked only with a map whose ideas carry refs: where each slide and bullet comes from, so the
+// app can later update a slide from the map without touching what the person wrote.
+export const LINEAGE_RULE = `Each idea in the mind map has a "ref" such as "n7". On every slide, set "src" to the ref of the idea the slide is mainly about; leave it out on the cover and closing slides. When a slide has "bullets", also set "bulletSrc": an array as long as "bullets" with the ref of the idea each bullet comes from, or "" when a bullet sums up several ideas. On timeline "items", set "src" on each item the same way. Use only refs that appear in the map.`;
+
+const ref = (value: unknown): string | undefined => typeof value === "string" && REF.test(value) ? value : undefined;
 
 export const SLIDE_SHAPES = `Each slide has "layout" and the fields that layout uses, plus "notes":
 - "cover": title, subtitle
@@ -193,8 +203,15 @@ export function normalizeSlide(raw: unknown): Slide | null {
   if (title) slide.title = title;
   const subtitle = clip(r.subtitle, 160);
   if (subtitle) slide.subtitle = subtitle;
-  const bullets = list(r.bullets, 6, 140);
+  // Bullets and the ideas they come from stay in step: an empty bullet goes with its ref.
+  const rawBullets: unknown[] = Array.isArray(r.bullets) ? r.bullets : [];
+  const rawSrc: unknown[] = Array.isArray(r.bulletSrc) ? r.bulletSrc : [];
+  const pairs = rawBullets.map((b, i) => [clip(b, 140), ref(rawSrc[i]) ?? ""] as [string, string]).filter(([text]) => text).slice(0, 6);
+  const bullets = pairs.map(([text]) => text);
   if (bullets.length) slide.bullets = bullets;
+  if (bullets.length && pairs.some(([, src]) => src)) slide.bulletSrc = pairs.map(([, src]) => src);
+  const slideSrc = ref(r.src);
+  if (slideSrc) slide.src = slideSrc;
   if (Array.isArray(r.columns)) {
     const columns = r.columns.slice(0, 3).map((c: any) => ({ title: clip(c?.title, 60), bullets: list(c?.bullets, 5, 120) }))
       .filter((c: { title: string; bullets: string[] }) => c.title || c.bullets.length);
@@ -202,9 +219,11 @@ export function normalizeSlide(raw: unknown): Slide | null {
   }
   if (Array.isArray(r.items)) {
     const items = r.items.slice(0, 6).map((i: any) => {
-      const item: { title: string; detail?: string } = { title: clip(i?.title, 60) };
+      const item: { title: string; detail?: string; src?: string } = { title: clip(i?.title, 60) };
       const detail = clip(i?.detail, 140);
       if (detail) item.detail = detail;
+      const src = ref(i?.src);
+      if (src) item.src = src;
       return item;
     }).filter((i: { title: string }) => i.title);
     if (items.length) slide.items = items;

@@ -175,8 +175,8 @@ faq("maps", "voice-input", "Voice input doesn’t work", "Не работает 
 
 # AI & limits
 faq("ai", "models", "Which AI models can I use?", "Какие модели ИИ доступны?", para(
-    "In chat, every plan can use every model: GPT-6 Luna, GPT-6.1 Sol, GPT-6 Astra, Claude Haiku 4.5, Claude Sonnet 5.5, Claude Opus 5.5 and Claude Fable 5.1. For building maps, standard models are available to everyone, Claude Opus 5.5 with Plus, and GPT-6 Astra and Claude Fable 5.1 with PRO.",
-    "В чате в любом тарифе доступны все модели: GPT-6 Luna, GPT-6.1 Sol, GPT-6 Astra, Claude Haiku 4.5, Claude Sonnet 5.5, Claude Opus 5.5 и Claude Fable 5.1. Для построения карт стандартные модели доступны всем, Claude Opus 5.5 — с Plus, GPT-6 Astra и Claude Fable 5.1 — с PRO."))
+    "In chat, GPT-6 Luna and Claude Haiku 4.5 are available to everyone, GPT-6.1 Sol, Claude Sonnet 5.5 and Claude Opus 5.5 with Plus, and GPT-6 Astra and Claude Fable 5.1 with PRO. For building maps, standard models are available to everyone, Claude Opus 5.5 with Plus, and GPT-6 Astra and Claude Fable 5.1 with PRO.",
+    "В чате GPT-6 Luna и Claude Haiku 4.5 доступны всем, GPT-6.1 Sol, Claude Sonnet 5.5 и Claude Opus 5.5 — с Plus, GPT-6 Astra и Claude Fable 5.1 — с PRO. Для построения карт стандартные модели доступны всем, Claude Opus 5.5 — с Plus, GPT-6 Astra и Claude Fable 5.1 — с PRO."))
 
 faq("ai", "allowance", "What is the monthly AI allowance?", "Что такое месячный лимит ИИ?", steps(
     ("Each plan includes a monthly AI allowance. Every request uses part of it, depending on the model and the amount of text.", "В каждый тариф входит месячный лимит ИИ. Каждый запрос расходует его часть — в зависимости от модели и объёма текста."),

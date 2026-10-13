@@ -58,10 +58,11 @@ async function fetchVideoText(url, fetcher = fetch) {
   const candidates = [pickTrack(await playerCaptionTracks(id, apiKey, fetcher)), pickTrack(extractCaptionTracks(html))];
   for (const track of candidates) {
     if (!track) continue;
-    const transcript = await fetchTranscript(track.baseUrl, fetcher);
+    const cues = await fetchCues(track.baseUrl, fetcher);
+    const transcript = cues.map((cue) => cue.text).join(" ");
     if (transcript.length > 200) return { title, text: `${title}
 
-${transcript}`, hasTranscript: true };
+${transcript}`, hasTranscript: true, cues };
   }
   if (description.length > 200) {
     return { title, text: `${title}
@@ -105,25 +106,31 @@ async function playerCaptionTracks(id, apiKey, fetcher) {
   const data = await response.json().catch(() => null);
   return (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? []).filter((t) => typeof t.baseUrl === "string");
 }
-async function fetchTranscript(baseUrl, fetcher) {
+async function fetchCues(baseUrl, fetcher) {
   const url = baseUrl.replace(/\\u0026/g, "&").replace("&fmt=srv3", "");
   try {
     const host = new URL(url).hostname;
-    if (host !== "www.youtube.com" && host !== "youtube.com" && !host.endsWith(".youtube.com")) return "";
+    if (host !== "www.youtube.com" && host !== "youtube.com" && !host.endsWith(".youtube.com")) return [];
   } catch {
-    return "";
+    return [];
   }
   const response = await fetcher(url, { signal: AbortSignal.timeout(1e4) }).catch(() => null);
-  if (!response?.ok) return "";
-  return transcriptFromXML(await response.text());
+  if (!response?.ok) return [];
+  return cuesFromXML(await response.text());
 }
 function transcriptFromXML(xml) {
-  const lines = [];
-  for (const match of xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)) {
-    const line = decodeEntities(match[1].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
-    if (line) lines.push(line);
+  return cuesFromXML(xml).map((cue) => cue.text).join(" ");
+}
+function cuesFromXML(xml) {
+  const cues = [];
+  for (const match of xml.matchAll(/<text([^>]*)>([\s\S]*?)<\/text>/g)) {
+    const text = decodeEntities(match[2].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const start = Number(match[1].match(/\bstart="([\d.]+)"/)?.[1] ?? NaN);
+    const dur = Number(match[1].match(/\bdur="([\d.]+)"/)?.[1] ?? NaN);
+    cues.push({ start: Number.isFinite(start) ? start : -1, dur: Number.isFinite(dur) ? dur : 0, text });
   }
-  return lines.join(" ");
+  return cues;
 }
 function extractJSONString(html, marker) {
   const at = html.indexOf(marker);
@@ -168,6 +175,7 @@ function matchingBracket(text, open) {
 }
 export {
   YouTubeError,
+  cuesFromXML,
   extractCaptionTracks,
   fetchVideoText,
   isYouTube,

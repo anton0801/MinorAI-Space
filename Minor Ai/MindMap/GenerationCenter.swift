@@ -46,6 +46,7 @@ final class GenerationCenter: ObservableObject {
     @Published var todayRequest = false   // the Today widget was tapped
     @Published var studyRequest: UUID?    // open Study for this map (Today → Review)
     @Published var routeRequest: URL?     // a notification that opens a screen (minorai://…)
+    @Published var returnedInput: MapInput?  // a stopped or failed map's input, back to New Map's field
 
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private var watched: Set<UUID> = []
@@ -87,6 +88,18 @@ final class GenerationCenter: ObservableObject {
         openRequest = nil
     }
 
+    #if DEBUG
+    // Screenshots of Creating the Map without the server: a job that stays at one stage.
+    func installDemoJob(_ input: MapInput, step: Int, error: BackendError?) -> UUID {
+        let id = UUID()
+        var job = Job(id: id, input: input, startedAt: Date())
+        job.step = step
+        job.error = error
+        jobs[id] = job
+        return id
+    }
+    #endif
+
     // "Build in Background": ask once for permission, then send a notification when the map is ready.
     func notifyWhenReady(_ id: UUID) {
         notify.insert(id)
@@ -115,12 +128,22 @@ final class GenerationCenter: ObservableObject {
             }
             defer { ticker.cancel() }
             do {
-                let generated = try await MapService.shared.generate(input, model: job.model)
-                let root = generated.root
+                // The material's passages (from the file it was read from, or cut from its text),
+                // so the ideas can say which passage each comes from.
+                let draft = SourceDrafts.shared.prepare(for: input)
+                let generated = try await MapService.shared.generate(input, model: job.model, segments: draft?.segments)
                 guard !Task.isCancelled, self.jobs[id] != nil else { return }
                 self.advance(id, to: 4)
                 var source = input.source
                 if generated.truncated { source.label += L(" · first part") }
+                // The material is kept with the map (its text and original, on this iPhone) and every
+                // idea points to it; a map from a topic is Minor's own suggestion.
+                var material = ProjectMaterial.from(input, draft: draft)
+                if let fetched = generated.fetched { material?.adopt(fetched) }
+                material?.cite(generated.sources)
+                if case .text(let text, _) = input { SourceDrafts.shared.take(for: text) }
+                let root = generated.root.withOrigin(material.map { .material($0.id) } ?? .ai)
+                if let material { ProjectMaterialStore.shared.add(material, to: id) }
                 MapStore.shared.save(MindMap(id: id, root: root, source: source))
                 Telemetry.log("map_created", [
                     "source": input.source.kind.rawValue, "model": job.model.apiModelID,

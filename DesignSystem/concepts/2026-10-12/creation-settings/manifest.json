@@ -1,0 +1,37 @@
+[
+  {
+    "file": "01-create-map.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "2816ab76a8c50a0122c1b72c6487b95ffcc05f59bdd65f6bb75416c66944b070"
+  },
+  {
+    "file": "02-library.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "1e0d59e4544d6baeb17468ddf215481f64691573278adbfe095022b352bdf4a2"
+  },
+  {
+    "file": "03-settings.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "346891430634a67360cdde56e71792cee28047cc021bf59070ce84a72dc461e9"
+  },
+  {
+    "file": "04-account.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "2a697224d73f06af4135a85fc5b869d90388b7192e9fdd7186707438b034f52c"
+  },
+  {
+    "file": "05-data-ai.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "049153bbc5a22038b5445cb180ca8a00ca8a9d4f028015432192c964e3502edd"
+  }
+]

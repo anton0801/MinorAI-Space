@@ -10,6 +10,14 @@
       2868
     ],
     "mode": "RGB",
+    "badge": "1M+ Users",
+    "badge_copy_source": "user supplied",
+    "badge_bounds": [
+      826,
+      61,
+      1188,
+      139
+    ],
     "launch_flags": [
       "-didOnboard",
       "YES",
@@ -20,7 +28,7 @@
       "-demoMap",
       "-demoFit"
     ],
-    "file_sha256": "aa27f3f1408e1d3c4e152c77d9636ed4b28be05d954d45bb990c79e6eb8b9edf",
+    "file_sha256": "0109f954032f84c7649714b5a26da0d401496edec6225f72df756881b0be7564",
     "source_sha256": "6f4aa226d8791c68354b78bb919357f34c6bf088195b20933447e8db3d0c2057"
   },
   {
@@ -199,6 +207,14 @@
       2868
     ],
     "mode": "RGB",
+    "badge": "1M+ Users",
+    "badge_copy_source": "user supplied",
+    "badge_bounds": [
+      826,
+      61,
+      1188,
+      139
+    ],
     "launch_flags": [
       "-didOnboard",
       "YES",
@@ -209,7 +225,7 @@
       "-demoMap",
       "-demoFit"
     ],
-    "file_sha256": "37d4102f3d658f9c79b0e8357ad24fb20eea5533135255aea60191781872e24e",
+    "file_sha256": "149e13c915bc3516d19c873fb451aa007771b290bc59470f25b2c3773f593cfb",
     "source_sha256": "6a29ba378994f28cadbc85ba5203d8897d3d5d20d3b70a292bb4846cc7bb0406"
   },
   {

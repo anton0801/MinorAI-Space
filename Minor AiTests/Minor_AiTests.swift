@@ -677,6 +677,18 @@ struct TaskTests {
         #expect(TaskAgenda.dueCount(in: [map], now: now) == 2)
     }
 
+    // Tasks without a date (Next Steps adds them so) are listed last, never as today's.
+    @Test func undatedTasksAreListedApartFromToday() {
+        var map = sampleMap()
+        let ids = map.root.children.map(\.id)
+        map.root.update(ids[0]) { $0.isTask = true }
+        map.root.update(ids[1]) { $0.isTask = true; $0.priority = 1 }
+        let sections = TaskAgenda.sections(TaskAgenda.tasks(in: [map]))
+        #expect(sections.map(\.kind) == [.important, .undated])
+        #expect(sections.last?.tasks.map(\.title) == ["Audience"])
+        #expect(TaskAgenda.dueCount(in: [map]) == 0)
+    }
+
     @Test func remindersComeOnlyForOpenFutureTasks() {
         var map = sampleMap()
         let now = Date()

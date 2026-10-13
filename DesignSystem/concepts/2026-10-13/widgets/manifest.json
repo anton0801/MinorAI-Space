@@ -1,0 +1,44 @@
+{
+  "files": [
+    {
+      "path": "01-today-small.png",
+      "bytes": 1627462,
+      "sha256": "d014335b264b839401d05aa3ea2d1465fc026228a7d2e933c99fcc70495c99c1"
+    },
+    {
+      "path": "02-today-medium.png",
+      "bytes": 1568012,
+      "sha256": "f7213b9b9b3d70c69792bddefff41ac98891c6f6c8aae3b8b9fa9457141f4b40"
+    },
+    {
+      "path": "03-quick-capture.png",
+      "bytes": 1648426,
+      "sha256": "8937db058a31a6dfb73f2beba9c8d363062ed4e786832c1ce769eb4c8b2a718d"
+    },
+    {
+      "path": "04-continue-project.png",
+      "bytes": 1682727,
+      "sha256": "e4495698dc63a13b232110e18d9cafa6dea825298d8c4db4126682eeb230d103"
+    },
+    {
+      "path": "05-lock-screen.png",
+      "bytes": 2290144,
+      "sha256": "fa5b16625e4606d001e4a2037f7d4da9abf8dcbe0059351bd2ae86c4826bcaef"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6362,
+      "sha256": "247ad380fb8584780f86d5207a882d78cd7d5bddd0edf7e23b727355b621cdc4"
+    },
+    {
+      "path": "overview.jpg",
+      "bytes": 357085,
+      "sha256": "a11cab60544bc32fe93c5907dc0fad381c4c65b39d22d0c7066ce127a2ed1e68"
+    },
+    {
+      "path": "prompts.json",
+      "bytes": 11858,
+      "sha256": "67cf20017d3af856373eb339072a3f5f7f4491a4a291a0362e3ab79e48ccbb9d"
+    }
+  ]
+}

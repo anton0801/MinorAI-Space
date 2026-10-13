@@ -27,6 +27,8 @@ struct MindNode: Identifiable, Codable, Equatable {
     var due: Date?            // tasks: when it should be done (a reminder is set for that day)
     var isSuggestion = false  // proposed by Improve Map; shown dashed until accepted or dismissed
     var frame: String?        // a labeled frame around this idea and everything below it ("" for no label)
+    var labels: [String] = [] // the person's own marks, such as "To review" (see cleanLabel)
+    var origin: NodeOrigin?   // where the idea came from (Sources); nil when it wasn't recorded
 
     var visibleChildren: [MindNode] { isCollapsed ? [] : children }
 
@@ -156,7 +158,7 @@ struct MindNode: Identifiable, Codable, Equatable {
                 if let match = existing.children.first(where: { $0.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == wanted }) {
                     walk(child, into: match)
                 } else {
-                    let suggestion = child.toNode(aiAdded: false, collapseBelow: .max).asSuggestion
+                    let suggestion = child.toNode(aiAdded: false, collapseBelow: .max).withOrigin(.ai).asSuggestion
                     added += suggestion.count
                     result.update(existing.id) { target in
                         target.isCollapsed = false
@@ -392,6 +394,8 @@ struct APINode: Codable {
     var priority: Int?
     var link: String?
     var callout: Bool?
+    var src: [String]?          // in replies: ids of the material's passages the idea comes from
+    var ref: String?            // sent when slides should say which idea they come from ("n7")
     var children: [APINode]?
 
     init(title: String, icon: String? = nil, children: [APINode]? = nil) {
@@ -431,6 +435,16 @@ struct APINode: Codable {
         if let callout { node.isCallout = callout }
     }
 
+    // The passages each idea of `node` names, for a node made from this reply by toNode (same shape).
+    func sources(matching node: MindNode) -> [UUID: [String]] {
+        var result: [UUID: [String]] = [:]
+        if let src, !src.isEmpty { result[node.id] = src }
+        for (reply, child) in zip(children ?? [], node.children) {
+            result.merge(reply.sources(matching: child)) { first, _ in first }
+        }
+        return result
+    }
+
     func toNode(aiAdded: Bool, collapseBelow depth: Int = 3, level: Int = 0) -> MindNode {
         var node = MindNode(title: title, isAIAdded: aiAdded)
         apply(to: &node)
@@ -445,7 +459,7 @@ struct APINode: Codable {
 // a whole map unreadable.
 extension MindNode {
     private enum CodingKeys: String, CodingKey {
-        case id, title, note, children, isCollapsed, isAIAdded, color, look, image, icon, isTask, isDone, priority, link, isCallout, due, isSuggestion, frame
+        case id, title, note, children, isCollapsed, isAIAdded, color, look, image, icon, isTask, isDone, priority, link, isCallout, due, isSuggestion, frame, labels, origin
     }
 
     init(from decoder: Decoder) throws {
@@ -468,6 +482,90 @@ extension MindNode {
         due = try? c.decodeIfPresent(Date.self, forKey: .due)
         isSuggestion = (try? c.decodeIfPresent(Bool.self, forKey: .isSuggestion)) ?? false
         frame = try? c.decodeIfPresent(String.self, forKey: .frame)
+        labels = Self.cleanLabels((try? c.decodeIfPresent([String].self, forKey: .labels)) ?? [])
+        origin = try? c.decodeIfPresent(NodeOrigin.self, forKey: .origin)
+    }
+
+    // As synthesized, except that an idea without labels or origin is written exactly as before
+    // those existed.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(title, forKey: .title)
+        try c.encode(note, forKey: .note)
+        try c.encode(children, forKey: .children)
+        try c.encode(isCollapsed, forKey: .isCollapsed)
+        try c.encode(isAIAdded, forKey: .isAIAdded)
+        try c.encodeIfPresent(color, forKey: .color)
+        try c.encodeIfPresent(look, forKey: .look)
+        try c.encodeIfPresent(image, forKey: .image)
+        try c.encodeIfPresent(icon, forKey: .icon)
+        try c.encode(isTask, forKey: .isTask)
+        try c.encode(isDone, forKey: .isDone)
+        try c.encodeIfPresent(priority, forKey: .priority)
+        try c.encodeIfPresent(link, forKey: .link)
+        try c.encode(isCallout, forKey: .isCallout)
+        try c.encodeIfPresent(due, forKey: .due)
+        try c.encode(isSuggestion, forKey: .isSuggestion)
+        try c.encodeIfPresent(frame, forKey: .frame)
+        if !labels.isEmpty { try c.encode(labels, forKey: .labels) }
+        try c.encodeIfPresent(origin, forKey: .origin)
+    }
+
+    // MARK: Labels
+
+    static let maxLabels = 8
+    static let maxLabelLength = 24
+
+    // A label as typed: one line, trimmed, at most 24 characters; nil when nothing is left.
+    static func cleanLabel(_ raw: String) -> String? {
+        let words = raw.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        var text = words.joined(separator: " ")
+        while text.hasPrefix("#") { text.removeFirst() }
+        text = String(text.trimmingCharacters(in: .whitespaces).prefix(maxLabelLength)).trimmingCharacters(in: .whitespaces)
+        return text.isEmpty ? nil : text
+    }
+
+    // Clean labels, each once (ignoring case), at most eight.
+    static func cleanLabels(_ raw: [String]) -> [String] {
+        var result: [String] = []
+        for label in raw.compactMap(cleanLabel) where !result.contains(where: { $0.caseInsensitiveCompare(label) == .orderedSame }) {
+            result.append(label)
+            if result.count == maxLabels { break }
+        }
+        return result
+    }
+
+    func hasLabel(_ label: String) -> Bool {
+        labels.contains { $0.caseInsensitiveCompare(label) == .orderedSame }
+    }
+
+    // Every label used in this idea and below it, the most used first (then alphabetically).
+    var allLabels: [String] {
+        var counts: [String: (label: String, count: Int)] = [:]
+        func walk(_ node: MindNode) {
+            for label in node.labels {
+                let key = label.lowercased()
+                counts[key] = (counts[key]?.label ?? label, (counts[key]?.count ?? 0) + 1)
+            }
+            node.children.forEach(walk)
+        }
+        walk(self)
+        return counts.values.sorted { $0.count != $1.count ? $0.count > $1.count : $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }.map(\.label)
+    }
+
+    // Whether the idea matches a search: its title, note or labels; "#word" looks at labels only.
+    func matches(search query: String) -> Bool {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return false }
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        if text.hasPrefix("#") {
+            let wanted = String(text.drop { $0 == "#" }).trimmingCharacters(in: .whitespaces)
+            return !wanted.isEmpty && labels.contains { $0.range(of: wanted, options: options) != nil }
+        }
+        return title.range(of: text, options: options) != nil
+            || note.range(of: text, options: options) != nil
+            || labels.contains { $0.range(of: text, options: options) != nil }
     }
 
     // Ideas whose titles the AI named, in its order (titles compared loosely, each idea once).
@@ -554,7 +652,7 @@ extension MindNode {
         }
         result.children = zip(incoming, matched).map { item, old in
             if let old { return old.merged(with: item) }
-            return item.toNode(aiAdded: true, collapseBelow: .max)
+            return item.toNode(aiAdded: true, collapseBelow: .max).withOrigin(.ai)
         }
         if result.children.isEmpty { result.isCollapsed = false }
         return result

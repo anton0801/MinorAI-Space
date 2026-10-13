@@ -39,6 +39,7 @@ struct NodeDecor: Equatable {
     var due: Date?
     var isSuggestion = false
     var frameLabel: String?    // a frame drawn around this idea's branch
+    var labels: [String] = []
 
     init() {}
 
@@ -54,6 +55,7 @@ struct NodeDecor: Equatable {
         priority = node.priority
         linkHost = node.link.flatMap { URL(string: $0)?.host?.replacingOccurrences(of: "www.", with: "") ?? $0 }
         isCallout = node.isCallout
+        labels = node.labels
         if !node.isTask {
             let progress = node.taskProgress
             tasksDone = progress.done
@@ -64,6 +66,8 @@ struct NodeDecor: Equatable {
     // Small glyphs before the title, 20 pt each.
     var leadingGlyphs: Int { (icon != nil ? 1 : 0) + (isTask ? 1 : 0) + (priority != nil ? 1 : 0) }
     var showsDue: Bool { due != nil }
+    // The small line under the title: due date, labels, link.
+    var showsDetails: Bool { due != nil || !labels.isEmpty || linkHost != nil }
     var showsProgress: Bool { tasksTotal > 0 }
 }
 
@@ -352,7 +356,11 @@ struct NodeStyle {
             ? NodeStyle(level: 2, callout: true, look: look).size(for: title, icons: icons + decor.leadingGlyphs, extraWidth: extra)
             : self.size(for: title, icons: icons + decor.leadingGlyphs, extraWidth: extra)
         if decor.showsProgress { size.width += Self.progressWidth }
-        if decor.linkHost != nil || decor.showsDue { size.height += Self.linkLineHeight }
+        if decor.showsDetails {
+            size.height += Self.linkLineHeight
+            // Wide enough for the date, labels and link under the title (up to the usual limit).
+            size.width = max(size.width, min(maxWidth, Self.detailsWidth(decor) + insets.leading + insets.trailing))
+        }
         if let image = decor.image {
             let width = max(size.width, imageNodeWidth)
             let inner = width - insets.leading - insets.trailing
@@ -384,6 +392,22 @@ struct NodeStyle {
         case .pill: return 4
         default: return 0
         }
+    }
+
+    // The line under the title as MindNodeView draws it: due date, up to two labels and "+N", link.
+    static func detailsWidth(_ decor: NodeDecor) -> CGFloat {
+        let font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        func width(_ text: String) -> CGFloat { ceil((text as NSString).size(withAttributes: [.font: font]).width) }
+        var parts: [CGFloat] = []
+        if let due = decor.due { parts.append(14 + width(DueLabel.text(for: due))) }
+        if !decor.labels.isEmpty {
+            let shown = decor.labels.prefix(2).map { 9 + width($0) }
+            var labels = shown.reduce(0, +) + CGFloat(shown.count - 1) * 6
+            if decor.labels.count > 2 { labels += 6 + width("+\(decor.labels.count - 2)") }
+            parts.append(labels)
+        }
+        if let host = decor.linkHost { parts.append(14 + width(host)) }
+        return parts.reduce(0, +) + CGFloat(max(parts.count - 1, 0)) * 8 + 2
     }
 
     static let progressWidth: CGFloat = 40

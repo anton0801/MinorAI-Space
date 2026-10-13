@@ -11,24 +11,42 @@ import Vision
 import VisionKit
 
 enum TextRecognizer {
+    // A recognized line: its text, its box on the page (0…1 from the top left) and how sure Vision was.
+    struct Line: Equatable {
+        let text: String
+        let box: CGRect
+        let confidence: Double
+    }
+
     // Text of every page, in reading order, pages separated by a blank line. One page at a time,
     // off the main thread: reading them all at once could run out of memory.
     static func text(from images: [UIImage]) async -> String {
+        await lines(from: images).map { $0.map(\.text).joined(separator: "\n") }.filter { !$0.isEmpty }.joined(separator: "\n\n")
+    }
+
+    // The lines of every page with where they are, for quoting a scan with its place.
+    static func lines(from images: [UIImage]) async -> [[Line]] {
         await Task.detached(priority: .userInitiated) {
-            images.map { recognize($0) }.filter { !$0.isEmpty }.joined(separator: "\n\n")
+            images.map { image in autoreleasepool { recognize(image) } }
         }.value
     }
 
-    private static func recognize(_ image: UIImage) -> String {
-        guard let cgImage = image.cgImage else { return "" }
+    private static func recognize(_ image: UIImage) -> [Line] {
+        guard let cgImage = image.cgImage else { return [] }
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
         request.recognitionLanguages = ["ru-RU", "en-US"]
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: CGImagePropertyOrientation(image.imageOrientation))
         try? handler.perform([request])
-        let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-        return lines.joined(separator: "\n")
+        return (request.results ?? []).compactMap { observation in
+            guard let best = observation.topCandidates(1).first else { return nil }
+            let text = best.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return nil }
+            // Vision measures from the bottom left; pages are drawn from the top left.
+            let box = observation.boundingBox
+            return Line(text: text, box: CGRect(x: box.minX, y: 1 - box.maxY, width: box.width, height: box.height), confidence: Double(best.confidence))
+        }
     }
 }
 

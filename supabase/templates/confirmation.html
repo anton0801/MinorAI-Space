@@ -1,18 +1,54 @@
-<!doctype html>
-<html>
-<body style="margin:0;padding:0;background:#100e11;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#f4f2f3;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#100e11;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#1d1a1e;border:1px solid #2e2a2f;border-radius:20px;padding:32px;">
-        <tr><td>
-          <p style="margin:0 0 4px;font-size:20px;font-weight:700;">Minor AI</p>
-          <p style="margin:0 0 24px;color:#b4adb1;font-size:15px;">Enter this code in the app to finish creating your account.</p>
-          <p style="margin:0 0 24px;font-size:36px;font-weight:700;letter-spacing:8px;color:#bbffdf;">{{ .Token }}</p>
-          <p style="margin:0 0 20px;color:#b4adb1;font-size:15px;">Введите этот код в приложении, чтобы завершить создание аккаунта.</p>
-          <p style="margin:0;color:#8f888c;font-size:13px;">The code expires in 1 hour. If you didn’t sign up for Minor AI, ignore this email. · Код действует 1 час. Если вы не регистрировались в Minor AI, просто проигнорируйте это письмо.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
+{{ $ru := eq .Data.lang "ru" }}<!doctype html>
+<html lang="{{ if $ru }}ru{{ else }}en{{ end }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Minor AI</title>
+<style>
+  :root { color-scheme: dark; supported-color-schemes: dark; }
+  body { margin: 0; padding: 0; background: #100e11; }
+  a { color: #bbffdf; text-decoration: none; }
+  @media (max-width: 520px) {
+    .card { padding: 30px 22px 26px !important; }
+    .title { font-size: 25px !important; line-height: 31px !important; }
+    .code { font-size: 36px !important; letter-spacing: 8px !important; padding-left: 8px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#100e11;">
+<!-- Shown after the subject in the inbox list. -->
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:#100e11;font-size:1px;line-height:1px;">{{ if $ru }}Введите его в приложении, чтобы завершить регистрацию. Код действует 15 минут.{{ else }}Enter it in the app to finish signing up. It works for 15 minutes.{{ end }}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#100e11" style="background:#100e11;">
+  <tr><td align="center" style="padding:8px 12px 44px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+      <tr><td align="center" style="padding:0 0 4px;">
+        <img src="https://minorai.site/assets/email-header.jpg" width="560" alt="Minor AI" style="display:block;width:100%;max-width:560px;height:auto;border:0;outline:none;color:#f4f2f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;">
+      </td></tr>
+      <tr><td class="card" bgcolor="#1d1a1e" style="background:#1d1a1e;border:1px solid #2e2a2f;border-radius:24px;padding:36px 36px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#f4f2f3;">
+        <p style="margin:0 0 8px;font-size:14px;line-height:20px;font-weight:600;color:#5fd39c;">{{ if $ru }}Подтверждение почты{{ else }}Confirm your email{{ end }}</p>
+        <h1 class="title" style="margin:0 0 12px;font-size:28px;line-height:34px;font-weight:700;color:#f4f2f3;">{{ if $ru }}Добро пожаловать в&nbsp;Minor&nbsp;AI{{ else }}Welcome to Minor&nbsp;AI{{ end }}</h1>
+        <p style="margin:0 0 26px;font-size:16px;line-height:24px;color:#b4adb1;">{{ if $ru }}Введите этот код в&nbsp;приложении, чтобы завершить регистрацию.{{ else }}Enter this code in the app to finish creating your account.{{ end }}</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td align="center" bgcolor="#141215" style="background:#141215;border:1px solid #2b4a3b;border-radius:18px;padding:24px 12px;">
+            <div class="code" style="font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;font-size:42px;line-height:48px;font-weight:700;letter-spacing:10px;padding-left:10px;color:#bbffdf;">{{ .Token }}</div>
+          </td></tr>
+        </table>
+        <p style="margin:14px 0 0;font-size:14px;line-height:20px;color:#8f888c;text-align:center;">{{ if $ru }}Код действует 15&nbsp;минут.{{ else }}The code works for 15&nbsp;minutes.{{ end }}</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;">
+          <tr><td style="border-top:1px solid #2e2a2f;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+        </table>
+        <p style="margin:20px 0 0;font-size:14px;line-height:21px;color:#8f888c;">{{ if $ru }}Если вы не&nbsp;регистрировались в&nbsp;Minor&nbsp;AI, просто проигнорируйте это письмо.{{ else }}If you didn’t sign up for Minor&nbsp;AI, just ignore this email.{{ end }}</p>
+      </td></tr>
+      <tr><td align="center" style="padding:30px 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <img src="https://minorai.site/assets/icon-512.png" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border:0;border-radius:9px;margin:0 auto 12px;">
+        <p style="margin:0 0 6px;font-size:13px;line-height:19px;color:#8f888c;">{{ if $ru }}Minor AI — майнд-карты, презентации и&nbsp;ИИ&#8209;ассистент в&nbsp;одном приложении.{{ else }}Minor AI: mind maps, presentations and an AI assistant in one app.{{ end }}</p>
+        <p style="margin:0 0 14px;font-size:13px;line-height:19px;"><a href="https://minorai.site/" style="color:#bbffdf;text-decoration:none;">minorai.site</a><span style="color:#4a4448;">&nbsp;&nbsp;·&nbsp;&nbsp;</span><a href="https://minorai.site/support/" style="color:#bbffdf;text-decoration:none;">{{ if $ru }}Поддержка{{ else }}Support{{ end }}</a><span style="color:#4a4448;">&nbsp;&nbsp;·&nbsp;&nbsp;</span><a href="https://minorai.site/privacy/" style="color:#bbffdf;text-decoration:none;">{{ if $ru }}Конфиденциальность{{ else }}Privacy{{ end }}</a></p>
+        <p style="margin:0;font-size:12px;line-height:18px;color:#5f585c;">{{ if $ru }}Вы получили это письмо, потому что этот адрес указали в&nbsp;Minor&nbsp;AI.{{ else }}You got this email because this address was entered in Minor&nbsp;AI.{{ end }}</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
 </body>
 </html>

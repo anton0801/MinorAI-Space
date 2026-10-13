@@ -27,12 +27,22 @@ struct ContentView: View {
     @State private var homeMentions: [MapMention] = []   // maps attached with @
     @State private var pendingShare: SharedItem?          // a page or text shared from another app
     @State private var homeDictating = false
+    @State private var homeVoice = false
+    // An invite link that was opened: the invitation shows before anyone joins.
+    @State private var pendingInvite: InviteLink?
+    @State private var joinedMapID: UUID?
+
+    struct InviteLink: Identifiable {
+        let token: String
+        var id: String { token }
+    }
     @State private var openDeckID: UUID?
     @State private var newDeck: NewDeckRequest?
 
     struct NewDeckRequest: Identifiable {
         let id = UUID()
         let mapID: UUID?
+        var template: String? = nil
     }
     #if DEBUG
     @State private var slideGallery = false
@@ -42,28 +52,37 @@ struct ContentView: View {
     @State private var homeFile: Attachments.Document?
     @State private var homePhotoItems: [PhotosPickerItem] = []
     @State private var showHomePhotos = false
-    @State private var showHomeHint = false
     @State private var homeError: String?
     @State private var homeImageMode = false
-    @State private var pendingChatDelete: Conversation?
     @ObservedObject private var gate = AuthGate.shared
     @State private var showConsent = false
     @State private var afterConsent: (() -> Void)?
-    @State private var sidebarTab: SidebarTab = .maps
     @State private var generatingJobID: UUID?
     @ObservedObject private var generation = GenerationCenter.shared
     @ObservedObject private var account = AccountStore.shared
     @State private var openMapID: UUID?
-    @State private var chatHeight: CGFloat = 120
-    @State private var chatWidth: CGFloat = min(365, UIScreen.main.bounds.width - 20)
-    @State private var textFieldOffsetX: CGFloat = -5
-    @State private var textFieldOffsetY: CGFloat = -10
-    @State private var buttonsOffsetX: CGFloat = -100
-    @State private var buttonsOffsetY: CGFloat = 20
-    @State private var isMindActive: Bool = false
+    @State private var openMapTab: ProjectTab = .map   // the tab a project opens on
+    // The menu over the assistant and the place open in it. Opened from the assistant's "Create
+    // a Map", Back from New Map returns straight to the assistant.
+    @State private var menuOpen = false
+    @State private var menuPath: [MenuDestination] = []
+    @State private var menuFromAssistant = false
+    // The Library comes in from the side when opened from the assistant's (or a chat's) top
+    // button; the menu itself rises from the bottom.
+    @State private var menuEntry: MenuEntry = .rise
+    @State private var libraryOpener: LibraryOpener = .assistant
+    @State private var menuDrag: CGFloat = 0
+    @State private var containerHeight: CGFloat = 900
+    @State private var containerWidth: CGFloat = 393
+    @AccessibilityFocusState private var menuButtonFocused: Bool
+    @AccessibilityFocusState private var libraryButtonFocused: Bool
+    @FocusState private var homeFieldFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
+    @ObservedObject private var splash = LaunchSplash.shared
+    @State private var greetingShown = false
+    @State private var templateError: String?
     @State private var isBlurActive: Bool = false
-    @State private var isSidebarActive: Bool = false
-    @State private var sidebarOffset: CGFloat = -UIScreen.main.bounds.width
     @State private var showSettings = false
     @State private var showUsage = false
     @State private var inviteSheet: InviteSheet?
@@ -72,19 +91,16 @@ struct ContentView: View {
     // The onboarding cover has its own state that body reads, rather than a Binding(get:set:)
     // over the @AppStorage that body never read.
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "didOnboard")
-    // Phones with a Home button (iPhone SE) have no bottom inset for the Mind button to sit in.
+    // Phones with a Home button (iPhone SE) have no bottom inset for the Menu button to sit in.
     @State private var hasHomeIndicator = true
     // A link that arrived during onboarding, opened once it is done.
     @State private var pendingLink: URL?
-    @State private var minorPlusOffsetY: CGFloat = -10
     @State private var mainScreenOffsetY: CGFloat = 0
-    @State private var bigLogoOffsetX: CGFloat = 0
-    @State private var bigLogoOffsetY: CGFloat = -90
     @State private var selectedSphere: Int? = UserDefaults.standard.integer(forKey: "SelectedSphere") != 0 ? UserDefaults.standard.integer(forKey: "SelectedSphere") : nil
-    @State private var isModelMenuActive: Bool = false
     @State private var selectedModel: AIModelOption = AIModelCatalog.default
     @ObservedObject private var chatVM = ChatViewModel.shared
     @ObservedObject private var subscriptions = SubscriptionStore.shared
+    @ObservedObject private var recents = RecentDocuments.shared
 
     private var theme: AppTheme { AppTheme(sphere: selectedSphere) }
 
@@ -98,381 +114,33 @@ struct ContentView: View {
     private var minorPlusStrokeColor: Color { theme.minorPlusStroke }
     private var blurColor: Color { theme.blur }
     
-    var body: some View {
+    // Everything on screen, bottom to top; the modifiers in body add sheets and routing.
+    private var layers: some View {
         ZStack {
             backgroundColor // Динамический фон приложения
                 .ignoresSafeArea()
 
-            // The bottom inset comes from the layout (a reader inside the safe area sees it; the
-            // keyboard doesn't count). Read from the window, as before, it froze this screen on
-            // iOS 26: no state change redrew it after the first frame, so "Not Now" and signing
-            // in couldn't close onboarding (App Review, 2.0 (2)) and no home button answered.
+            // The bottom inset and the screen height come from the layout (a reader inside the safe
+            // area sees them; the keyboard doesn't count). Read from the window, as before, it froze
+            // this screen on iOS 26: no state change redrew it after the first frame, so "Not Now"
+            // and signing in couldn't close onboarding (App Review, 2.0 (2)).
             GeometryReader { geo in
                 Color.clear
-                    .onAppear { hasHomeIndicator = geo.safeAreaInsets.bottom > 0 }
+                    .onAppear {
+                        hasHomeIndicator = geo.safeAreaInsets.bottom > 0
+                        containerHeight = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
+                        containerWidth = geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing
+                    }
                     .onChange(of: geo.safeAreaInsets.bottom) { hasHomeIndicator = $0 > 0 }
+                    .onChange(of: geo.size.height) { containerHeight = $0 + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom }
+                    .onChange(of: geo.size.width) { containerWidth = $0 + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing }
             }
             .ignoresSafeArea(.keyboard)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
 
-            VStack {
-                Spacer()
-                Rectangle()
-                    .fill(blurColor) // Динамический цвет блюра
-                    .frame(height: 120)
-                    .blur(radius: 50)
-                    .opacity(0.5)
-            }
-            .offset(y: isMindActive ? -UIScreen.main.bounds.height + 50 : 0)
-            .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
-            .opacity(isMindActive ? 0 : 1)
-            
-            Image("logo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 110, height: 110)
-                .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2.5)
-                .opacity(0.2)
-                .offset(y: isMindActive ? -UIScreen.main.bounds.height + 50 : 0)
-                .scaleEffect(isMindActive ? 0.05 : 1, anchor: .top)
-                .opacity(isMindActive ? 0 : 1)
-                .offset(y: mainScreenOffsetY)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.2), value: mainScreenOffsetY)
-            
-            // Кнопка "Minor Plus" в центре (only for people without a plan)
-            Button(action: {
-                openPaywall(from: "get_plus_button")
-            }) {
-                // "Get Plus", not the plan's name: free users read "Minor Plus" as their plan. As
-                // narrow as the old pill, so it never reaches the model name on an iPhone SE.
-                Text("Get Plus")
-                    .foregroundColor(.white)
-                    .font(.system(size: 15, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .padding(.horizontal, 12)
-                    .frame(width: 122, height: 35)
-                    .background(
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(minorPlusRectangleColor)
-                            .overlay(RoundedRectangle(cornerRadius: 25).stroke(minorPlusStrokeColor, lineWidth: 1))
-                    )
-            }
-            .accessibilityLabel("Get Minor Plus")
-            .position(x: UIScreen.main.bounds.width / 2, y: 40) // Центр
-            .offset(y: minorPlusOffsetY)
-            .offset(y: isMindActive ? -40 : 0)
-            .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
-            .opacity(isMindActive || account.isPaid ? 0 : 1)
-            .allowsHitTesting(!account.isPaid)
-            .accessibilityHidden(account.isPaid)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-            
-            // Кнопка выбора модели с правого края (без прямоугольника)
-            Button(action: {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0.2)) {
-                    isModelMenuActive.toggle()
-                }
-            }) {
-                HStack(spacing: 5) {
-                    Text(selectedModel.displayName)
-                        .foregroundColor(.white)
-                        .font(.system(size: 16))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.white)
-                        .font(.system(size: 16))
-                        .rotationEffect(.degrees(isModelMenuActive ? 90 : 0)) // Вращение на 90 градусов
-                        .offset(y: isModelMenuActive ? 5 : 0) // Опускание на 5 пунктов
-                        .animation(.spring(response: 0.4, dampingFraction: 0.7, blendDuration: 0), value: isModelMenuActive)
-                }
-            }
-            .accessibilityLabel("AI model: \(selectedModel.displayName)")
-            // Right-aligned in the space right of the centered "Minor Plus" pill, so long model
-            // names never run under it or off the screen (iPhone SE).
-            .frame(width: (UIScreen.main.bounds.width - 130) / 2 - 16, alignment: .trailing)
-            .position(x: UIScreen.main.bounds.width - ((UIScreen.main.bounds.width - 130) / 2 - 16) / 2 - 12, y: 40)
-            .offset(y: minorPlusOffsetY)
-            .offset(y: isMindActive ? -40 : 0)
-            .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
-            .opacity(isMindActive ? 0 : 1)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-            
-            // Кнопка для боковой панели
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isSidebarActive.toggle()
-                    sidebarOffset = isSidebarActive ? 0 : -UIScreen.main.bounds.width
-                }
-            }) {
-                Image("Slider")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 25, height: 25)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Your Maps and Chats")
-            // At the left edge as on a 393-pt iPhone, not drifting inward on wider screens.
-            .position(x: min(UIScreen.main.bounds.width / 2 - 160, 36.5), y: 40)
-            .offset(y: minorPlusOffsetY)
-            .offset(y: isMindActive ? -40 : 0)
-            .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
-            .opacity(isMindActive ? 0 : 1)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-            
-            // Прямоугольник "Ask me anything"
-            VStack {
-                Spacer()
-                // "@" lists the person's maps right above the card (above the attachments row or
-                // hint when one shows), never over the field being typed in.
-                if !homeMentionMatches.isEmpty && !isMindActive {
-                    MentionSuggestions(maps: homeMentionMatches, theme: theme) { map in
-                        askText = Mentions.insert(map, into: askText)
-                        if !homeMentions.contains(where: { $0.id == map.id }) { homeMentions.append(MapMention(id: map.id, title: map.title)) }
-                        Haptics.selection()
-                    }
-                    // The list has its own 16-pt side margins; the outer frame keeps the column as
-                    // wide as the card, so the screen's layout doesn't widen and shift.
-                    .frame(width: chatWidth + 32)
-                    .frame(width: chatWidth)
-                    .padding(.bottom, homeAccessoryShown ? 52 : 6)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(chatRectangleColor)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(chatStrokeColor, lineWidth: 1)
-                        )
-                        .frame(width: chatWidth, height: chatHeight)
-                    
-                    VStack(spacing: 0) {
-                        HStack {
-                            TextField("", text: $askText)
-                                .accessibilityLabel("Ask me anything")
-                                .foregroundColor(Color(red: 255/255, green: 255/255, blue: 255/255))
-                                .placeholder(when: askText.isEmpty) {
-                                    Text(homeImageMode ? "Describe an image" : "Ask me anything")
-                                        .foregroundColor(placeholderTextColor)
-                                }
-                                .submitLabel(.done)
-                                .padding(.horizontal, 32)
-                                .offset(y: -10)
-                                .textFieldStyle(PlainTextFieldStyle())
-                                .font(.system(size: 17)) // Установил тот же размер шрифта, что в "Create miracles"
-                            
-                            Button(action: sendFromHome) {
-                                Image(systemName: "arrow.up")
-                                    .foregroundColor(.black)
-                                    .font(.system(size: 16, weight: .bold))
-                                    .frame(width: 34, height: 34)
-                                    .background(Color.white.opacity(0.9))
-                                    .clipShape(Circle())
-                            }
-                            .disabled(!canSendFromHome || homeDictating)
-                            .opacity(canSendFromHome && !homeDictating ? 1 : 0.4)
-                            .accessibilityLabel("Send")
-                            .padding(.trailing, 29)
-                            .offset(x: -2, y: 48)
-                        }
-                        .frame(height: 60) // Установил фиксированную высоту для выравнивания
-                        
-                        HStack(alignment: .center, spacing: 10) {
-                            Menu {
-                                Button { showHomePhotos = true } label: { Label("Photo Library", systemImage: "photo") }
-                                Button { DocumentPicker.present { attachHomeFile($0) } } label: { Label("File", systemImage: "doc.text") }
-                                if !MapStore.shared.maps.isEmpty {
-                                    Button { askText += askText.isEmpty || askText.hasSuffix(" ") ? "@" : " @" } label: {
-                                        Label("Mind Map", systemImage: "point.3.connected.trianglepath.dotted")
-                                    }
-                                }
-                                Button { homeImageMode.toggle() } label: {
-                                    Label(homeImageMode ? "Back to Chat" : "Create an Image", systemImage: "paintbrush.pointed")
-                                }
-                            } label: {
-                                Image(systemName: "plus")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 12, weight: .bold))
-                                    .frame(width: 32, height: 32)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(homeFile != nil ? MinorColor.accent : chatStrokeColor, lineWidth: 1)
-                                    )
-                            }
-                            .accessibilityLabel("Attach")
-                            
-                            Button(action: {
-                                showHomePhotos = true
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "photo")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(.white)
-                                        .frame(width: 20, height: 20)
-                                    Text(homeImages.isEmpty ? "Media" : "\(homeImages.count) Photo\(homeImages.count == 1 ? "" : "s")")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 14))
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .stroke(!homeImages.isEmpty ? Color(red: 47/255, green: 255/255, blue: 158/255) : chatStrokeColor, lineWidth: 1)
-                                )
-                            }
-                            DictationButton(text: $askText, stroke: chatStrokeColor, onError: { homeError = $0 }, onListeningChange: { homeDictating = $0 })
-                            Spacer()
-                        }
-                        .offset(x: 30, y: 2)
-                    }
-                    // The paddings above were set on a 393-pt iPhone, where the content is 28 pt
-                    // wider than the card; pinning it to that keeps it inside the card on Plus,
-                    // Pro Max and SE screens too.
-                    .frame(width: chatWidth + 28)
-                }
-                .overlay(alignment: .top) {
-                    homeAccessory
-                        .offset(y: -44)
-                }
-                .offset(y: isMindActive ? -UIScreen.main.bounds.height + 50 : 0)
-                .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
-                .opacity(isMindActive ? 0 : 1)
-                .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-                
-                Button(action: {
-                    UserDefaults.standard.set(true, forKey: "didSeeMindHint")
-                    showHomeHint = false
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2)) {
-                        isMindActive.toggle()
-                    }
-                }) {
-                    Image("mind")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 30, height: 30)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Mind Maps")
-                .padding(.top, 8)
-                .offset(y: isMindActive ? -UIScreen.main.bounds.height + 50 : 0)
-                .scaleEffect(isMindActive ? 0.1 : 1, anchor: .top)
-                .opacity(isMindActive ? 0 : 1)
-                .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-            }
-            .offset(y: mainScreenOffsetY + (isMindActive || !hasHomeIndicator ? 0 : 30))
-            .animation(.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.2), value: mainScreenOffsetY)
-            .padding(.bottom, 20)
-            
-            // Отдельное меню моделей с красивой анимацией
-            if isModelMenuActive {
-                VStack(spacing: 0.5) {
-                    let models = AIModelCatalog.all
-                    ForEach(models.indices, id: \.self) { index in
-                        let model = models[index]
-                        Button(action: {
-                            withAnimation(.spring(response: 0.1, dampingFraction: 0.8, blendDuration: 0.2)) {
-                                isModelMenuActive = false
-                            }
-                            selectedModel = model
-                        }) {
-                            // Every model is open to every plan; the number says how much faster it
-                            // uses the monthly AI allowance than the lightest one.
-                            HStack(spacing: 6) {
-                                Text(model.displayName)
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 14))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                Spacer(minLength: 4)
-                                if model == selectedModel {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 13))
-                                } else {
-                                    Text("×\(model.usage)")
-                                        .foregroundColor(MinorColor.textSecondary)
-                                        .font(.system(size: 12).monospacedDigit())
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .frame(width: 200)
-                            .background(Color(red: 50/255, green: 50/255, blue: 50/255))
-                            .cornerRadius(
-                                index == 0 ? 10 : 0,
-                                corners: [.topLeft, .topRight]
-                            )
-                            .cornerRadius(
-                                index == models.count - 1 ? 10 : 0,
-                                corners: [.bottomLeft, .bottomRight]
-                            )
-                            .offset(y: isModelMenuActive ? 0 : -10) // Смещение вверх при открытии
-                            .opacity(isModelMenuActive ? 1 : 0) // Плавное появление
-                            .scaleEffect(isModelMenuActive ? 1 : 0.95) // Небольшое увеличение
-                            .animation(
-                                .spring(response: 0.5, dampingFraction: 0.6, blendDuration: 0.2)
-                                .delay(Double(index) * 0.05),
-                                value: isModelMenuActive
-                            )
-                        }
-                    }
-                }
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("AI models. Stronger models use more of your monthly AI allowance.")
-                .position(x: UIScreen.main.bounds.width - 112, y: 190) // Фиксированная позиция под кнопкой модели
-                .zIndex(1)
-            }
-            
-            VStack {
-                Rectangle()
-                    .fill(Color.white.opacity(0.2))
-                    .frame(height: 250)
-                    .blur(radius: 50)
-                    .opacity(isMindActive ? 1 : 0)
-                    .offset(y: isMindActive ? -210 : -250)
-                Spacer()
-            }
-            .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-            
-            // Режим Mind: экран создания карты
-            CreateMapView(
-                theme: theme,
-                conversations: chatVM.conversations,
-                // Hidden behind a map, a chat, the sidebar or the Building screen counts as inactive.
-                isActive: isMindActive && !isSidebarActive && openMapID == nil && generatingJobID == nil && chatVM.messages.isEmpty,
-                onClose: {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2)) {
-                        isMindActive = false
-                    }
-                },
-                onOpenSidebar: openSidebar,
-                onUpgrade: { openPaywall(from: "create_map") },
-                onUpgradePro: { openPaywall(pro: true, from: "create_map") },
-                onStart: { input, model in
-                    withConsent { generatingJobID = GenerationCenter.shared.start(input, model: model) }
-                },
-                onOpenMap: { id in openMapID = id },
-                onAskAssistant: { text in
-                    // "Plan My Day": the chat assistant reads the tasks and answers.
-                    AuthGate.shared.require { chatVM.send(text, model: selectedModel, withTasks: true) }
-                },
-                onNewDeck: { newDeck = NewDeckRequest(mapID: nil) }
-            )
-            .offset(y: isMindActive ? 0 : UIScreen.main.bounds.height)
-            .opacity(isMindActive ? 1 : 0)
-            .allowsHitTesting(isMindActive)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2), value: isMindActive)
-            
-            BlurView(style: .dark)
-                .edgesIgnoringSafeArea(.all)
-                .opacity(isSidebarActive ? 1 : 0)
-                .animation(.easeInOut(duration: 0.3), value: isSidebarActive)
-            
+            assistantLayer
+
             // Paywall поверх всего, включая редактор карты
             if isBlurActive {
                 PaywallView(tier: paywallTier, onClose: closePaywall)
@@ -480,154 +148,6 @@ struct ContentView: View {
                     .zIndex(20)
             }
 
-            ZStack {
-                BlurView(style: .dark)
-                    .edgesIgnoringSafeArea(.all)
-                    .offset(x: sidebarOffset)
-                    .animation(.easeInOut(duration: 0.3), value: sidebarOffset)
-                
-                VStack(spacing: 0) {
-                    HStack {
-                        Text(sidebarTab == .maps ? "Your Maps" : sidebarTab == .decks ? "Your Presentations" : "Your Chats")
-                            .foregroundColor(.white)
-                            .font(.system(size: 22, weight: .bold))
-                        Spacer()
-                        Button(action: {
-                            if sidebarTab == .decks {
-                                closeSidebar()
-                                newDeck = NewDeckRequest(mapID: nil)
-                            } else if sidebarTab == .maps {
-                                closeSidebar()
-                                withAnimation(.spring(response: 0.6, dampingFraction: 0.7, blendDuration: 0.2)) {
-                                    isMindActive = true
-                                }
-                            } else {
-                                chatVM.endSession()
-                                closeSidebar()
-                            }
-                        }) {
-                            Image(systemName: "square.and.pencil")
-                                .foregroundColor(.white)
-                                .font(.system(size: 20))
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .accessibilityLabel(sidebarTab == .maps ? "New Map" : sidebarTab == .decks ? "New Presentation" : "New Chat")
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 80)
-                    .padding(.bottom, 16)
-
-                    SidebarSegment(selection: $sidebarTab)
-                        .padding(.bottom, 16)
-
-                    if sidebarTab == .maps {
-                        SidebarMapsView(onOpen: { id in
-                            closeSidebar()
-                            openMapID = id
-                        }, onOpenJob: { id in
-                            closeSidebar()
-                            generatingJobID = id
-                        })
-                    } else if sidebarTab == .decks {
-                        SidebarDecksView(onOpen: { id in
-                            closeSidebar()
-                            openDeckID = id
-                        }, onNew: {
-                            closeSidebar()
-                            newDeck = NewDeckRequest(mapID: nil)
-                        })
-                    } else if chatVM.conversations.isEmpty {
-                        Spacer()
-                        VStack(spacing: 10) {
-                            Image(systemName: "message")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 50, height: 50)
-                                .foregroundColor(.white)
-                            Text("No conversations yet")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18, weight: .bold))
-                            Text("Start one from the home screen.")
-                                .foregroundColor(Color(red: 163/255, green: 163/255, blue: 163/255))
-                                .font(.system(size: 15, weight: .medium))
-                        }
-                        Spacer()
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 8) {
-                                ForEach(chatVM.conversations) { convo in
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(convo.title)
-                                                .foregroundColor(.white)
-                                                .font(.system(size: 16, weight: .medium))
-                                                .lineLimit(1)
-                                            Text(convo.updatedAt, style: .date)
-                                                .foregroundColor(Color(red: 150/255, green: 150/255, blue: 150/255))
-                                                .font(.system(size: 12))
-                                        }
-                                        Spacer()
-                                        Button(action: {
-                                            pendingChatDelete = convo
-                                        }) {
-                                            Image(systemName: "trash")
-                                                .foregroundColor(MinorColor.textSecondary)
-                                                .font(.system(size: 14))
-                                                .frame(width: 44, height: 44)
-                                                .contentShape(Rectangle())
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        .accessibilityLabel("Delete chat")
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.white.opacity(0.08))
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        chatVM.open(convo)
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            isSidebarActive = false
-                                            sidebarOffset = -UIScreen.main.bounds.width
-                                        }
-                                    }
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityAddTraits(.isButton)
-                                    .accessibilityAction(named: "Delete chat") { pendingChatDelete = convo }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
-                        }
-                    }
-
-                    Button(action: {
-                        showSettings = true
-                    }) {
-                        Image(systemName: "gear")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 30, height: 30)
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .accessibilityLabel("Settings")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 20)
-                    .padding(.bottom, 10)
-                }
-                .offset(x: sidebarOffset)
-                .animation(.easeInOut(duration: 0.3), value: sidebarOffset)
-                
-            }
-            // Off screen it must not be read by VoiceOver; open, it is a modal with an escape gesture.
-            .accessibilityHidden(!isSidebarActive)
-            .accessibilityAddTraits(isSidebarActive ? .isModal : [])
-            .accessibilityAction(.escape) { closeSidebar() }
             
             // Экран диалога поверх лаунчера, когда есть сообщения
             if !chatVM.messages.isEmpty {
@@ -635,19 +155,20 @@ struct ContentView: View {
                     viewModel: chatVM,
                     theme: theme,
                     model: $selectedModel,
-                    onHome: { chatVM.endSession() },
+                    onLibrary: { openLibrary(.chats, from: .chat) },
                     onMapThis: { answer in
                         let title = Conversation.makeTitle(from: chatVM.messages)
-                        withConsent {
-                            generatingJobID = GenerationCenter.shared.start(.text(answer, source: MapSource(kind: .chat, label: title)))
-                        }
+                        withConsent { chatVM.makeMap(from: answer, title: title) }
                     },
-                    onUpgrade: { openPaywall(from: "chat") }
+                    onUpgrade: { openPaywall(from: "chat") },
+                    onLockedModel: { model in openPaywall(pro: model.chatPlan == .pro, from: "chat_model") }
                 )
                 .transition(.move(edge: .bottom))
                 .modifier(TopLayer(isTop: topLayer == .chat))
                 .zIndex(10)
             }
+
+            menuLayer
 
             // Построение карты, затем редактор
             if let jobID = generatingJobID {
@@ -657,7 +178,7 @@ struct ContentView: View {
                     onDone: { id in
                         openMapID = id
                         generatingJobID = nil
-                        isMindActive = false
+                        leaveNewMap()
                     },
                     onClose: { generatingJobID = nil },
                     onUpgrade: { openPaywall(from: "generating") }
@@ -681,7 +202,6 @@ struct ContentView: View {
                         Button("Open") {
                             generation.ready = nil
                             generatingJobID = nil
-                            isMindActive = false
                             openMapID = readyID
                         }
                         .font(.system(size: 15, weight: .semibold))
@@ -705,12 +225,16 @@ struct ContentView: View {
             }
 
             if let id = openMapID {
-                MapEditorView(
+                // A map opens as a project: Map, Slides and Chat over the same document.
+                ProjectView(
                     mapID: id,
                     theme: theme,
-                    onClose: { openMapID = nil },
-                    onUpgrade: { pro in openPaywall(pro: pro, from: "map_editor") },
-                    onCreateDeck: { map in newDeck = NewDeckRequest(mapID: map) }
+                    initialTab: openMapTab,
+                    onClose: {
+                        openMapID = nil
+                        openMapTab = .map
+                    },
+                    onUpgrade: { pro in openPaywall(pro: pro, from: "map_editor") }
                 )
                 .id(id)
                 .transition(.move(edge: .bottom))
@@ -735,6 +259,10 @@ struct ContentView: View {
                 .zIndex(13)
             }
         }
+    }
+
+    var body: some View {
+        layers
         .animation(.easeInOut(duration: 0.3), value: chatVM.messages.isEmpty)
         .animation(.easeInOut(duration: 0.3), value: openMapID)
         .animation(.easeInOut(duration: 0.3), value: openDeckID)
@@ -757,13 +285,26 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            showHomeHint = !UserDefaults.standard.bool(forKey: "didSeeMindHint") && MapStore.shared.maps.isEmpty
             if let id = generation.openRequest { openRequested(id) }
             // The screen was rebuilt for a new language while Settings was open.
             if LanguageSettings.shared.reopenSettings {
                 LanguageSettings.shared.reopenSettings = false
                 showSettings = true
             }
+        }
+        // A plan that ended (or invitation days that ran out) no longer includes a stronger chat model.
+        .onChange(of: account.effectivePlan) { _ in
+            if !account.allowsChat(with: selectedModel) { selectedModel = AIModelCatalog.default }
+        }
+        .onChange(of: openMapID) { id in
+            if let id { RecentDocuments.shared.opened(.map, id) }
+        }
+        // Back from the Library to the menu: its search starts empty next time.
+        .onChange(of: menuPath) { path in
+            if !path.contains(.library) { LibraryState.shared.query = "" }
+        }
+        .onChange(of: openDeckID) { id in
+            if let id { RecentDocuments.shared.opened(.deck, id) }
         }
         .onChange(of: generation.openRequest) { id in
             if let id { openRequested(id) }
@@ -772,7 +313,7 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $slideGallery) { SlideGallery() }
         #endif
         .sheet(item: $newDeck) { request in
-            NewDeckView(theme: theme, preselectedMap: request.mapID, onCreated: { id in
+            NewDeckView(theme: theme, preselectedMap: request.mapID, preselectedTemplate: request.template, onCreated: { id in
                 openDeckID = id
             }, onUpgrade: { openPaywall(from: "new_deck") })
         }
@@ -800,12 +341,16 @@ struct ContentView: View {
                 item.remove()
             })
         }
+        // A stopped or failed map's input goes back to New Map's field, opened if needed.
+        .onChange(of: generation.returnedInput == nil) { empty in
+            guard !empty, !(menuOpen && menuPath.last == .newMap) else { return }
+            openMenu(to: .newMap)
+        }
         .onChange(of: generation.topicRequest) { topic in
             // Siri or Shortcuts asked for a map about a topic.
             guard let topic else { return }
             generation.topicRequest = nil
             if isBlurActive { closePaywall() }
-            closeSidebar()
             closeOverlays()
             openMapID = nil
             chatVM.endSession()
@@ -815,6 +360,14 @@ struct ContentView: View {
             // The assistant opened a map, or the person tapped Open on a card.
             guard let id else { return }
             chatVM.openMapRequest = nil
+            openMapID = id
+        }
+        .onChange(of: chatVM.slidesRequest) { id in
+            // "Make Slides from Map" on the chat's map card: the project opens on Slides, which
+            // waits for the person to choose how to make them.
+            guard let id else { return }
+            chatVM.slidesRequest = nil
+            openMapTab = .slides
             openMapID = id
         }
         .onChange(of: chatVM.mapRequest) { request in
@@ -837,10 +390,16 @@ struct ContentView: View {
         .task {
             await AccountStore.shared.refresh()
         }
+        // Originals left by an interrupted import or a removed material.
+        .task { ProjectMaterialStore.shared.cleanOriginals() }
         #if DEBUG
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
-            if args.contains("-demoMap") { openMapID = DemoMap.install().id }
+            if args.contains("-demoMap") {
+                // -demoProjectSlides: the project opens on its (empty) Slides tab.
+                if args.contains("-demoProjectSlides") { openMapTab = .slides }
+                openMapID = DemoMap.install().id
+            }
             // A shared map this person can only view (-demoViewer, with -demoSelect or -demoCard).
             if args.contains("-demoViewer") {
                 var map = DemoMap.install()
@@ -863,14 +422,39 @@ struct ContentView: View {
                     failed,
                 ]
             }
-            if args.contains("-mindMode") { _ = DemoMap.install(); isMindActive = true }
-            if args.contains("-sidebarMaps") { _ = DemoMap.install(); openSidebar() }
+            if args.contains("-mindMode") { _ = DemoMap.install(); openMenu(to: .newMap) }
+            if args.contains("-menu") { _ = DemoMap.install(); openMenu() }
+            if args.contains("-settings") { showSettings = true }
+            if args.contains("-demoToday") { _ = DemoMap.install(); openMenu(to: .today) }
+            if args.contains("-demoTemplates") { openMenu(to: .templates(args.contains("-decks") ? .decks : .maps)) }
+            if args.contains("-demoResume") { RecentDocuments.shared.opened(.map, DemoMap.install().id) }
+            // -noResume: the plain assistant (Create a Map · Make Slides), whatever was opened before.
+            if args.contains("-noResume") { RecentDocuments.shared.clear() }
+            // The Library from Menu (-demoLibrary) or from the assistant's top button (-sidebarMaps,
+            // -sidebarDecks, -libraryChats); -demoManyMaps adds 120 maps for this run only.
+            // The sample map and presentation, nothing opened (-demoInstall).
+            if args.contains("-demoInstall") { _ = DemoMap.install(); DeckStore.shared.save(DemoMap.deck()) }
+            if args.contains("-demoManyMaps") { MapStore.shared.addForScreenshots(DemoMap.many(120)) }
+            if args.contains("-demoLibrary") { _ = DemoMap.install(); DeckStore.shared.save(DemoMap.deck()); LibraryState.shared.tab = .maps; openMenu(to: .library) }
+            if args.contains("-sidebarMaps") { _ = DemoMap.install(); openLibrary(.maps) }
+            if args.contains("-libraryChats") { chatVM.installDemoConversations(); openLibrary(.chats) }
             if args.contains("-onboarding") { didOnboard = false; showOnboarding = true }
-            if args.contains("-sidebarDecks") { DeckStore.shared.save(DemoMap.deck()); sidebarTab = .decks; openSidebar() }
+            if args.contains("-sidebarDecks") { DeckStore.shared.save(DemoMap.deck()); openLibrary(.decks) }
             if args.contains("-demoChat") { chatVM.messages = DemoMap.chat }
+            // A conversation that made a map: the card with Open Map and Make Slides (-demoChatMap).
+            if args.contains("-demoChatMap") {
+                let map = DemoMap.install()
+                chatVM.messages = [
+                    ChatMessage(role: .user, text: L("I want to launch an app. Help me plan it.")),
+                    ChatMessage(role: .assistant, text: L("Let’s start with the audience, pricing and channels. I put the plan on a map."),
+                                action: ChatAction(kind: .mapCreated, mapID: map.id, mapTitle: map.title)),
+                ]
+            }
             if args.contains("-demoSlides") { slideGallery = true }
             if args.contains("-demoDeck") || args.contains("-demoExport") || args.contains("-demoPresentDeck") {
-                let deck = DemoMap.deck()
+                var deck = DemoMap.deck()
+                // -demoHiddenSlide: the fifth slide hidden (export and presenting skip it).
+                if args.contains("-demoHiddenSlide"), deck.slides.count > 4 { deck.slides[4].isHidden = true }
                 DeckStore.shared.save(deck)
                 openDeckID = deck.id
                 if args.contains("-demoExport") {
@@ -879,6 +463,25 @@ struct ContentView: View {
                     if let pptx = try? DeckExport.pptx(deck) { try? FileManager.default.copyItem(at: pptx, to: documents.appendingPathComponent("demo.pptx")) }
                 }
             }
+            // Every kind of diagram, from slide N (-demoDiagrams N).
+            if let i = args.firstIndex(of: "-demoDiagrams") {
+                let deck = DemoMap.diagramDeck()
+                DeckStore.shared.save(deck)
+                if args.indices.contains(i + 1), let slide = Int(args[i + 1]) { UserDefaults.standard.set(slide, forKey: "demoDeckSlide") }
+                openDeckID = deck.id
+                // -demoDiagramsExport: each diagram slide on its own, as PDF and PowerPoint, in Documents.
+                if args.contains("-demoDiagramsExport") {
+                    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    for (n, slide) in deck.slides.enumerated() {
+                        var single = deck
+                        single.slides = [slide]
+                        for ext in ["pdf", "pptx"] { try? FileManager.default.removeItem(at: documents.appendingPathComponent("diagram-\(n).\(ext)")) }
+                        if let pdf = try? DeckExport.pdf(single) { try? FileManager.default.copyItem(at: pdf, to: documents.appendingPathComponent("diagram-\(n).pdf")) }
+                        if let pptx = try? DeckExport.pptx(single) { try? FileManager.default.copyItem(at: pptx, to: documents.appendingPathComponent("diagram-\(n).pptx")) }
+                    }
+                }
+            }
+            if args.contains("-demoMerge") { openDeckID = DemoMap.installMergeDemo().id }
             if args.contains("-demoDesign") {
                 let deck = DemoMap.designedDeck()
                 DeckStore.shared.save(deck)
@@ -895,12 +498,20 @@ struct ContentView: View {
                 let map = DemoMap.install()
                 chatVM.messages = DemoMap.agentChat(map)
             }
+            // Creating the Map at its third stage (-demoCreating, -demoStopAsk asks to stop) or failed
+            // offline (-demoCreateFailed), from New Map.
+            if args.contains("-demoCreating") || args.contains("-demoCreateFailed") {
+                _ = DemoMap.install()
+                openMenu(to: .newMap)
+                let topic = AppLanguage.current.resolved == .russian ? "План запуска подкаста: подготовка, запись и продвижение" : "Podcast launch plan: preparation, recording and promotion"
+                generatingJobID = GenerationCenter.shared.installDemoJob(.topic(topic), step: 2, error: args.contains("-demoCreateFailed") ? .offline : nil)
+            }
             if args.contains("-demoBuilding") {
                 _ = DemoMap.install()
                 _ = GenerationCenter.shared.start(.topic("Photosynthesis"))
-                openSidebar()
+                openLibrary(.maps)
             }
-            if args.contains("-demoPaywall") { openPaywall(from: "debug") }
+            if args.contains("-demoPaywall") { openPaywall(pro: args.contains("-paywallPro"), from: "debug") }
             if args.contains("-demoUsage") {
                 AccountStore.shared.installDemo()
                 InviteService.shared.installDemo()
@@ -912,14 +523,18 @@ struct ContentView: View {
                 inviteSheet = InviteSheet(code: nil)
             }
             if args.contains("-demoSignIn") { AuthGate.shared.require {} }
+            if args.contains("-demoJoin") { pendingInvite = InviteLink(token: "demo-invite-token-0000") }
         }
         #endif
+        // A voice conversation from the start screen; "Go to Chat" leaves it in the chat.
+        .fullScreenCover(isPresented: $homeVoice) {
+            VoiceModeView(viewModel: chatVM, model: selectedModel, theme: theme) { homeVoice = false }
+        }
         .sheet(isPresented: $showSettings) {
             SettingsView(
                 selectedSphere: $selectedSphere,
                 onUpgrade: { pro in
                     showSettings = false
-                    closeSidebar()
                     openPaywall(pro: pro, from: "settings")
                 },
                 onDataDeleted: {
@@ -928,6 +543,7 @@ struct ContentView: View {
                 }
             )
             .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showUsage) {
             UsageView(onUpgrade: { pro in
@@ -936,17 +552,23 @@ struct ContentView: View {
             })
         }
         .sheet(item: $inviteSheet) { request in InviteView(initialCode: request.code) }
+        // The invitation to a shared map; the map opens once the sheet has closed.
+        .sheet(item: $pendingInvite, onDismiss: {
+            guard let id = joinedMapID else { return }
+            joinedMapID = nil
+            if isBlurActive { closePaywall() }
+            chatVM.endSession()
+            openMapID = id
+        }) { invite in
+            JoinInviteView(token: invite.token, theme: theme, onJoined: { id in
+                joinedMapID = id
+                pendingInvite = nil
+            }, onClose: { pendingInvite = nil })
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $gate.isPresented, onDismiss: { gate.finish() }) {
             SignInView(onFinish: { gate.close() })
-        }
-        .confirmationDialog(
-            "Delete this chat?",
-            isPresented: Binding(get: { pendingChatDelete != nil }, set: { if !$0 { pendingChatDelete = nil } }),
-            titleVisibility: .visible,
-            presenting: pendingChatDelete
-        ) { convo in
-            Button("Delete Chat", role: .destructive) { chatVM.deleteConversation(convo.id) }
-            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $showConsent, onDismiss: { afterConsent = nil }) {
             AIConsentView(
@@ -976,47 +598,619 @@ struct ContentView: View {
                 }
             })
         }
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    guard sidebarSwipeEnabled else { return }
-                    let translation = value.translation.width
-                    if translation > 0 {
-                        sidebarOffset = max(-UIScreen.main.bounds.width, -UIScreen.main.bounds.width + translation)
-                    } else if isSidebarActive {
-                        sidebarOffset = min(0, translation)
-                    }
+        .alert("Couldn’t create the map", isPresented: Binding(get: { templateError != nil }, set: { if !$0 { templateError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(templateError ?? "")
+        }
+    }
+
+    // The assistant: steps back a little and fades while the menu rises over it; moves
+    // a little aside while the Library slides in over it.
+    private var assistantLayer: some View {
+        assistant
+            .scaleEffect(menuOpen && menuEntry == .rise && !reduceMotion ? 0.97 : 1)
+            .offset(y: menuOpen && menuEntry == .rise && !reduceMotion ? -16 : 0)
+            .opacity(menuOpen && menuEntry == .rise ? 0 : 1)
+            .animation(reduceMotion ? .easeInOut(duration: 0.14) : .easeOut(duration: menuOpen ? 0.18 : 0.23), value: menuOpen)
+            .offset(x: menuOpen && menuEntry == .slide && !reduceMotion ? (menuDrag - containerWidth) * 0.3 : 0)
+            .offset(y: mainScreenOffsetY)
+            .animation(.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.2), value: mainScreenOffsetY)
+            .allowsHitTesting(!menuOpen)
+            .accessibilityHidden(topLayer != .home)
+    }
+
+    // The menu: rises from the bottom (a crossfade with Reduce Motion) and stays in place
+    // when closed, so its stack and scroll position survive. The Library opened from the
+    // top button comes in from the side instead, over a chat too, and follows the finger
+    // back from the left edge.
+    private var menuLayer: some View {
+        menu
+            .offset(x: menuEntry == .slide && !reduceMotion ? (menuOpen ? menuDrag : containerWidth) : 0,
+                    y: menuEntry == .rise && !menuOpen && !reduceMotion ? containerHeight + 40 : 0)
+            .opacity(reduceMotion ? (menuOpen ? 1 : 0) : 1)
+            .allowsHitTesting(menuOpen)
+            .simultaneousGesture(libraryBackGesture)
+            .accessibilityHidden(topLayer != .menu)
+            .accessibilityAddTraits(topLayer == .menu && voiceOverOn ? .isModal : [])
+            .accessibilityAction(.escape) {
+                if menuPath.isEmpty || (menuFromAssistant && menuPath.count == 1) { closeMenu() }
+            }
+            .zIndex(10.5)
+    }
+
+    // MARK: - Assistant
+
+    private var assistant: some View {
+        ZStack(alignment: .top) {
+            // A tap on empty space puts the keyboard away. It sits under everything else, so it
+            // only gets taps that no button takes (a gesture over the whole screen used to win
+            // over buttons in lists).
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { homeFieldFocused = false }
+                .accessibilityHidden(true)
+
+            // The theme's glow along the bottom edge.
+            VStack {
+                Spacer()
+                Rectangle()
+                    .fill(blurColor)
+                    .frame(height: 120)
+                    .blur(radius: 50)
+                    .opacity(0.5)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+
+            // The logo exactly where the splash lands (screen height / 2.5 below the safe area),
+            // and the invitation under it. The keyboard doesn't move them.
+            GeometryReader { geo in
+                let fullHeight = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
+                VStack(spacing: 18) {
+                    Image("logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 110, height: 110)
+                        .opacity(0.92)
+                        .accessibilityHidden(true)
+                    greeting
                 }
-                .onEnded { value in
-                    guard sidebarSwipeEnabled else { return }
-                    let translation = value.translation.width
-                    if translation > 100 {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isSidebarActive = true
-                            sidebarOffset = 0
-                        }
-                    } else if translation < -100 && isSidebarActive {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isSidebarActive = false
-                            sidebarOffset = -UIScreen.main.bounds.width
-                        }
+                .frame(maxWidth: .infinity)
+                .padding(.top, max(0, fullHeight / 2.5 - 55))
+                .padding(.horizontal, 24)
+            }
+            .ignoresSafeArea(.keyboard)
+            .allowsHitTesting(false)
+
+            VStack(spacing: 0) {
+                GeometryReader { geo in topBar(width: geo.size.width) }
+                    .frame(height: 52)
+                Spacer(minLength: 0)
+                bottomStack
+            }
+        }
+        .onAppear { if splash.revealed { greetingShown = true } }
+        .onChange(of: splash.revealed) { revealed in
+            guard revealed else { return }
+            // After the portal has opened, so the words don't compete with the splash.
+            withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .easeOut(duration: 0.4).delay(0.55)) { greetingShown = true }
+        }
+    }
+
+    private var greeting: some View {
+        VStack(spacing: 6) {
+            Text("What shall we think about?")
+                .minorFont(22, .semibold, style: .title2, maxScale: 1.3)
+            Text("Type or start talking.")
+                .minorFont(15, style: .subheadline, maxScale: 1.3)
+                .foregroundColor(MinorColor.textSecondary)
+        }
+        .multilineTextAlignment(.center)
+        .opacity(greetingShown ? 1 : 0)
+        .offset(y: greetingShown || reduceMotion ? 0 : 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityHidden(!greetingShown)
+    }
+
+    // Library on the left, Get Plus (or the name for subscribers) in the middle, the model on the right.
+    private func topBar(width: CGFloat) -> some View {
+        let side = max(84, (width - 146) / 2 - 12)
+        return ZStack {
+            if account.isPaid {
+                Text(verbatim: "Minor AI")
+                    .minorFont(17, .semibold, maxScale: 1.2)
+                    .accessibilityAddTraits(.isHeader)
+            } else {
+                Button(action: { openPaywall(from: "get_plus_button") }) {
+                    // "Get Plus", not the plan's name: free users read "Minor Plus" as their plan.
+                    // In the title's place, as the title is for subscribers.
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkle").font(.system(size: 12, weight: .semibold)).foregroundColor(MinorColor.accent)
+                        Text("Get Plus")
+                            .minorFont(17, .semibold, maxScale: 1.2)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Get Minor Plus")
+            }
+            HStack(spacing: 0) {
+                Button { openLibrary() } label: {
+                    Image(systemName: "books.vertical")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Library")
+                .accessibilityFocused($libraryButtonFocused)
+                Spacer(minLength: 8)
+                modelPicker
+                    .frame(maxWidth: side, alignment: .trailing)
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 52)
+    }
+
+    // Light models for every plan; a stronger one shows the plan that opens it. The number says how
+    // much faster a model uses the monthly AI allowance than the lightest one.
+    private var modelPicker: some View {
+        Menu {
+            ForEach(AIModelCatalog.all) { model in
+                Button {
+                    if account.allowsChat(with: model) {
+                        selectedModel = model
                     } else {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            sidebarOffset = isSidebarActive ? 0 : -UIScreen.main.bounds.width
-                        }
+                        openPaywall(pro: model.chatPlan == .pro, from: "chat_model")
+                    }
+                } label: {
+                    if model == selectedModel {
+                        Label(model.displayName, systemImage: "checkmark")
+                    } else if !account.allowsChat(with: model) {
+                        Label("\(model.displayName) · \(model.chatPlan == .pro ? "PRO" : "Plus")", systemImage: "lock.fill")
+                    } else {
+                        Text("\(model.displayName)  ×\(model.usage)")
                     }
                 }
-        )
-        // Tapping outside closes the model menu. Only while it is open: a tap gesture on the whole
-        // screen otherwise competes with the buttons in the sidebar lists and sometimes wins.
-        .gesture(
-            TapGesture().onEnded {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0.2)) {
-                    isModelMenuActive = false
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text("Model")
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 12)
+            .frame(height: 32)
+            .background(Capsule().fill(chatRectangleColor))
+            .overlay(Capsule().stroke(chatStrokeColor, lineWidth: 1))
+            .frame(height: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("AI model: \(selectedModel.displayName)")
+        .accessibilityHint(Text("Light models are free; stronger ones come with Minor Plus or PRO."))
+    }
+
+    private var bottomStack: some View {
+        VStack(spacing: 0) {
+            // "@" lists the person's maps right above the card, never over the field being typed in.
+            if !homeMentionMatches.isEmpty {
+                MentionSuggestions(maps: homeMentionMatches, theme: theme) { map in
+                    askText = Mentions.insert(map, into: askText)
+                    if !homeMentions.contains(where: { $0.id == map.id }) { homeMentions.append(MapMention(id: map.id, title: map.title)) }
+                    Haptics.selection()
                 }
-            },
-            including: isModelMenuActive ? .all : .subviews
-        )
+                .padding(.horizontal, -16)
+                .padding(.bottom, 6)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+            if homeAccessoryShown {
+                homeAccessory
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 10)
+            } else if homeMentionMatches.isEmpty {
+                if let resume = resumeEntry {
+                    resumeRow(resume.entry, title: resume.title).padding(.bottom, 10)
+                } else {
+                    quickActions.padding(.bottom, 8)
+                }
+            }
+            composer
+            if !homeFieldFocused {
+                menuButton
+                    .padding(.top, 12)
+                    .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, hasHomeIndicator ? 2 : 12)
+        .animation(.easeOut(duration: 0.18), value: homeFieldFocused)
+    }
+
+    // The project last opened here (within two weeks), to go back to in one tap.
+    private var resumeEntry: (entry: RecentDocuments.Entry, title: String)? {
+        let since = Date(timeIntervalSinceNow: -14 * 86_400)
+        for entry in recents.entries.prefix(6) where entry.openedAt > since {
+            if entry.kind == .map, let map = MapStore.shared.map(entry.id) { return (entry, map.title) }
+            if entry.kind == .deck, let deck = DeckStore.shared.deck(entry.id) { return (entry, deck.title) }
+        }
+        return nil
+    }
+
+    private func resumeRow(_ entry: RecentDocuments.Entry, title: String) -> some View {
+        Button {
+            if entry.kind == .map { openMapID = entry.id } else { openDeckID = entry.id }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: entry.kind == .map ? "point.3.connected.trianglepath.dotted" : "rectangle.on.rectangle")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(MinorColor.accent)
+                    .frame(width: 26)
+                Text(L("Continue: \(title)"))
+                    .minorFont(15, .medium, maxScale: 1.3)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(MinorColor.textTertiary)
+            }
+            .padding(.horizontal, 4)
+            .frame(minHeight: 54)
+            .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1) }
+            .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Quiet starts for the two main results, so nobody has to guess the right words.
+    private var quickActions: some View {
+        HStack(spacing: 6) {
+            Button { openMenu(to: .newMap, fromAssistant: true) } label: {
+                Text("Create a Map").frame(minHeight: 44).contentShape(Rectangle())
+            }
+            Text(verbatim: "·").accessibilityHidden(true)
+            Button { newDeck = NewDeckRequest(mapID: nil) } label: {
+                Text("Make Slides").frame(minHeight: 44).contentShape(Rectangle())
+            }
+        }
+        .minorFont(14, maxScale: 1.3)
+        .foregroundColor(MinorColor.textSecondary)
+        .buttonStyle(.plain)
+    }
+
+    private var composer: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TextField("", text: $askText, axis: .vertical)
+                .placeholder(when: askText.isEmpty) {
+                    Text(homeImageMode ? "Describe an image" : "Ask Minor")
+                        .foregroundColor(placeholderTextColor)
+                }
+                .foregroundColor(.white)
+                .font(.system(size: 17))
+                .lineLimit(1...4)
+                .focused($homeFieldFocused)
+                .textFieldStyle(PlainTextFieldStyle())
+                .accessibilityLabel(homeImageMode ? "Describe an image" : "Ask Minor")
+                .padding(.horizontal, 4)
+                // The text area keeps the card 120 pt tall and grows with longer messages.
+                .frame(minHeight: 52, alignment: .topLeading)
+            HStack(alignment: .center, spacing: 10) {
+                Menu {
+                    Button { showHomePhotos = true } label: { Label("Photo Library", systemImage: "photo") }
+                    Button { DocumentPicker.present { attachHomeFile($0) } } label: { Label("File", systemImage: "doc.text") }
+                    if !MapStore.shared.maps.isEmpty {
+                        Button { askText += askText.isEmpty || askText.hasSuffix(" ") ? "@" : " @" } label: {
+                            Label("Mind Map", systemImage: "point.3.connected.trianglepath.dotted")
+                        }
+                    }
+                    Button { homeImageMode.toggle() } label: {
+                        Label(homeImageMode ? "Back to Chat" : "Create an Image", systemImage: "paintbrush.pointed")
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .foregroundColor(.white)
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(homeFile != nil ? MinorColor.accent : chatStrokeColor, lineWidth: 1))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .padding(.leading, -6)
+                .accessibilityLabel("Attach")
+
+                Button(action: { showHomePhotos = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 15))
+                            .frame(width: 20, height: 20)
+                        Text(homeImages.isEmpty ? "Media" : "\(homeImages.count) Photo\(homeImages.count == 1 ? "" : "s")")
+                            .font(.system(size: 14))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(!homeImages.isEmpty ? MinorColor.accent : chatStrokeColor, lineWidth: 1)
+                    )
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
+                }
+                Spacer(minLength: 0)
+                DictationButton(text: $askText, stroke: chatStrokeColor, onError: { homeError = $0 }, onListeningChange: { homeDictating = $0 })
+                // With nothing typed, the round button starts a voice conversation.
+                Button {
+                    if canSendFromHome { sendFromHome() } else { startHomeVoice() }
+                } label: {
+                    Image(systemName: canSendFromHome ? "arrow.up" : "waveform")
+                        .foregroundColor(.black)
+                        .font(.system(size: 16, weight: .bold))
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.9))
+                        .clipShape(Circle())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .disabled(homeDictating || (homeImageMode && !canSendFromHome))
+                .opacity(homeDictating || (homeImageMode && !canSendFromHome) ? 0.4 : 1)
+                .accessibilityLabel(canSendFromHome ? "Send" : "Voice Mode")
+                .padding(.trailing, -6)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+        .minorSurface(theme)
+    }
+
+    // The way to everything else: new maps and slides, Today, the Library, templates, settings.
+    private var menuButton: some View {
+        Button { openMenu() } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "square.grid.2x2").font(.system(size: 19))
+                Text("Menu").minorFont(15, .medium, maxScale: 1.3)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .frame(minWidth: 112, minHeight: 44)
+            .background(Capsule().fill(Color.white.opacity(0.06)))
+            .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(PressScale())
+        .accessibilityFocused($menuButtonFocused)
+    }
+
+    // MARK: - Menu
+
+    private var menu: some View {
+        MenuView(
+            theme: theme,
+            path: $menuPath,
+            isOpen: menuOpen,
+            onClose: closeMenu,
+            onNewDeck: { newDeck = NewDeckRequest(mapID: nil) },
+            onOpenMap: { openMapID = $0 },
+            onOpenDeck: { openDeckID = $0 },
+            onOpenJob: { generatingJobID = $0 },
+            onSettings: { showSettings = true }
+        ) { place in
+            menuDestination(place)
+        }
+    }
+
+    @ViewBuilder
+    private func menuDestination(_ place: MenuDestination) -> some View {
+        Group {
+            switch place {
+            case .newMap:
+                CreateMapView(
+                    theme: theme,
+                    conversations: chatVM.conversations,
+                    // Covered by a map or the Building screen counts as inactive.
+                    isActive: menuOpen && menuPath.last == .newMap && openMapID == nil && generatingJobID == nil,
+                    onUpgrade: { openPaywall(from: "create_map") },
+                    onUpgradePro: { openPaywall(pro: true, from: "create_map") },
+                    onStart: { input, model in
+                        withConsent { generatingJobID = GenerationCenter.shared.start(input, model: model) }
+                    },
+                    onOpenMap: { openMapID = $0 },
+                    onToday: { push(.today) },
+                    onAllMaps: {
+                        LibraryState.shared.tab = .maps
+                        push(.library)
+                    },
+                    onTemplates: { push(.templates(.maps)) }
+                )
+            case .library:
+                LibraryView(
+                    theme: theme,
+                    onOpenMap: { openMapID = $0 },
+                    onOpenDeck: { openDeckID = $0 },
+                    onOpenChat: { conversation in
+                        // The chat lives on the assistant: the Library steps away to show it.
+                        chatVM.open(conversation)
+                        closeMenu()
+                    },
+                    onOpenJob: { generatingJobID = $0 },
+                    onNewMap: { push(.newMap) },
+                    onNewDeck: { newDeck = NewDeckRequest(mapID: nil) },
+                    onNewChat: {
+                        // The earlier conversation stays in Chats.
+                        chatVM.endSession()
+                        closeMenu()
+                    },
+                    onLimits: { showUsage = true },
+                    onSettings: { showSettings = true }
+                )
+            case .today:
+                TodayView(theme: theme, onOpen: { mapID, nodeID in
+                    GenerationCenter.shared.focusNode = nodeID
+                    openMapID = mapID
+                }, onAsk: {
+                    // "Plan My Day": the chat assistant reads the tasks and answers.
+                    closeMenu()
+                    AuthGate.shared.require {
+                        chatVM.send(L("Plan my day: look at my tasks and deadlines and make a short plan for today, most important first."), model: selectedModel, withTasks: true)
+                    }
+                }, onStudy: { mapID in
+                    GenerationCenter.shared.studyRequest = mapID
+                    openMapID = mapID
+                }, onOpenMaps: { openLibrary(.maps) }, embedded: true)
+            case .templates(let tab):
+                TemplateLibraryView(theme: theme, tab: tab, onPickMap: createFromTemplate, onPickDeck: { template in
+                    newDeck = NewDeckRequest(mapID: nil, template: template.id)
+                })
+            }
+        }
+        .modifier(BackToAssistant(active: menuFromAssistant && menuPath.count == 1 && menuPath.first == place, onBack: closeMenu))
+    }
+
+    private func push(_ place: MenuDestination) {
+        guard menuPath.last != place else { return }
+        menuPath.append(place)
+    }
+
+    private func openMenu(to place: MenuDestination? = nil, fromAssistant: Bool = false) {
+        if menuOpen {
+            if let place, menuPath.last != place { menuPath.append(place) }
+            return
+        }
+        Haptics.impact(.light)
+        present(.rise, path: place.map { [$0] } ?? [], fromAssistant: fromAssistant && place != nil)
+    }
+
+    // The Library straight from the assistant's (or a chat's) top button: it slides in from the
+    // side, without the menu under it, and Back returns to where it was opened. Its tab and search
+    // are LibraryState's, so it opens as it was left unless a tab is asked for.
+    private func openLibrary(_ tab: LibraryTab? = nil, from opener: LibraryOpener = .assistant) {
+        if let tab { LibraryState.shared.tab = tab }
+        if menuOpen {
+            push(.library)
+            return
+        }
+        libraryOpener = opener
+        LibraryState.shared.fadePending = true
+        present(.slide, path: [.library], fromAssistant: true)
+    }
+
+    private func present(_ entry: MenuEntry, path: [MenuDestination], fromAssistant: Bool) {
+        homeFieldFocused = false
+        let moved = menuEntry != entry
+        var quiet = Transaction()
+        quiet.disablesAnimations = true
+        withTransaction(quiet) {
+            menuEntry = entry
+            menuDrag = 0
+            menuPath = path
+            menuFromAssistant = fromAssistant
+        }
+        let animation: Animation
+        if reduceMotion {
+            animation = .easeInOut(duration: entry == .slide ? 0.18 : 0.14)
+        } else {
+            // Ease-out, no spring: up for the menu, across for the Library.
+            animation = entry == .slide ? .timingCurve(0.22, 0.61, 0.36, 1, duration: 0.3) : .timingCurve(0.2, 0.85, 0.25, 1, duration: 0.3)
+        }
+        let show = { withAnimation(animation) { menuOpen = true } }
+        // A layer that just changed sides is drawn there once before it moves in.
+        if moved { DispatchQueue.main.async(execute: show) } else { show() }
+    }
+
+    private func closeMenu() {
+        guard menuOpen else { return }
+        let slide = menuEntry == .slide
+        let animation: Animation
+        if reduceMotion {
+            animation = .easeInOut(duration: 0.14)
+        } else {
+            animation = slide ? .timingCurve(0.22, 0.61, 0.36, 1, duration: 0.28) : .timingCurve(0.4, 0, 0.6, 1, duration: 0.23)
+        }
+        withAnimation(animation) { menuOpen = false }
+        // Once it is gone the stack goes back to the menu itself, and VoiceOver to the button that
+        // opened it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard !menuOpen else { return }
+            var quiet = Transaction()
+            quiet.disablesAnimations = true
+            withTransaction(quiet) {
+                menuPath = []
+                menuFromAssistant = false
+                menuEntry = .rise
+                menuDrag = 0
+            }
+            LibraryState.shared.query = ""
+            if !slide {
+                menuButtonFocused = true
+            } else if libraryOpener == .assistant && chatVM.messages.isEmpty {
+                libraryButtonFocused = true
+            }
+        }
+    }
+
+    // Back from the Library's left edge, following the finger (only where it came in from the side).
+    private var libraryBackGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onChanged { value in
+                guard menuOpen, menuEntry == .slide, !reduceMotion, menuPath.count == 1, value.startLocation.x < 24 else { return }
+                let dx = value.translation.width
+                guard menuDrag > 0 || dx > abs(value.translation.height) else { return }
+                menuDrag = max(0, dx)
+            }
+            .onEnded { value in
+                guard menuDrag > 0 else { return }
+                if value.translation.width > containerWidth * 0.35 || value.predictedEndTranslation.width > containerWidth * 0.6 {
+                    closeMenu()
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) { menuDrag = 0 }
+                }
+            }
+    }
+
+    // A map was built from New Map: Back from it goes to the menu (or the assistant, if New Map
+    // was opened from there), not to an emptied New Map.
+    private func leaveNewMap() {
+        guard menuOpen, menuPath.last == .newMap else { return }
+        var quiet = Transaction()
+        quiet.disablesAnimations = true
+        if menuFromAssistant && menuPath.count == 1 {
+            withTransaction(quiet) {
+                menuOpen = false
+                menuPath = []
+                menuFromAssistant = false
+            }
+        } else {
+            withTransaction(quiet) { _ = menuPath.popLast() }
+        }
+    }
+
+    // A template map counts as one of the month's maps; signing in comes first.
+    private func createFromTemplate(_ template: MapTemplate) {
+        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { createFromTemplate(template) } }
+        if account.isOverFreeLimit { return openPaywall(from: "templates") }
+        Task {
+            do {
+                let map = try await template.create()
+                openMapID = map.id
+            } catch BackendError.limitReached(let kind) {
+                account.noteLimitReached(kind: kind)
+                openPaywall(from: "templates")
+            } catch {
+                templateError = (error as? LocalizedError)?.errorDescription ?? L("Something went wrong. Try again.")
+            }
+        }
     }
 
     // `source` says what opened it, for the paywall funnel in analytics.
@@ -1064,6 +1258,12 @@ struct ContentView: View {
     }
 
     // A picture is drawn from words, so image mode needs text; attachments wait for a normal message.
+    private func startHomeVoice() {
+        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { homeVoice = true } }
+        Telemetry.log("voice_mode_start")
+        homeVoice = true
+    }
+
     private var canSendFromHome: Bool {
         let hasText = !askText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return homeImageMode ? hasText : hasText || !homeImages.isEmpty || homeFile != nil
@@ -1093,7 +1293,7 @@ struct ContentView: View {
 
     // Something shows in the row above the home card (attachments, an error or the hint).
     private var homeAccessoryShown: Bool {
-        !homeImages.isEmpty || homeFile != nil || homeError != nil || showHomeHint
+        !homeImages.isEmpty || homeFile != nil || homeError != nil
     }
 
     // Above the input card: attached photos and file, or the one-time Mind Map hint.
@@ -1129,26 +1329,17 @@ struct ContentView: View {
                     .accessibilityAddTraits(.isButton)
                 }
             }
-            .frame(width: chatWidth, alignment: .leading)
         } else if let homeError {
             Text(homeError)
                 .font(.system(size: 13))
                 .foregroundColor(MinorColor.textSecondary)
                 .multilineTextAlignment(.center)
-                .frame(width: chatWidth)
+                .frame(maxWidth: .infinity)
                 .onTapGesture { self.homeError = nil }
                 .task(id: homeError) {
                     try? await Task.sleep(nanoseconds: 6_000_000_000)
                     self.homeError = nil
                 }
-        } else if showHomeHint {
-            HStack(spacing: 6) {
-                Text("New: turn any topic into a mind map")
-                Image(systemName: "arrow.down")
-            }
-            .font(.system(size: 13))
-            .foregroundColor(MinorColor.textSecondary)
-            .transition(.opacity)
         }
     }
 
@@ -1161,12 +1352,6 @@ struct ContentView: View {
         }
     }
 
-
-    // The edge swipe opens Your Maps only from the home and Mind screens, never over a map,
-    // a chat or the paywall (where it fought with panning and scrolling).
-    private var sidebarSwipeEnabled: Bool {
-        openMapID == nil && openDeckID == nil && generatingJobID == nil && chatVM.messages.isEmpty && !isBlurActive && !showSettings
-    }
 
     // A "map is ready" notification was tapped: show that map, whatever was open.
     // minorai://today, minorai://map/<id>, minorai://task/<map id>/<idea id> (widget taps).
@@ -1181,12 +1366,10 @@ struct ContentView: View {
         switch url.host {
         case "today":
             if isBlurActive { closePaywall() }
-            closeSidebar()
             closeOverlays()
             openMapID = nil
             chatVM.endSession()
-            isMindActive = true
-            generation.todayRequest = true
+            if menuOpen { menuPath = [.today] } else { openMenu(to: .today) }
         case "map":
             if let map = parts.first { generation.openRequest = map }
         case "task":
@@ -1195,7 +1378,7 @@ struct ContentView: View {
                 generation.openRequest = parts[0]
             }
         case "join":
-            // minorai://join/<invite secret>: become an editor of a shared map.
+            // minorai://join/<invite secret>: the invitation to a shared map, before joining it.
             if let token = url.pathComponents.filter({ $0 != "/" }).first { joinShared(token) }
         case "invite":
             // minorai://invite/<friend's code> from an invitation link, or minorai://invite from a notification.
@@ -1212,12 +1395,13 @@ struct ContentView: View {
     // Only one sheet shows at a time: any open one closes first, then the requested screen opens.
     private func presentOverSettings(_ open: @escaping () -> Void) {
         if isBlurActive { closePaywall() }
-        let sheetOpen = showSettings || showUsage || inviteSheet != nil || newDeck != nil
+        let sheetOpen = showSettings || showUsage || inviteSheet != nil || newDeck != nil || pendingInvite != nil
         guard sheetOpen else { return open() }
         showSettings = false
         showUsage = false
         inviteSheet = nil
         newDeck = nil
+        pendingInvite = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: open)
     }
 
@@ -1231,20 +1415,9 @@ struct ContentView: View {
         newDeck = nil
     }
 
+    // Shows what the link offers; joining happens there, after sign-in if needed.
     private func joinShared(_ token: String) {
-        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { joinShared(token) } }
-        Task {
-            do {
-                let id = try await CollabService.shared.join(token: token)
-                Telemetry.log("collab_join")
-                if isBlurActive { closePaywall() }
-                closeSidebar()
-                chatVM.endSession()
-                openMapID = id
-            } catch {
-                homeError = (error as? LocalizedError)?.errorDescription ?? L("Couldn’t open the shared map. Try again.")
-            }
-        }
+        presentOverSettings { pendingInvite = InviteLink(token: token) }
     }
 
     // Pages and text shared from other apps, one at a time.
@@ -1253,13 +1426,16 @@ struct ContentView: View {
         pendingShare = next
     }
 
-    private enum Layer { case home, chat, building, map, deck }
+    private enum Layer { case home, menu, chat, building, map, deck }
+    enum MenuEntry { case rise, slide }
+    enum LibraryOpener { case assistant, chat }
 
     // The full-screen layer on top; VoiceOver reads only that one.
     private var topLayer: Layer {
         if openDeckID != nil { return .deck }
         if openMapID != nil { return .map }
         if generatingJobID != nil { return .building }
+        if menuOpen { return .menu }
         if !chatVM.messages.isEmpty { return .chat }
         return .home
     }
@@ -1268,25 +1444,9 @@ struct ContentView: View {
         generation.openRequest = nil
         guard MapStore.shared.map(id) != nil else { return }
         if isBlurActive { closePaywall() }
-        closeSidebar()
         closeOverlays()
         generatingJobID = nil
-        isMindActive = false
         openMapID = id
-    }
-
-    private func openSidebar() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isSidebarActive = true
-            sidebarOffset = 0
-        }
-    }
-
-    private func closeSidebar() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isSidebarActive = false
-            sidebarOffset = -UIScreen.main.bounds.width
-        }
     }
 }
 
@@ -1360,13 +1520,41 @@ struct InviteSheet: Identifiable {
     let code: String?
 }
 
-// A full-screen layer: modal for VoiceOver when on top, hidden from it when covered.
+// A full-screen layer: modal for VoiceOver when on top, hidden from it when covered. The modal
+// mark is set only while VoiceOver runs: UI tests would otherwise take the layer for an alert.
 private struct TopLayer: ViewModifier {
     let isTop: Bool
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
     func body(content: Content) -> some View {
         content
-            .accessibilityAddTraits(isTop ? .isModal : [])
+            .accessibilityAddTraits(isTop && voiceOver ? .isModal : [])
             .accessibilityHidden(!isTop)
+    }
+}
+
+// Opened from the assistant (Create a Map), the first screen in the menu goes Back to the assistant.
+private struct BackToAssistant: ViewModifier {
+    let active: Bool
+    var onBack: () -> Void
+
+    func body(content: Content) -> some View {
+        if active {
+            content
+                .navigationBarBackButtonHidden(true)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: onBack) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
+                                Text("Assistant")
+                            }
+                        }
+                        .accessibilityLabel("Back to Assistant")
+                    }
+                }
+        } else {
+            content
+        }
     }
 }

@@ -61,7 +61,7 @@ enum BackendError: LocalizedError, Equatable {
             }
         // The server sends this for YouTube and voice maps, the AI designer and other Plus features.
         case .planRequired: return L("This is part of Minor Plus.")
-        case .modelLocked: return L("Maps with this model are part of a higher plan.")
+        case .modelLocked: return L("This model is part of a higher plan.")
         case .sourceTooLong:
             return paid ? L("This source is too long. Try a shorter part of it.") : L("This source is too long for the free plan. Minor Plus reads much longer documents.")
         case .mapTooLarge: return L("This map is too large to change in one command. Expand ideas one by one instead.")
@@ -134,6 +134,9 @@ final class BackendClient {
             if let device = await Self.deviceID { request.setValue(device, forHTTPHeaderField: "x-device-id") }
             // The app's language: AI writes in it when the material doesn't decide the language.
             request.setValue(AppLanguage.current.code, forHTTPHeaderField: "x-app-language")
+            // What this version understands, so the server can change rules without breaking older
+            // versions: "chat-tiers" — locked chat models answer model_locked and show a paywall.
+            request.setValue("chat-tiers", forHTTPHeaderField: "x-minor-features")
             request.httpBody = payload
 
             let (data, response) = try await send(request)

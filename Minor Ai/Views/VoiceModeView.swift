@@ -108,61 +108,105 @@ struct VoiceModeView: View {
     @State private var problem: String?
     private let silence = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
 
+    @State private var showTranscript = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ZStack {
             theme.background.ignoresSafeArea()
-            VStack(spacing: 28) {
+            VStack(spacing: 0) {
                 HStack {
                     Button(action: close) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 20, weight: .medium))
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(Color.white.opacity(0.1)))
                     }
                     .accessibilityLabel("End Voice Mode")
                     Spacer()
-                    Text(model.displayName).font(.system(size: 15, weight: .medium)).foregroundColor(MinorColor.textSecondary)
+                    Text(verbatim: "Minor AI")
+                        .minorFont(17, .semibold, maxScale: 1.2)
+                        .accessibilityAddTraits(.isHeader)
                     Spacer()
-                    Color.clear.frame(width: 44, height: 44)
+                    Button { showTranscript = true } label: {
+                        Image(systemName: "text.bubble")
+                            .font(.system(size: 19))
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Conversation So Far")
                 }
-                .padding(.horizontal, 16)
-                Spacer()
-                orb
+                .padding(.horizontal, 12)
+                Spacer(minLength: 12)
+                mark
                     .onTapGesture(perform: tapOrb)
                     .accessibilityElement()
                     .accessibilityLabel(statusText)
                     .accessibilityAddTraits(.isButton)
                     .accessibilityHint(phase == .speaking ? L("Stops the answer and listens") : "")
+                LevelBars(level: orbLevel, active: phase == .listening || phase == .speaking, reduceMotion: reduceMotion)
+                    .frame(height: 40)
+                    .padding(.top, 34)
+                    .accessibilityHidden(true)
                 Text(statusText)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(MinorColor.textSecondary)
-                ScrollView {
-                    Text(phase == .speaking || phase == .thinking ? (answer.isEmpty ? heard : Speaker.plain(answer)) : heard)
-                        .font(.system(size: 20, weight: .medium))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 28)
+                    .minorFont(30, .bold, style: .title1, maxScale: 1.3)
+                    .padding(.top, 22)
+                    .accessibilityAddTraits(.updatesFrequently)
+                VStack(spacing: 8) {
+                    Text(captionText)
+                        .minorFont(14, maxScale: 1.3)
+                        .foregroundColor(MinorColor.textTertiary)
+                    ScrollView {
+                        Text(spokenText)
+                            .minorFont(21, maxScale: 1.4)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(maxHeight: 150)
                 }
-                .frame(maxHeight: 200)
+                .padding(.top, 34)
                 if let problem {
-                    Text(problem).font(.system(size: 14)).foregroundColor(MinorColor.dangerText).multilineTextAlignment(.center).padding(.horizontal, 30)
+                    Text(problem)
+                        .minorFont(14, maxScale: 1.3)
+                        .foregroundColor(MinorColor.dangerText)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                        .padding(.top, 8)
                 }
-                Spacer()
-                HStack(spacing: 24) {
+                Spacer(minLength: 12)
+                VStack(spacing: 10) {
                     Button {
                         if phase == .paused { listen() } else { pause() }
                     } label: {
                         Image(systemName: phase == .paused ? "mic.fill" : "pause.fill")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.black)
-                            .frame(width: 68, height: 68)
-                            .background(Circle().fill(MinorColor.accent))
+                            .frame(width: 76, height: 76)
+                            .background(Circle().fill(Color.white))
+                            .shadow(color: .white.opacity(0.18), radius: 18)
                     }
-                    .accessibilityLabel(phase == .paused ? "Listen" : "Pause")
+                    .accessibilityLabel(phase == .paused ? L("Continue") : L("Pause"))
+                    Text(phase == .paused ? L("Continue") : L("Pause"))
+                        .minorFont(14, maxScale: 1.3)
+                        .foregroundColor(MinorColor.textSecondary)
+                        .accessibilityHidden(true)
                 }
-                .padding(.bottom, 24)
+                Button(action: close) {
+                    HStack(spacing: 6) {
+                        Text("Go to Chat")
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                    }
+                    .minorFont(15, maxScale: 1.3)
+                    .foregroundColor(MinorColor.textTertiary)
+                    .frame(minHeight: 44)
+                }
+                .padding(.top, 28)
+                .padding(.bottom, 12)
             }
             .foregroundColor(MinorColor.textPrimary)
+        }
+        .sheet(isPresented: $showTranscript) {
+            VoiceTranscript(messages: viewModel.messages, theme: theme)
+                .presentationDetents([.medium, .large])
         }
         .onAppear {
             messageCount = viewModel.messages.count
@@ -182,7 +226,7 @@ struct VoiceModeView: View {
         .onChange(of: viewModel.isSending) { sending in if !sending { checkReply() } }
     }
 
-    // MARK: - Orb
+    // MARK: - Mark
 
     private var orbLevel: CGFloat {
         switch phase {
@@ -193,32 +237,46 @@ struct VoiceModeView: View {
         }
     }
 
-    private var orb: some View {
+    // The real Minor mark, with a glow that breathes with the voice.
+    private var mark: some View {
         ZStack {
             Circle()
-                .fill(MinorColor.accent.opacity(0.18))
-                .frame(width: 260, height: 260)
-                .scaleEffect(1 + orbLevel * 0.25)
-                .blur(radius: 20)
-            Circle()
-                .fill(AngularGradient(colors: [MinorColor.accent, Color(hex: "#7CC4FF"), Color(hex: "#C9A2FF"), MinorColor.accent], center: .center))
-                .frame(width: 180, height: 180)
-                .scaleEffect(1 + orbLevel * 0.18)
-                .rotationEffect(.degrees(phase == .thinking ? 360 : 0))
-                .animation(phase == .thinking ? .linear(duration: 2).repeatForever(autoreverses: false) : .easeOut(duration: 0.12), value: phase == .thinking ? 1 : orbLevel)
-                .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
-                .opacity(phase == .paused ? 0.5 : 1)
+                .fill(RadialGradient(colors: [MinorColor.accent.opacity(phase == .paused ? 0.12 : 0.34), MinorColor.accent.opacity(0)], center: .center, startRadius: 10, endRadius: 150))
+                .frame(width: 300, height: 300)
+                .scaleEffect(reduceMotion ? 1 : 1 + orbLevel * 0.22)
+                .animation(.easeOut(duration: 0.15), value: orbLevel)
+            Image("logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 128, height: 128)
+                .scaleEffect(reduceMotion ? 1 : 1 + orbLevel * 0.06)
+                .opacity(phase == .paused ? 0.55 : 1)
+                .rotationEffect(.degrees(phase == .thinking && !reduceMotion ? 360 : 0))
+                .animation(phase == .thinking && !reduceMotion ? .linear(duration: 3).repeatForever(autoreverses: false) : .easeOut(duration: 0.2), value: phase == .thinking)
         }
-        .frame(width: 280, height: 280)
+        .frame(width: 300, height: 260)
     }
 
     private var statusText: String {
         switch phase {
-        case .listening: return heard.isEmpty ? L("Listening…") : L("Listening — pause when you’re done")
-        case .thinking: return L("Thinking…")
-        case .speaking: return L("Speaking — tap to interrupt")
+        case .listening: return L("Listening")
+        case .thinking: return L("Thinking")
+        case .speaking: return L("Answering")
         case .paused: return L("Paused")
         }
+    }
+
+    private var captionText: String {
+        switch phase {
+        case .speaking: return L("Minor’s answer")
+        case .listening where heard.isEmpty: return L("Speak; Minor answers when you pause")
+        case .paused where heard.isEmpty: return L("Tap Continue to talk")
+        default: return L("Your words")
+        }
+    }
+
+    private var spokenText: String {
+        phase == .speaking ? Speaker.plain(answer) : heard
     }
 
     // MARK: - Flow
@@ -297,8 +355,7 @@ struct VoiceModeView: View {
 
     private func tapOrb() {
         switch phase {
-        case .speaking: listen()
-        case .paused: listen()
+        case .speaking, .paused: listen()
         case .listening, .thinking: break
         }
     }
@@ -309,3 +366,62 @@ struct VoiceModeView: View {
         onClose()
     }
 }
+
+// Bars under the mark that rise with the voice; flat dots when nothing is heard.
+private struct LevelBars: View {
+    let level: CGFloat
+    let active: Bool
+    let reduceMotion: Bool
+
+    private let count = 17
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 20, paused: !active || reduceMotion)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 5) {
+                ForEach(0..<count, id: \.self) { i in
+                    let distance = abs(Double(i) - Double(count - 1) / 2) / (Double(count) / 2)
+                    let wave = active && !reduceMotion ? (sin(t * 7 + Double(i) * 0.9) + 1) / 2 : 0
+                    let height = 4 + (active ? CGFloat((1 - distance) * (0.35 + 0.65 * wave)) * max(level, 0.15) * 36 : 0)
+                    Capsule()
+                        .fill(MinorColor.accent.opacity(0.35 + 0.65 * (1 - distance)))
+                        .frame(width: 4, height: height)
+                }
+            }
+            .frame(height: 40)
+        }
+    }
+}
+
+// What was said so far in this conversation, from Voice Mode.
+private struct VoiceTranscript: View {
+    let messages: [ChatMessage]
+    let theme: AppTheme
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(messages.filter { !$0.isHidden && !$0.text.isEmpty }) { message in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(message.role == .user ? L("You") : "Minor")
+                                .minorFont(12, .semibold, style: .caption1, maxScale: 1.3)
+                                .foregroundColor(MinorColor.textTertiary)
+                            Text(Speaker.plain(message.text)).minorFont(16, maxScale: 1.4)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(20)
+            }
+            .foregroundColor(MinorColor.textPrimary)
+            .background(theme.background.ignoresSafeArea())
+            .navigationTitle(Text("Conversation So Far"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.foregroundColor(MinorColor.accent) } }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+

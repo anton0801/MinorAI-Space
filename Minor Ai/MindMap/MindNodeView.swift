@@ -62,10 +62,16 @@ struct MindNodeView: View {
                 }
                 VStack(alignment: trailingText ? .trailing : .leading, spacing: 0) {
                     titleRow
-                    if decor.linkHost != nil || decor.due != nil {
+                    if decor.showsDetails {
                         HStack(spacing: 8) {
                             if let due = decor.due {
                                 DueLabel(date: due)
+                                    .layoutPriority(2)
+                            }
+                            if !decor.labels.isEmpty {
+                                // The link gives way first when the line is longer than the idea.
+                                NodeLabelsLine(labels: decor.labels)
+                                    .layoutPriority(1)
                             }
                             if let host = decor.linkHost {
                                 HStack(spacing: 4) {
@@ -307,6 +313,7 @@ struct MindNodeView: View {
         if decor.showsProgress { text += L(", \(decor.tasksDone) of \(decor.tasksTotal) tasks done") }
         if decor.image != nil { text += L(", picture") }
         if let host = decor.linkHost { text += L(", link to \(host)") }
+        if !decor.labels.isEmpty { text += L(", labels: \(decor.labels.joined(separator: ", "))") }
         if node.hiddenCount > 0 { text += L(", \(node.hiddenCount) hidden") }
         if isGenerating { text += L(", expanding") }
         return text

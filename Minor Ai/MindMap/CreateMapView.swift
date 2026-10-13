@@ -13,20 +13,20 @@ import UniformTypeIdentifiers
 struct CreateMapView: View {
     let theme: AppTheme
     let conversations: [Conversation]
-    // False while the screen is hidden behind the home screen (it stays in the hierarchy).
+    // False while the screen is covered (a map, a chat or the Building screen on top of it).
     var isActive: Bool = true
-    var onClose: () -> Void
-    var onOpenSidebar: () -> Void
     var onUpgrade: () -> Void
     var onUpgradePro: () -> Void = {}
     var onStart: (MapInput, AIModelOption) -> Void
     var onOpenMap: (UUID) -> Void
-    var onAskAssistant: (String) -> Void = { _ in }
-    var onNewDeck: () -> Void = {}
+    var onToday: () -> Void = {}
+    var onAllMaps: () -> Void = {}
+    var onTemplates: () -> Void = {}
 
     @ObservedObject private var store = MapStore.shared
     @ObservedObject private var account = AccountStore.shared
     @ObservedObject private var network = NetworkMonitor.shared
+    @ObservedObject private var recents = RecentDocuments.shared
     @State private var text = ""
     @State private var attachment: MapInput?
     @State private var showChatPicker = false
@@ -34,8 +34,7 @@ struct CreateMapView: View {
     @State private var noticeIsLimit = false
     @State private var showConsent = false
     @State private var canPaste = false
-    @State private var showToday = false
-    @State private var showTemplates = false
+    @State private var showOptions = false
     @State private var showScanChoice = false
     @State private var showScanner = false
     @State private var showScanPhotos = false
@@ -46,132 +45,58 @@ struct CreateMapView: View {
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var fieldFocused: Bool
 
+    // The ways to start a map besides typing a topic.
     private enum Tile: CaseIterable {
-        case topic, document, link, youtube, voice, scan, chat, template
+        case document, link, youtube, voice, scan, chat
 
         var icon: String {
             switch self {
-            case .topic: return "textformat"
             case .document: return "doc.text"
             case .link: return "link"
             case .youtube: return "play.rectangle"
             case .voice: return "mic"
             case .scan: return "doc.viewfinder"
             case .chat: return "bubble.left"
-            case .template: return "square.grid.2x2"
             }
         }
         var title: String {
             switch self {
-            case .topic: return L("Topic")
             case .document: return L("Document")
             case .link: return L("Link")
             case .youtube: return L("YouTube")
             case .voice: return L("Voice")
             case .scan: return L("Scan")
             case .chat: return L("From Chat")
-            case .template: return L("Template")
             }
         }
         var caption: String {
             switch self {
-            case .topic: return L("Type any subject")
-            case .document: return L("PDF, TXT or RTF")
-            case .link: return L("Article or web page")
-            case .youtube: return L("Video transcript")
-            case .voice: return L("Talk it through")
-            case .scan: return L("Notes, slides, a whiteboard")
-            case .chat: return L("Turn a chat into a map")
-            case .template: return L("Ready structures")
+            case .document: return L("PDF, TXT, RTF")
+            case .link: return L("Article or website")
+            case .youtube: return L("Video subtitles")
+            case .voice: return L("Record a thought")
+            case .scan: return L("Photo of your notes")
+            case .chat: return L("Pick a conversation")
             }
         }
         var needsPlus: Bool { self == .youtube || self == .voice }
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: onOpenSidebar) {
-                    Image("Slider").resizable().scaledToFit().frame(width: 25, height: 25).frame(width: 44, height: 44)
-                }
-                .accessibilityLabel("Your Maps")
-                Spacer()
-                Button(action: onUpgrade) {
-                    HStack(spacing: 5) {
-                        Image("minlogo").resizable().scaledToFit().frame(width: 28, height: 28)
-                        Text("Minor Plus").font(.system(size: 16)).foregroundColor(.white)
-                    }
-                    .padding(.trailing, 8)
-                    .frame(width: 130, height: 35)
-                    .background(Capsule().fill(theme.chatRectangle))
-                    .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
-                }
-                .opacity(account.isPaid ? 0 : 1)
-                .allowsHitTesting(!account.isPaid)
-                .accessibilityHidden(account.isPaid)
-                .accessibilityLabel("Get Minor Plus")
-                Spacer()
-                Color.clear.frame(width: 44, height: 44)
-            }
-            .padding(.horizontal, 14)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Start from a topic or material.")
+                    .minorFont(15, maxScale: 1.4)
+                    .foregroundColor(MinorColor.textSecondary)
+                    .padding(.bottom, 16)
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Start a Map")
-                        .font(.system(size: 22, weight: .bold))
-                    Text("Pick a source or just type a topic.")
-                        .font(.system(size: 15))
-                        .foregroundColor(MinorColor.textSecondary)
-                        .padding(.top, 4)
-                        .padding(.bottom, 20)
-
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                        ForEach(Tile.allCases, id: \.self) { tile in
-                            tileView(tile)
-                        }
-                    }
-
-                    HStack(spacing: 10) {
-                        shortcut("calendar", L("Today"), detail: todayDetail, highlight: TaskAgenda.dueCount(in: store.maps) > 0) { showToday = true }
-                        shortcut("rectangle.on.rectangle.angled", L("Slides"), detail: L("AI presentation")) { onNewDeck() }
-                    }
-                    .padding(.top, 12)
-
-                    if !store.maps.isEmpty {
-                        Text("RECENT")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(MinorColor.textTertiary)
-                            .padding(.top, 24)
-                            .padding(.bottom, 10)
-                        VStack(spacing: 8) {
-                            ForEach(store.maps.prefix(2)) { map in
-                                Button {
-                                    voice.cancel()
-                                    onOpenMap(map.id)
-                                } label: { MapCardView(map: map) }
-                                    .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 16)
-            }
-
-            VStack(spacing: 8) {
                 if !network.isOnline {
-                    Text("You’re offline. Maps need a connection to generate.")
-                        .font(.system(size: 13))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(MinorColor.danger.opacity(0.25)))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(MinorColor.danger.opacity(0.6), lineWidth: 1))
+                    banner(L("You’re offline. Maps need a connection to generate."), danger: true)
+                        .padding(.bottom, 10)
                 }
                 if let notice {
                     HStack(spacing: 10) {
-                        Text(notice).font(.system(size: 13)).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(notice).minorFont(13, style: .footnote, maxScale: 1.4).frame(maxWidth: .infinity, alignment: .leading)
                         if noticeIsLimit {
                             Button("Get Minor Plus", action: onUpgrade).font(.system(size: 13, weight: .semibold))
                         }
@@ -180,38 +105,74 @@ struct CreateMapView: View {
                     .padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 12).fill(theme.chatRectangle))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(theme.chatStroke, lineWidth: 1))
+                    .padding(.bottom, 10)
                 }
+
                 if account.isOverFreeLimit {
-                    UsageMeterView()
-                    Text("You’ve used \(account.freeMapLimit) of \(account.freeMapLimit) free maps this month. They come back on \(account.resetDateText).")
-                        .font(.system(size: 13))
-                        .foregroundColor(MinorColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                    Button(action: onUpgrade) {
-                        Text("Get Minor Plus")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Capsule().fill(MinorColor.sendFill))
-                    }
+                    limitCard
+                } else if voice.state == .listening {
+                    listeningBar
                 } else {
-                    composer
+                    topicCard
                 }
-                Button(action: onClose) {
-                    Image(systemName: "house.fill").font(.system(size: 26)).foregroundColor(.white).frame(width: 44, height: 44)
+
+                optionsRow.padding(.top, 12)
+
+                Text("From Material")
+                    .minorFont(17, .semibold, maxScale: 1.3)
+                    .padding(.top, 26)
+                    .padding(.bottom, 12)
+                    .accessibilityAddTraits(.isHeader)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    ForEach(Tile.allCases, id: \.self) { tile in
+                        tileView(tile)
+                    }
                 }
-                .accessibilityLabel("Home")
+
+                templatesRow.padding(.top, 10)
+
+                if let recent = recentMap {
+                    HStack {
+                        Text("Recently").minorFont(17, .semibold, maxScale: 1.3).accessibilityAddTraits(.isHeader)
+                        Spacer()
+                        Button(action: onAllMaps) {
+                            HStack(spacing: 4) {
+                                Text("All Maps")
+                                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                            }
+                            .minorFont(14, .medium, maxScale: 1.3)
+                            .foregroundColor(MinorColor.accent)
+                            .frame(minHeight: 44)
+                        }
+                    }
+                    .padding(.top, 22)
+                    Button {
+                        voice.cancel()
+                        onOpenMap(recent.id)
+                    } label: { MapCardView(map: recent) }
+                        .buttonStyle(PressScale())
+                }
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 4)
+            .padding(.horizontal, 20)
+            .padding(.top, 4)
+            .padding(.bottom, 24)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .background(theme.background.ignoresSafeArea())
         .foregroundColor(MinorColor.textPrimary)
-        .onReceive(GenerationCenter.shared.$todayRequest) { requested in
-            guard requested else { return }
-            GenerationCenter.shared.todayRequest = false
-            showTemplates = false
-            showToday = true
+        .navigationTitle(Text("New Map"))
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button(action: onToday) { Label("Today", systemImage: "calendar") }
+                    Button(action: onAllMaps) { Label("Library", systemImage: "books.vertical") }
+                    Button(action: onTemplates) { Label("Templates", systemImage: "square.grid.2x2") }
+                } label: {
+                    Image(systemName: "ellipsis.circle").font(.system(size: 17))
+                }
+                .accessibilityLabel("More")
+            }
         }
         .confirmationDialog("Scan", isPresented: $showScanChoice, titleVisibility: .hidden) {
             if DocumentScanner.isAvailable {
@@ -253,22 +214,11 @@ struct CreateMapView: View {
                     .padding(24)
                     .background(RoundedRectangle(cornerRadius: 18).fill(theme.chatRectangle))
                 }
+                .accessibilityElement(children: .combine)
             }
         }
-        .sheet(isPresented: $showToday) {
-            TodayView(theme: theme, onOpen: { mapID, nodeID in
-                GenerationCenter.shared.focusNode = nodeID
-                onOpenMap(mapID)
-            }, onAsk: {
-                showToday = false
-                onAskAssistant(L("Plan my day: look at my tasks and deadlines and make a short plan for today, most important first."))
-            }, onStudy: { mapID in
-                GenerationCenter.shared.studyRequest = mapID
-                onOpenMap(mapID)
-            })
-        }
-        .sheet(isPresented: $showTemplates) {
-            TemplatesView(theme: theme) { template in createFromTemplate(template) }
+        .sheet(isPresented: $showOptions) {
+            MapOptionsSheet(theme: theme, selection: $mapModelID, onUpgrade: onUpgrade, onUpgradePro: onUpgradePro)
         }
         .sheet(isPresented: $showConsent) {
             AIConsentView(
@@ -296,12 +246,6 @@ struct CreateMapView: View {
             voice.onAutoFinish = { heard in finish(heard) }
             canPaste = UIPasteboard.general.hasStrings || UIPasteboard.general.hasURLs
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("-demoToday") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { showToday = true }
-            }
-            if ProcessInfo.processInfo.arguments.contains("-demoTemplates") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { showTemplates = true }
-            }
             if ProcessInfo.processInfo.arguments.contains("-demoImport") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { tap(.document) }
             }
@@ -330,6 +274,97 @@ struct CreateMapView: View {
             text = ""
         }
         .onDisappear { voice.cancel() }
+        // A map stopped or failed while being made: what was typed or picked comes back to edit.
+        .onReceive(GenerationCenter.shared.$returnedInput) { input in
+            guard let input else { return }
+            DispatchQueue.main.async { GenerationCenter.shared.returnedInput = nil }
+            switch input {
+            case .topic(let topic):
+                text = topic
+                attachment = nil
+            case .link(let url), .youtube(let url):
+                text = url
+                attachment = nil
+            case .text:
+                text = ""
+                attachment = input
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { fieldFocused = true }
+        }
+    }
+
+    // The map opened last (or edited last), offered to continue.
+    private var recentMap: MindMap? {
+        guard let entry = recents.latest(1, maps: store.maps, decks: []).first else { return nil }
+        return store.map(entry.id)
+    }
+
+    private func banner(_ text: String, danger: Bool) -> some View {
+        Text(text)
+            .minorFont(13, style: .footnote, maxScale: 1.4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 12).fill(MinorColor.danger.opacity(0.25)))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(MinorColor.danger.opacity(0.6), lineWidth: 1))
+    }
+
+    private var limitCard: some View {
+        VStack(spacing: 10) {
+            UsageMeterView()
+            Text("You’ve used \(account.freeMapLimit) of \(account.freeMapLimit) free maps this month. They come back on \(account.resetDateText).")
+                .minorFont(13, style: .footnote, maxScale: 1.4)
+                .foregroundColor(MinorColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Button(action: onUpgrade) {
+                Text("Get Minor Plus")
+                    .minorFont(16, .semibold, maxScale: 1.3)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(Capsule().fill(MinorColor.sendFill))
+            }
+        }
+    }
+
+    // "Map Options": the model that builds the map, in its own sheet.
+    private var optionsRow: some View {
+        Button { showOptions = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "slider.horizontal.3").font(.system(size: 16)).frame(width: 24)
+                Text("Map Options").minorFont(16, maxScale: 1.4)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundColor(MinorColor.textTertiary)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 50)
+            .background(RoundedRectangle(cornerRadius: 14).fill(theme.chatRectangle))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.chatStroke, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScale())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("Map Options, model \(mapModel.displayName)"))
+    }
+
+    private var templatesRow: some View {
+        Button(action: onTemplates) {
+            HStack(spacing: 12) {
+                Image(systemName: "square.grid.2x2").font(.system(size: 18)).frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Templates").minorFont(15, .medium, maxScale: 1.4)
+                    Text("Ready structure").minorFont(12, style: .caption1, maxScale: 1.4).foregroundColor(MinorColor.textTertiary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundColor(MinorColor.textTertiary)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 56)
+            .background(RoundedRectangle(cornerRadius: 14).fill(theme.chatRectangle))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.chatStroke, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScale())
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Tiles
@@ -338,41 +373,50 @@ struct CreateMapView: View {
         let locked = tile.needsPlus && !account.isPaid
         let active = isActive(tile)
         return Button { tap(tile) } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: tile.icon).font(.system(size: 20)).frame(height: 24, alignment: .leading)
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: tile.icon).font(.system(size: 19)).frame(width: 24, height: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tile.title).font(.system(size: 15, weight: .medium))
-                    Text(tile.caption).font(.system(size: 12)).foregroundColor(MinorColor.textTertiary).lineLimit(1)
+                    Text(tile.title).minorFont(14, .medium, maxScale: 1.4).fixedSize(horizontal: false, vertical: true)
+                    Text(tile.caption)
+                        .minorFont(11, style: .caption2, maxScale: 1.4)
+                        .foregroundColor(MinorColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 16).fill(theme.chatRectangle))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(active ? MinorColor.accent : theme.chatStroke, lineWidth: 1))
+            .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 14).fill(theme.chatRectangle))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(active ? MinorColor.accent : theme.chatStroke, lineWidth: 1))
             .overlay(alignment: .topTrailing) {
                 if locked {
-                    HStack(spacing: 4) {
-                        Image(systemName: "lock.fill").font(.system(size: 10))
-                        Text("Plus").font(.system(size: 12, weight: .semibold))
+                    HStack(spacing: 3) {
+                        Image(systemName: "lock.fill").font(.system(size: 9))
+                        Text("Plus").font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundColor(MinorColor.textSecondary)
-                    .padding(12)
+                    .padding(8)
                 }
             }
+            .contentShape(RoundedRectangle(cornerRadius: 14))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(locked ? Text("Minor Plus") : Text(""))
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     private func isActive(_ tile: Tile) -> Bool {
         switch attachment {
         case .some(.text(_, let source)):
-            return (tile == .document && source.kind == .document) || (tile == .chat && source.kind == .chat) || (tile == .scan && source.kind == .scan)
+            return (tile == .document && source.kind == .document) || (tile == .chat && source.kind == .chat) || (tile == .scan && source.kind == .scan) || (tile == .voice && source.kind == .voice)
         case .some(.link): return tile == .link
         case .some(.youtube): return tile == .youtube
         default:
             if voice.state == .listening { return tile == .voice }
             if let url = linkInText { return tile == (Self.isYouTube(url) ? .youtube : .link) }
-            return tile == .topic && attachment == nil
+            return false
         }
     }
 
@@ -381,9 +425,6 @@ struct CreateMapView: View {
         // Every tile starts a new map: with this month's free maps used up, the paywall opens.
         if account.isOverFreeLimit { return onUpgrade() }
         switch tile {
-        case .topic:
-            attachment = nil
-            fieldFocused = true
         case .document:
             DocumentPicker.present { importDocument($0) }
         case .link:
@@ -410,8 +451,6 @@ struct CreateMapView: View {
             }
         case .scan:
             showScanChoice = true
-        case .template:
-            showTemplates = true
         case .chat:
             if conversations.isEmpty {
                 show(L("No chats yet. Start one from the home screen."))
@@ -425,58 +464,10 @@ struct CreateMapView: View {
 
     private var linkInText: URL? { Self.link(in: text) }
 
-    @ViewBuilder
-    private var composer: some View {
-        if voice.state == .listening {
-            listeningBar
-        } else {
-            modelPicker
-            fieldBar
-        }
-    }
-
     // The model that builds the map; the plan's choice falls back to the standard one.
     private var mapModel: AIModelOption {
         let chosen = AIModelCatalog.option(apiID: mapModelID) ?? AIModelCatalog.defaultMap
         return account.allowsMaps(with: chosen) ? chosen : AIModelCatalog.defaultMap
-    }
-
-    // Standard models for everyone; Claude Opus with Plus; GPT-6 Astra and Claude Fable with PRO.
-    private var modelPicker: some View {
-        Menu {
-            ForEach(AIModelCatalog.mapModels) { model in
-                Button {
-                    if account.allowsMaps(with: model) {
-                        mapModelID = model.apiModelID
-                    } else if model.mapPlan == .pro {
-                        onUpgradePro()
-                    } else {
-                        onUpgrade()
-                    }
-                } label: {
-                    if model == mapModel {
-                        Label(model.displayName, systemImage: "checkmark")
-                    } else if !account.allowsMaps(with: model) {
-                        Label("\(model.displayName) · \(model.mapPlan == .pro ? "PRO" : "Plus")", systemImage: "lock.fill")
-                    } else {
-                        Text(model.displayName)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "cpu").font(.system(size: 12))
-                Text(mapModel.displayName).font(.system(size: 13))
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 10))
-            }
-            .foregroundColor(MinorColor.textSecondary)
-            .padding(.horizontal, 12)
-            .frame(minHeight: 32)
-            .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
-            .contentShape(Capsule())
-        }
-        .accessibilityLabel("Map model: \(mapModel.displayName)")
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var listeningBar: some View {
@@ -484,11 +475,13 @@ struct CreateMapView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(voice.transcript.isEmpty ? L("Listening…") : voice.transcript)
                     .font(.system(size: 15))
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .truncationMode(.head)
-                Text(String(format: "%d:%02d", Int(voice.elapsed) / 60, Int(voice.elapsed) % 60))
+                Text(String(format: "%d:%02d", Int(voice.elapsed) / 60, Int(voice.elapsed) % 60) + " · " + L("The recording stays on this iPhone"))
                     .font(.system(size: 12).monospacedDigit())
                     .foregroundColor(MinorColor.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             Spacer(minLength: 8)
             HStack(spacing: 3) {
@@ -506,12 +499,13 @@ struct CreateMapView: View {
                     .frame(width: 12, height: 12)
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(MinorColor.sendFill))
+                    .frame(width: 44, height: 44)
             }
             .accessibilityLabel("Stop and build map")
         }
         .padding(.leading, 16)
-        .padding(.trailing, 12)
-        .frame(height: 60)
+        .padding(.trailing, 8)
+        .frame(minHeight: 72)
         .minorSurface(theme)
     }
 
@@ -524,81 +518,115 @@ struct CreateMapView: View {
     private func keepVoiceNote() {
         guard voice.state == .listening || voice.state == .starting else { return }
         let heard = voice.stop()
-        if heard.count > 3 {
-            attachment = .text(heard, source: MapSource(kind: .voice, label: L("Voice note")))
-        }
+        if heard.count > 3 { attachVoice(heard) }
     }
 
     private func finish(_ heard: String) {
         guard heard.count > 3 else {
+            voice.discardRecording()
             show(L("Didn’t catch that. Try again."))
             return
         }
         // Kept as the source, so nothing is lost if AI consent is still needed.
-        attachment = .text(heard, source: MapSource(kind: .voice, label: L("Voice note")))
+        attachVoice(heard)
         start()
     }
 
-    private var fieldBar: some View {
-        HStack(spacing: 10) {
+    // The recording becomes the material's original, its words timed passages.
+    private func attachVoice(_ heard: String) {
+        let draft = SourceImport.voice(heard, recording: voice.recording)
+        voice.discardRecording()
+        SourceDrafts.shared.put(draft, for: heard)
+        attachment = .text(heard, source: MapSource(kind: .voice, label: L("Voice note")))
+    }
+
+    // The topic field first; a picked source shows in its place with a way to remove it.
+    private var topicCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
             if let chip = attachmentChip {
-                HStack(spacing: 6) {
-                    Image(systemName: chip.icon).font(.system(size: 13))
-                    Text(chip.label).font(.system(size: 14)).lineLimit(1)
-                    Button { attachment = nil } label: { Image(systemName: "xmark").font(.system(size: 11, weight: .bold)) }
-                        .accessibilityLabel("Remove source")
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .overlay(RoundedRectangle(cornerRadius: 15).stroke(theme.chatStroke, lineWidth: 1))
-                Spacer(minLength: 0)
-            } else {
-                TextField("", text: $text)
-                    .placeholder(when: text.isEmpty) {
-                        Text("Map any topic or paste a link").foregroundColor(theme.placeholderText)
+                HStack(spacing: 10) {
+                    Image(systemName: chip.icon).font(.system(size: 16)).frame(width: 34, height: 34)
+                        .background(RoundedRectangle(cornerRadius: 9).fill(Color.white.opacity(0.08)))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(chip.label).minorFont(15, .medium, maxScale: 1.4).lineLimit(2)
+                        Text(chip.kind).minorFont(12, style: .caption1, maxScale: 1.4).foregroundColor(MinorColor.textTertiary)
                     }
-                    .font(.system(size: 17))
+                    Spacer(minLength: 4)
+                    Button { attachment = nil } label: {
+                        Image(systemName: "xmark").font(.system(size: 12, weight: .bold))
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(Color.white.opacity(0.1)))
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Remove source")
+                }
+            } else {
+                TextField("", text: $text, axis: .vertical)
+                    .placeholder(when: text.isEmpty, alignment: .topLeading) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("What is the map about?").foregroundColor(MinorColor.textSecondary)
+                            Text("For example, launching a podcast").minorFont(13, style: .footnote, maxScale: 1.4).foregroundColor(MinorColor.textTertiary)
+                        }
+                    }
+                    .minorFont(17, maxScale: 1.4)
+                    .lineLimit(1...4)
                     .focused($fieldFocused)
                     .submitLabel(.go)
                     .onSubmit(start)
                     .textInputAutocapitalization(.sentences)
                     .accessibilityLabel("Topic or link")
-                if canPaste && (text.isEmpty || text == "https://") {
+                if let url = linkInText {
+                    Label(Self.isYouTube(url) ? L("YouTube video: subtitles become the map") : L("Link: \(url.host ?? url.absoluteString)"),
+                          systemImage: Self.isYouTube(url) ? "play.rectangle" : "link")
+                        .minorFont(13, style: .footnote, maxScale: 1.4)
+                        .foregroundColor(MinorColor.accent)
+                }
+            }
+            HStack(spacing: 10) {
+                if attachment == nil && canPaste && (text.isEmpty || text == "https://") {
                     // The system Paste button reads the clipboard without the "Allow Paste" prompt.
                     PasteButton(payloadType: String.self) { strings in
                         guard let pasted = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines), !pasted.isEmpty else { return }
                         Task { @MainActor in text = pasted }
                     }
-                    .labelStyle(.iconOnly)
                     .buttonBorderShape(.capsule)
                     .tint(theme.chatStroke)
                 }
+                Spacer(minLength: 0)
+                Button(action: start) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(MinorColor.sendFill))
+                        .frame(width: 44, height: 44)
+                }
+                .disabled(!canStart)
+                .opacity(canStart ? 1 : 0.35)
+                .accessibilityLabel("Build Map")
             }
-            Button(action: start) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.black)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(MinorColor.sendFill))
-            }
-            .disabled(!canStart)
-            .opacity(canStart ? 1 : 0.4)
-            .accessibilityLabel("Build Map")
         }
         .padding(.leading, 16)
-        .padding(.trailing, 12)
-        .frame(height: 60)
+        .padding(.trailing, 8)
+        .padding(.top, 14)
+        .padding(.bottom, 6)
+        .frame(minHeight: 120, alignment: .top)
         .minorSurface(theme)
     }
 
-    private var attachmentChip: (icon: String, label: String)? {
+    private var attachmentChip: (icon: String, label: String, kind: String)? {
         switch attachment {
         case .some(.link(let url)):
-            return ("link", URL(string: url)?.host ?? url)
+            return ("link", URL(string: url)?.host ?? url, L("Link"))
         case .some(.youtube):
-            return ("play.rectangle", L("YouTube video"))
+            return ("play.rectangle", L("YouTube video"), L("YouTube"))
         case .some(.text(_, let source)):
-            return (source.kind == .chat ? "bubble.left" : "doc.text", source.label)
+            switch source.kind {
+            case .chat: return ("bubble.left", source.label, L("Chat"))
+            case .voice: return ("mic", source.label, L("Voice note"))
+            case .scan: return ("doc.viewfinder", source.label, L("Scan"))
+            default: return ("doc.text", source.label, L("Document"))
+            }
         default:
             return nil
         }
@@ -652,68 +680,17 @@ struct CreateMapView: View {
         guard !pages.isEmpty else { return }
         reading = true
         Task {
-            let text = await TextRecognizer.text(from: pages)
+            let label = pages.count == 1 ? L("Scan") : L("Scan · \(pages.count) pages")
+            // The pages are kept as the original, with where each recognized line is.
+            let draft = await SourceImport.scan(pages, name: L("Scan"))
             reading = false
-            guard text.trimmingCharacters(in: .whitespacesAndNewlines).count > 20 else {
+            guard let draft else {
                 return show(L("No text found in these pictures. Try a sharper photo with more light."))
             }
-            attachment = .text(text, source: MapSource(kind: .scan, label: pages.count == 1 ? L("Scan") : L("Scan · \(pages.count) pages")))
+            SourceDrafts.shared.put(draft, for: draft.text)
+            if let problem = draft.originalError { show(problem) }
+            attachment = .text(draft.text, source: MapSource(kind: .scan, label: label))
         }
-    }
-
-    // MARK: - Today and templates
-
-    // A template map counts as one of the month's maps (checked on the server, like AI maps).
-    private func createFromTemplate(_ template: MapTemplate) {
-        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { createFromTemplate(template) } }
-        if account.isOverFreeLimit { return onUpgrade() }
-        Task {
-            do {
-                try await MapService.shared.countNewMap()
-                account.noteMapCreated()
-                let map = template.makeMap()
-                store.save(map)
-                Telemetry.log("map_created", ["source": "template", "template": template.id])
-                onOpenMap(map.id)
-            } catch BackendError.limitReached(let kind) {
-                account.noteLimitReached(kind: kind)
-                onUpgrade()
-            } catch {
-                show((error as? LocalizedError)?.errorDescription ?? L("Something went wrong. Try again."))
-            }
-        }
-    }
-
-    private var todayDetail: String {
-        let due = TaskAgenda.dueCount(in: store.maps)
-        return due > 0 ? L("\(due) tasks due") : L("Tasks and deadlines")
-    }
-
-    private func shortcut(_ icon: String, _ title: String, detail: String, highlight: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(highlight ? MinorColor.accent : MinorColor.textPrimary)
-                    .frame(height: 22)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 15, weight: .semibold))
-                    Text(detail)
-                        .font(.system(size: 12))
-                        .foregroundColor(highlight ? MinorColor.accent : MinorColor.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-                Spacer(minLength: 0)
-            }
-            .foregroundColor(MinorColor.textPrimary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(theme.chatRectangle))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(highlight ? MinorColor.accent.opacity(0.6) : theme.chatStroke, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Documents
@@ -723,6 +700,12 @@ struct CreateMapView: View {
         Task {
             do {
                 let document = try await Attachments.loadDocument(at: url, maxPages: isPaid ? 300 : 10)
+                // The file is kept as the original while it can still be read.
+                let draft = await Task.detached(priority: .userInitiated) {
+                    SourceImport.document(at: url, text: document.text, pages: document.pages)
+                }.value
+                SourceDrafts.shared.put(draft, for: document.text)
+                if let problem = draft.originalError { show(problem) }
                 attachment = .text(document.text, source: MapSource(kind: .document, label: document.name))
             } catch {
                 let tooLong: Bool
@@ -793,5 +776,96 @@ struct ChatPickerView: View {
         .padding(.horizontal, 20)
         .background(MinorColor.sheet.ignoresSafeArea())
         .presentationDetents([.medium, .large])
+    }
+}
+
+// Map Options: the model that builds new maps. Standard models for everyone, Claude Opus with
+// Plus, GPT-6 Astra and Claude Fable with PRO. The choice is kept for the next map.
+struct MapOptionsSheet: View {
+    let theme: AppTheme
+    @Binding var selection: String
+    var onUpgrade: () -> Void
+    var onUpgradePro: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var account = AccountStore.shared
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Model")
+                        .textCase(.uppercase)
+                        .minorFont(13, .semibold, style: .footnote, maxScale: 1.3)
+                        .foregroundColor(MinorColor.textTertiary)
+                        .padding(.bottom, 2)
+                    ForEach(AIModelCatalog.mapModels) { model in
+                        row(model)
+                    }
+                    Text("Stronger models write deeper maps and use more of the monthly AI allowance.")
+                        .minorFont(13, style: .footnote, maxScale: 1.4)
+                        .foregroundColor(MinorColor.textSecondary)
+                        .padding(.top, 8)
+                }
+                .padding(20)
+            }
+            .background(MinorColor.sheet.ignoresSafeArea())
+            .navigationTitle(Text("Map Options"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }.foregroundColor(.white)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .preferredColorScheme(.dark)
+    }
+
+    private var current: String {
+        let chosen = AIModelCatalog.option(apiID: selection) ?? AIModelCatalog.defaultMap
+        return (account.allowsMaps(with: chosen) ? chosen : AIModelCatalog.defaultMap).apiModelID
+    }
+
+    private func row(_ model: AIModelOption) -> some View {
+        let allowed = account.allowsMaps(with: model)
+        let chosen = model.apiModelID == current
+        return Button {
+            if allowed {
+                Haptics.selection()
+                selection = model.apiModelID
+            } else {
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { model.mapPlan == .pro ? onUpgradePro() : onUpgrade() }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: chosen ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(chosen ? MinorColor.accent : MinorColor.textTertiary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(model.displayName).minorFont(16, .medium, maxScale: 1.4).foregroundColor(allowed ? .white : MinorColor.textSecondary)
+                    Text(model.mapPlan == .free ? L("Standard") : model.mapPlan == .plus ? L("Advanced") : L("Frontier"))
+                        .minorFont(12, style: .caption1, maxScale: 1.4)
+                        .foregroundColor(MinorColor.textTertiary)
+                }
+                Spacer()
+                if !allowed {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.fill").font(.system(size: 10))
+                        Text(model.mapPlan == .pro ? "PRO" : "Plus").font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(MinorColor.textSecondary)
+                }
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 56)
+            .background(RoundedRectangle(cornerRadius: 14).fill(chosen ? Color.white.opacity(0.1) : MinorColor.fillRow))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(chosen ? MinorColor.accent.opacity(0.6) : Color.clear, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScale())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }

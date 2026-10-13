@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-13",
+  "scope": "Paywall and shared map access only",
+  "files": [
+    {
+      "path": "CLAUDE_PROMPT.md",
+      "bytes": 3371,
+      "sha256": "590e3545ab5d912fbb09d0174549dea7b36da4d689de1fb7c82704937ad5b456"
+    },
+    {
+      "path": "IMPLEMENTATION.md",
+      "bytes": 12003,
+      "sha256": "cbc844f3fc5e73450d2ba9c22bc9ca52bf37f466614b56e2fbe368d4a9ea125e"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 4869,
+      "sha256": "a94e700dcc1c1035e24d00f58a7e703c6ac85d8627511dafad9692965ac38142"
+    },
+    {
+      "path": "design/01-paywall-a.png",
+      "bytes": 1384440,
+      "sha256": "87b94f4cbfe37a9b458802c5a2514d930e1b7dfab2718e0e9c23a1898915d44d"
+    },
+    {
+      "path": "design/02-paywall-b.png",
+      "bytes": 1345907,
+      "sha256": "bf890b4205a99010f178e712d9d25a704ea8f663340309739829562538110d91"
+    },
+    {
+      "path": "design/03-invite.png",
+      "bytes": 1468892,
+      "sha256": "f64ed4f4f9a7214bf6b6d9f3086ffbd7744250044e551113a79ed8c0b77f96dc"
+    },
+    {
+      "path": "design/04-members.png",
+      "bytes": 1392321,
+      "sha256": "cf9ea70000782c39fa3a09340be8c21d991870fe8529bc00658ad41179ea1637"
+    },
+    {
+      "path": "design/07-join-map.png",
+      "bytes": 1301579,
+      "sha256": "8c44a96dad00ecac6cc17ac6eeb0b609586e0ff7ec8868a661c4efc50f685ef0"
+    },
+    {
+      "path": "design/UX_GUIDE.md",
+      "bytes": 12061,
+      "sha256": "e23511ed1f79a59dde5efa9cec4a1ad28e14f6997fe4e550ca8137eba39cf785"
+    },
+    {
+      "path": "design/collaboration-overview.jpg",
+      "bytes": 356730,
+      "sha256": "fb54710ec42ddf4c63742930280527ff11c513c5e6c345a15ac88d03cab0a022"
+    },
+    {
+      "path": "design/paywall-overview.jpg",
+      "bytes": 227844,
+      "sha256": "49b50bcbf266b11f7262964a133ab81927659b30d55e7887fd6f513488a03800"
+    },
+    {
+      "path": "design/prompts.json",
+      "bytes": 9996,
+      "sha256": "f6fe2a465fb4f5941443b7fc38327be78c6a9d5661e638da71e98ee6146b4844"
+    },
+    {
+      "path": "design/source-manifest.json",
+      "bytes": 1611,
+      "sha256": "7634d8611d79d806ee87e741b0c6994346a7fa50b169325cf4393951fd99a8b4"
+    },
+    {
+      "path": "reference/DESIGN.md",
+      "bytes": 129498,
+      "sha256": "0104307db01796803d0b5621130a6b5eec2af9644f42727e75c25f3ca2e1b7df"
+    },
+    {
+      "path": "reference/README.md",
+      "bytes": 861,
+      "sha256": "6729ee711196e450fe3b44c2e32f963dad29dd63e703db867b4a1b7192a27856"
+    },
+    {
+      "path": "reference/minor-logo.png",
+      "bytes": 31720,
+      "sha256": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695"
+    },
+    {
+      "path": "reference/tokens.css",
+      "bytes": 13140,
+      "sha256": "9f7e9b4b24f4ba4f3b55d47d1b32505ec4173345ede971cef92f4643a77d54cb"
+    },
+    {
+      "path": "reference/tokens.json",
+      "bytes": 32518,
+      "sha256": "c2e02d1616550e954e164e79743ba2469f7a68cbbe771f5a451de41919d12bdf"
+    }
+  ]
+}

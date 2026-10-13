@@ -65,6 +65,7 @@ final class ChatViewModel: ObservableObject {
     @Published var mapRequest: MapRequest?
     // A map the assistant opened; the home screen shows it in the editor.
     @Published var openMapRequest: UUID?
+    @Published var slidesRequest: UUID?    // "Make Slides from Map" on a map card: the project, on Slides
     // A presentation the assistant made or opened.
     @Published var openDeckRequest: UUID?
     private var deckUndo: [UUID: (deckID: UUID, before: Deck, after: Deck)] = [:]
@@ -197,6 +198,7 @@ final class ChatViewModel: ObservableObject {
         updateMessage(messageID, in: conversationID) { $0.failed = reason }
         guard currentID == conversationID else { return }
         if case BackendError.limitReached = error { limitReached = true }
+        if case BackendError.modelLocked = error { limitReached = true }
         errorMessage = reason
     }
 
@@ -351,7 +353,9 @@ final class ChatViewModel: ObservableObject {
         }
         let slides = AccountStore.shared.effectivePlan == .free ? 7 : 10
         let generated = try await DeckService.shared.generate(source, slides: slides, quality: AccountStore.shared.allowedMapModelID)
-        let deck = Deck(title: generated.title, slides: generated.slides, theme: deckTheme, sourceMapID: mapID)
+        var deck = Deck(title: generated.title, slides: generated.slides, theme: deckTheme, sourceMapID: mapID)
+        deck.lineage = generated.lineage
+        if case .map(let map) = source { deck.sourceRevision = map.contentFingerprint }
         DeckStore.shared.save(deck)
         AccountStore.shared.noteDeckCreated()
         append(ChatMessage(role: .assistant, text: "", action: ChatAction(kind: .deckCreated, mapID: deck.id, mapTitle: deck.title, summary: L("\(deck.slides.count) slides"))), to: conversationID)
@@ -486,14 +490,31 @@ final class ChatViewModel: ObservableObject {
             topic = intent.prompt
             input = .topic(intent.prompt)
         }
-        append(ChatMessage(role: .assistant, text: L("Creating a mind map: \(topic)")), to: conversationID)
-        // The chat is open: the home screen shows the map being built. Otherwise (the person left
-        // the chat meanwhile) it is built in the background and announced when ready.
-        if currentID == conversationID {
-            mapRequest = MapRequest(input: input)
-        } else {
-            _ = GenerationCenter.shared.start(input)
+        buildMap(input, title: topic, in: conversationID)
+    }
+
+    // The map is built in the background and shown as a card in this conversation: its progress,
+    // then the map with Open Map and Make Slides from Map. Leaving the chat doesn't stop it; it is
+    // announced when ready.
+    private func buildMap(_ input: MapInput, title: String, in conversationID: UUID) {
+        let id = GenerationCenter.shared.start(input)
+        let action = ChatAction(kind: .mapCreated, mapID: id, mapTitle: title)
+        append(ChatMessage(role: .assistant, text: L("I’m making a mind map: \(title)"), action: action), to: conversationID)
+        Telemetry.log("chat_map", ["source": input.source.kind.rawValue])
+    }
+
+    // "Make a map" under an answer: the same card, in the open conversation.
+    func makeMap(from text: String, title: String) {
+        guard let conversationID = currentID else {
+            mapRequest = MapRequest(input: .text(text, source: MapSource(kind: .chat, label: title)))
+            return
         }
+        buildMap(.text(text, source: MapSource(kind: .chat, label: title)), title: title, in: conversationID)
+    }
+
+    func makeSlides(from mapID: UUID) {
+        guard MapStore.shared.map(mapID) != nil else { return }
+        slidesRequest = mapID
     }
 
     // Someone reported a created image: it is hidden at once and the description goes for review.
@@ -526,13 +547,19 @@ final class ChatViewModel: ObservableObject {
         let id = currentID ?? UUID()
         currentID = id
         guard !messages.isEmpty else { return id }
-        let convo = Conversation(
+        var convo = Conversation(
             id: id,
             title: Conversation.makeTitle(from: messages),
             messages: messages,
             updatedAt: Date()
         )
         if let index = conversations.firstIndex(where: { $0.id == id }) {
+            // Pinning and a name the person gave stay with the conversation.
+            convo.isPinned = conversations[index].isPinned
+            if conversations[index].renamed {
+                convo.title = conversations[index].title
+                convo.renamed = true
+            }
             conversations[index] = convo
         } else {
             conversations.insert(convo, at: 0)
@@ -540,6 +567,12 @@ final class ChatViewModel: ObservableObject {
         conversations.sort { $0.updatedAt > $1.updatedAt }
         store.saveAll(conversations)
         return id
+    }
+
+    // The open conversation's name: the one the person gave it, or from its first message.
+    var currentTitle: String {
+        if let currentID, let saved = conversations.first(where: { $0.id == currentID }), saved.renamed { return saved.title }
+        return Conversation.makeTitle(from: messages)
     }
 
     // Open a saved conversation in the chat view.
@@ -563,6 +596,31 @@ final class ChatViewModel: ObservableObject {
         sending = []
         store.saveAll([])
         endSession()
+    }
+
+    #if DEBUG
+    // The Library's Chats with a few saved conversations (-libraryChats), in the app's language.
+    func installDemoConversations() {
+        let demo = DemoMap.conversations()
+        let ids = Set(demo.map(\.id))
+        conversations = (conversations.filter { !ids.contains($0.id) } + demo).sorted { $0.updatedAt > $1.updatedAt }
+        store.saveAll(conversations)
+    }
+    #endif
+
+    func togglePin(_ id: UUID) {
+        guard let index = conversations.firstIndex(where: { $0.id == id }) else { return }
+        conversations[index].isPinned.toggle()
+        store.saveAll(conversations)
+    }
+
+    // An empty name goes back to the one taken from the first message.
+    func rename(_ id: UUID, to title: String) {
+        guard let index = conversations.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        conversations[index].renamed = !trimmed.isEmpty
+        conversations[index].title = trimmed.isEmpty ? Conversation.makeTitle(from: conversations[index].messages) : String(trimmed.prefix(120))
+        store.saveAll(conversations)
     }
 
     func deleteConversation(_ id: UUID) {

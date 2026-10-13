@@ -31,10 +31,22 @@ struct MapTemplate: Identifiable {
             node.isCollapsed = branch.collapsed && !branch.ideas.isEmpty
             return node
         }
-        var root = MindNode(title: title, children: children)
+        var root = MindNode(title: title, children: children).withOrigin(.template)
         root.icon = icon
         var map = MindMap(root: root, source: MapSource(kind: .topic, label: L("Template: \(title)")))
         map.palette = palette == .vivid ? nil : palette.rawValue
+        return map
+    }
+
+    // A template map counts as one of the month's maps (checked on the server, like AI maps).
+    // Signing in and the free-plan limit are the caller's: this only counts, saves and logs.
+    @MainActor
+    func create() async throws -> MindMap {
+        try await MapService.shared.countNewMap()
+        AccountStore.shared.noteMapCreated()
+        let map = makeMap()
+        MapStore.shared.save(map)
+        Telemetry.log("map_created", ["source": "template", "template": id])
         return map
     }
 

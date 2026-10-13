@@ -46,12 +46,13 @@ extension CanvasViewport {
         let minimum = MapMetrics.lodThreshold + 0.15
         guard target.scale < minimum, let root = layout.nodes.first(where: { $0.level == 0 }) else { return target }
         let visibleHeight = size.height - insets.top - insets.bottom
+        // A tree grows to the right: its topic starts at the left edge, so the branches are in view.
+        // A balanced map grows both ways: its topic is in the middle.
+        let balanced = layout.nodes.contains { $0.side < 0 }
+        let x = balanced ? size.width / 2 - root.frame.midX * minimum : insets.leading + 4 - root.frame.minX * minimum
         return CanvasViewport(
             scale: minimum,
-            offset: CGSize(
-                width: size.width / 2 - root.frame.midX * minimum,
-                height: insets.top + visibleHeight / 2 - root.frame.midY * minimum
-            )
+            offset: CGSize(width: x, height: insets.top + visibleHeight / 2 - root.frame.midY * minimum)
         )
     }
 }
@@ -76,6 +77,9 @@ struct MapCanvasView: View {
     var background: CanvasBackground = .dots
     var links: [MapLink] = []
     var onLinkTap: (MapLink) -> Void = { _ in }
+    // The part of the screen (top to bottom) not covered by the editor's bars and panels. Ideas
+    // under them are left out for VoiceOver, so touching a button there never lands on an idea.
+    var accessibleBand: ClosedRange<CGFloat>? = nil
 
     // A lifted node. Gesture state resets by itself if the drag is cancelled (a call, a sheet,
     // the node disappearing), so a node can never stay stuck half-transparent.
@@ -177,6 +181,14 @@ struct MapCanvasView: View {
         .allowsHitTesting(false)
     }
 
+    // The idea is (partly) under the top bar or the bottom panel.
+    private func isCovered(_ node: LayoutNode) -> Bool {
+        guard let band = accessibleBand else { return false }
+        let top = offset.height + node.frame.minY * scale
+        let bottom = offset.height + node.frame.maxY * scale
+        return top < band.lowerBound || bottom > band.upperBound
+    }
+
     private func startPulse(_ id: UUID?) {
         guard let id, layout.node(id) != nil else {
             pulse = nil
@@ -223,6 +235,7 @@ struct MapCanvasView: View {
                     .simultaneousGesture(TapGesture(count: 2).onEnded { onDoubleTapNode(node.id) })
                     // The root can't be moved, but its collapse button must keep working.
                     .gesture(dragGesture(for: node), including: node.level == 0 ? .subviews : .all)
+                    .accessibilityHidden(isCovered(node))
                     .accessibilityAction { selectForAccessibility(node.id) }
                     .accessibilityActions {
                         Button("Expand with AI") { onExpand(node.id) }

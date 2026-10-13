@@ -81,6 +81,8 @@ struct ChatAction: Codable, Equatable {
         case deckCreated // a presentation was made (mapID holds the presentation's id)
         case deckEdited  // a presentation changed; Undo restores it
         case deckOpened
+        case mapProposal // project chat: changes the AI suggests for the map, applied only when the person agrees
+        case mapCreated  // a map the assistant built from the conversation (mapID: the map once ready)
 
         var isDeck: Bool { self == .deckCreated || self == .deckEdited || self == .deckOpened }
     }
@@ -93,6 +95,15 @@ struct ChatAction: Codable, Equatable {
     var imageHint: String?
     var imagesDone: Int?      // .images: nil until started
     var imagesFailed: Bool?
+    // .mapProposal: what was asked, the map as it would be, the content it was computed on, the
+    // ideas it adds, and what became of it. `before` keeps the map as it was, for Undo after Apply.
+    var command: String?
+    var proposal: MindNode?
+    var base: String?
+    var added: [String]?
+    var applied: Bool?
+    var dismissed: Bool?
+    var before: MindNode?
 
     var descriptionForModel: String {
         switch kind {
@@ -112,6 +123,11 @@ struct ChatAction: Codable, Equatable {
                 : "(The app changed the presentation “\(mapTitle)”: \(summary).)"
         case .deckOpened:
             return "(The app opened the presentation “\(mapTitle)”.)"
+        case .mapCreated:
+            return "(The app built the mind map “\(mapTitle)” from this conversation; the user can open it or make slides from it.)"
+        case .mapProposal:
+            let state = applied == true ? (undone == true ? "applied, then undone" : "applied") : dismissed == true ? "dismissed" : "not applied yet"
+            return "(The app proposed changes to the map “\(mapTitle)”: \(summary). The user: \(state).)"
         }
     }
 }

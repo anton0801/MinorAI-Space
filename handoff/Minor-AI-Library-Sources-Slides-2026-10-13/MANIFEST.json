@@ -1,0 +1,75 @@
+{
+  "description": "Design and handoff only; app not built or changed",
+  "files": [
+    {
+      "path": "CLAUDE_PROMPT.md",
+      "bytes": 3279,
+      "sha256": "483bfd3b0eccda7ecbae01646daecb8c7c5cd775bf90a2138fa5395829fec057"
+    },
+    {
+      "path": "IMPLEMENTATION.md",
+      "bytes": 32769,
+      "sha256": "0643a13dd18f1beec101829682a9c6af6ce9b0298c1a348d4f700caebfbae977"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 3920,
+      "sha256": "b3a90a62a9c05f54ddc784c53c0cda28b02981816a4c846061f7e2e007dc0d0b"
+    },
+    {
+      "path": "design/01-library.png",
+      "bytes": 1285591,
+      "sha256": "203d607791a599cbdbaa46fd1f27dd008486e2cf1d7a26b3c5b8b0cc3e0e44f7"
+    },
+    {
+      "path": "design/02-pdf-source.png",
+      "bytes": 1443921,
+      "sha256": "999e6a6ac88568c847fe7679f9ccbf903bba1890610315bd59b66f0d55145faf"
+    },
+    {
+      "path": "design/03-audio-source.png",
+      "bytes": 1306861,
+      "sha256": "c5bfaf529ed8f129082157a60358e1330a56567029baaf2216770a9b301d5653"
+    },
+    {
+      "path": "design/04-diagram-connections.png",
+      "bytes": 1321285,
+      "sha256": "a8b2b44e55b0baffab552c25b6cca7c2b42d07467578de06b5413670726a9002"
+    },
+    {
+      "path": "design/05-slide-merge.png",
+      "bytes": 1498275,
+      "sha256": "f8c2eda5e209d49bc2b7488e8d9d6dbd7fe5addec8df5a304ddb2ed736c5b6bb"
+    },
+    {
+      "path": "design/overview.jpg",
+      "bytes": 344435,
+      "sha256": "c7c9944d97708a4b4272d9fbaf85f5f83922a0cda6808f18991b7f3684447a39"
+    },
+    {
+      "path": "design/prompts.json",
+      "bytes": 12694,
+      "sha256": "734424b1c3edf413fecb576c431404adf8d4a5f9bcae53fb4777cf78e8b01845"
+    },
+    {
+      "path": "reference/CURRENT_SCOPE_2026-10-13.md",
+      "bytes": 2435,
+      "sha256": "0a6025c0f5bce8e4ba0410a568fa381b81c19ca8a127f4f081bb4387ce276c38"
+    },
+    {
+      "path": "reference/DESIGN.md",
+      "bytes": 129498,
+      "sha256": "0104307db01796803d0b5621130a6b5eec2af9644f42727e75c25f3ca2e1b7df"
+    },
+    {
+      "path": "reference/tokens.css",
+      "bytes": 13140,
+      "sha256": "9f7e9b4b24f4ba4f3b55d47d1b32505ec4173345ede971cef92f4643a77d54cb"
+    },
+    {
+      "path": "reference/tokens.json",
+      "bytes": 32518,
+      "sha256": "c2e02d1616550e954e164e79743ba2469f7a68cbbe771f5a451de41919d12bdf"
+    }
+  ]
+}

@@ -57,6 +57,25 @@ struct MapEditorView: View {
     @State private var isRenaming = false
     @State private var styleNodeID: UUID?
     @State private var showDesign = false
+    @State private var designTab: MapDesignSheet.Tab = .theme
+    @State private var showMapView = false
+    // The selected idea's panel: Content (its actions), Style and Marks (each opens its sheet).
+    @State private var panelTab: PanelTab = .content
+    @State private var marksNodeID: UUID?
+    // Continuing the project: Sources, Next Steps, About the Project, Add Material.
+    @State private var sources: SourcesRequest?
+    @State private var nextStepsTarget: UUID?
+    @State private var showMemory = false
+    @State private var showAddMaterial = false
+    // A change from the command field, shown before it happens.
+    @State private var proposal: MapEditProposal?
+    // Where the bottom controls start on screen, so a selected idea is never left under them.
+    @State private var bottomTop: CGFloat = 0
+    enum PanelTab: Hashable { case content, style, marks }
+    struct SourcesRequest: Identifiable {
+        let id = UUID()
+        let scope: UUID?   // nil: the whole map
+    }
     @State private var showExport = false
     @State private var chatNodeID: UUID?
     @State private var cardNodeID: UUID?
@@ -76,6 +95,17 @@ struct MapEditorView: View {
     @State private var iconTarget: UUID?
     @State private var linkTarget: UUID?
     @State private var linkText = ""
+    // The selected idea's More Actions, its task, and moving a branch (choose the new parent on
+    // the map or in a list, then Move).
+    @State private var actionsNodeID: UUID?
+    @State private var taskNodeID: UUID?
+    @State private var movingID: UUID?
+    @State private var moveTarget: UUID?
+    @State private var showMovePicker = false
+    @State private var showLinkPicker = false
+    @State private var pickedLinkTarget: UUID?
+    // A branch just added and still unnamed: Cancel on its name takes it away again.
+    @State private var draftID: UUID?
     @State private var viewer: ViewerItem?
     @State private var imageBatch: ImageBatch?
 
@@ -102,12 +132,30 @@ struct MapEditorView: View {
     }
 
     var onCreateDeck: (UUID) -> Void = { _ in }
+    // Inside a project: the Map / Slides / Chat switch under the top bar, the selection for the
+    // chat's context, and ideas the chat asks to show.
+    private let tabs: AnyView?
+    private let onSelectionChange: (UUID?) -> Void
+    // Inside a project, "Ask in Chat" opens the project's chat with the idea as its context.
+    private let onAskInChat: ((UUID) -> Void)?
+    // Inside a project, "Discuss" puts the text into the project chat.
+    private let onDiscuss: ((String) -> Void)?
+    @Binding private var focusRequest: UUID?
+    @ObservedObject private var sync = MapSync.shared
+    @ObservedObject private var network = NetworkMonitor.shared
 
-    init(mapID: UUID, theme: AppTheme, onClose: @escaping () -> Void, onUpgrade: @escaping (_ pro: Bool) -> Void, onCreateDeck: @escaping (UUID) -> Void = { _ in }) {
+    init(mapID: UUID, theme: AppTheme, onClose: @escaping () -> Void, onUpgrade: @escaping (_ pro: Bool) -> Void, onCreateDeck: @escaping (UUID) -> Void = { _ in },
+         tabs: AnyView? = nil, onSelectionChange: @escaping (UUID?) -> Void = { _ in }, onAskInChat: ((UUID) -> Void)? = nil,
+         onDiscuss: ((String) -> Void)? = nil, focusRequest: Binding<UUID?> = .constant(nil)) {
         self.theme = theme
         self.onClose = onClose
         self.onUpgrade = onUpgrade
         self.onCreateDeck = onCreateDeck
+        self.tabs = tabs
+        self.onSelectionChange = onSelectionChange
+        self.onAskInChat = onAskInChat
+        self.onDiscuss = onDiscuss
+        _focusRequest = focusRequest
         self.mapID = mapID
         let map = MapStore.shared.map(mapID) ?? MindMap(root: MindNode(title: L("New Map")))
         // VoiceOver users start in the outline, which reads in order; they can still switch.
@@ -119,7 +167,7 @@ struct MapEditorView: View {
 
     private var selectedNode: MindNode? { selection.flatMap { map.root.node($0) } }
     private var selectedLevel: Int { selection.flatMap { map.root.path(to: $0)?.count }.map { $0 - 1 } ?? 0 }
-    private var chromeInsets: EdgeInsets { EdgeInsets(top: 110, leading: 16, bottom: 170, trailing: 16) }
+    private var chromeInsets: EdgeInsets { EdgeInsets(top: tabs == nil ? 110 : 154, leading: 16, bottom: 170, trailing: 16) }
 
     // MARK: - Search and focus
 
@@ -127,15 +175,13 @@ struct MapEditorView: View {
 
     private var matches: Set<UUID> {
         guard isSearching, !trimmedQuery.isEmpty else { return [] }
-        return Self.ids(in: map.root) { node in
-            node.title.range(of: trimmedQuery, options: [.caseInsensitive, .diacriticInsensitive]) != nil
-                || node.note.range(of: trimmedQuery, options: [.caseInsensitive, .diacriticInsensitive]) != nil
-        }
+        return Self.ids(in: map.root) { $0.matches(search: trimmedQuery) }
     }
 
     // The map as shown: branches that hide a search match open up without changing the saved map.
     private func displayMap(for matches: Set<UUID>) -> MindMap {
         var display = map
+        if let proposal { display.root = proposal.preview }
         // While presenting, the branch on screen is shown fully open.
         if presenting, let id = currentSlideBranch, let branch = display.root.node(id) {
             display.root.update(id) { $0 = branch.expandedAll }
@@ -181,7 +227,132 @@ struct MapEditorView: View {
     // MARK: - Body
 
     var body: some View {
-        tasksModifiers(modifiers3(modifiers2(modifiers1(core))))
+        projectModifiers(panelModifiers(tasksModifiers(modifiers3(modifiers2(modifiers1(core))))))
+    }
+
+    // Sources, Next Steps, About the Project and Add Material.
+    private func projectModifiers<Content: View>(_ content: Content) -> some View {
+        content
+            .sheet(item: $sources) { request in
+                SourcesSheet(
+                    mapID: mapID,
+                    theme: theme,
+                    canEdit: !isViewer,
+                    scope: request.scope,
+                    selected: selection,
+                    onShow: { show($0) },
+                    onAccept: { acceptSuggestion($0) },
+                    onDismissSuggestion: { dismissSuggestion($0) },
+                    onAsk: { askInChat($0) },
+                    onAddMaterial: {
+                        sources = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { openAddMaterial() }
+                    }
+                )
+            }
+            .sheet(item: Binding(get: { actionsNodeID.map(IdentifiedID.init) }, set: { actionsNodeID = $0?.id })) { item in
+                if let node = map.root.node(item.id) {
+                    let siblings = map.root.parent(of: item.id)?.children.filter { !$0.isSuggestion } ?? []
+                    NodeActionsSheet(
+                        node: node,
+                        isRoot: item.id == map.root.id,
+                        canEdit: !isViewer,
+                        siblingIndex: siblings.firstIndex { $0.id == item.id } ?? 0,
+                        siblingCount: siblings.count,
+                        busy: generating.contains(item.id),
+                        onAction: { handle($0, item.id) }
+                    )
+                    .presentationDetents([.fraction(0.72), .large])
+                    .presentationDragIndicator(.visible)
+                }
+            }
+            .sheet(item: Binding(get: { taskNodeID.map(IdentifiedID.init) }, set: { taskNodeID = $0?.id })) { item in
+                TaskDetailSheet(mapID: mapID, nodeID: item.id, theme: theme, onOpenNode: nil)
+                    .presentationDetents([.large])
+            }
+            // The connection is made once the list has gone, so its label can be asked.
+            .sheet(isPresented: $showLinkPicker, onDismiss: {
+                if let target = pickedLinkTarget {
+                    pickedLinkTarget = nil
+                    finishLinking(to: target)
+                }
+            }) {
+                if let from = linkingFrom {
+                    MoveTargetPicker(map: map, moving: from, purpose: .connect) { pickedLinkTarget = $0 }
+                }
+            }
+            .sheet(isPresented: $showMovePicker) {
+                if let moving = movingID {
+                    MoveTargetPicker(map: map, moving: moving) { target in
+                        moveTarget = target
+                        Haptics.selection()
+                    }
+                }
+            }
+            .sheet(item: Binding(get: { nextStepsTarget.map(IdentifiedID.init) }, set: { nextStepsTarget = $0?.id })) { item in
+                NextStepsSheet(
+                    map: map,
+                    nodeID: item.id,
+                    theme: theme,
+                    onAdd: { addNextSteps($0, to: item.id) },
+                    onAsk: { askInChat(item.id) },
+                    onUpgrade: { onUpgrade(false) }
+                )
+                .presentationDetents([.fraction(0.8), .large])
+            }
+            .sheet(isPresented: $showMemory) {
+                ProjectMemorySheet(mapID: mapID, theme: theme, onDiscuss: { discuss($0) }, onUpgrade: { onUpgrade(false) })
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $showAddMaterial) {
+                AddMaterialSheet(
+                    mapID: mapID,
+                    theme: theme,
+                    onApply: { applyMaterial($0, $1) },
+                    onSaveOnly: { material in
+                        ProjectMaterialStore.shared.add(material, to: mapID)
+                        showToast(L("Material saved"), canUndo: false)
+                    },
+                    onUpgrade: { onUpgrade(false) }
+                )
+                .presentationDetents([.large])
+            }
+    }
+
+    // Marks & Task, and Map View.
+    private func panelModifiers<Content: View>(_ content: Content) -> some View {
+        content
+            .sheet(item: Binding(get: { marksNodeID.map(IdentifiedID.init) }, set: { marksNodeID = $0?.id }), onDismiss: { panelTab = .content }) { item in
+                if let node = map.root.node(item.id) {
+                    NodeMarksSheet(
+                        node: node,
+                        isRoot: node.id == map.root.id,
+                        mapLabels: map.root.allLabels,
+                        theme: theme,
+                        onChange: { change in mutate { $0.root.update(item.id, change) } },
+                        onDue: { setDue(item.id, $0) }
+                    )
+                    .presentationDetents([.height(EditorSheetHeight.marks), .large])
+                    .mapVisibleBehindSheet()
+                }
+            }
+            .sheet(isPresented: $showMapView) {
+                MapViewSheet(
+                    map: map,
+                    mode: mode,
+                    theme: theme,
+                    onMode: { value in withAnimation(.minorSheet) { mode = value } },
+                    onLines: { value in setDesign { $0.lines = value == .curved ? nil : value.rawValue } },
+                    onWeight: { value in setDesign { $0.lineWeight = value == .regular ? nil : value.rawValue } }
+                )
+                .presentationDetents([.height(EditorSheetHeight.mapView), .large])
+                .mapVisibleBehindSheet()
+            }
+            // The panel grew or shrank: keep the selected idea above it.
+            .onPreferenceChange(BottomTopKey.self) { bottomTop = $0 }
+            .onChange(of: bottomTop) { _ in
+                if let id = selection, !presenting { reveal(id) }
+            }
     }
 
     // Due dates, and selecting the task a reminder or the Today screen pointed at.
@@ -189,11 +360,22 @@ struct MapEditorView: View {
         content
             .sheet(isPresented: $showCollab) {
                 CollabSheet(mapID: mapID, theme: theme) { onUpgrade(false) }
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.fraction(0.64), .large])
             }
             .onAppear { collab.watch(mapID) }
             .onDisappear { collab.unwatch(mapID) }
             .onChange(of: store.map(mapID)?.collab != nil) { shared in if shared { collab.watch(mapID) } }
+            // The owner stopped sharing, removed this person or changed their role while the map
+            // was open: say what that means (editing already follows the new role).
+            .onChange(of: collab.notice[mapID]) { notice in
+                guard let notice else { return }
+                collab.notice[mapID] = nil
+                switch notice {
+                case .lostAccess: showToast(L("This map is no longer shared with you. Your copy stays on this iPhone."), canUndo: false)
+                case .nowViewer: showToast(L("The owner made you a viewer: you can look, not edit."), canUndo: false)
+                case .nowEditor: showToast(L("The owner made you an editor: you can edit again."), canUndo: false)
+                }
+            }
             .sheet(isPresented: $showHistory) {
                 VersionHistoryView(mapID: mapID, theme: theme) {
                     history = []
@@ -201,20 +383,11 @@ struct MapEditorView: View {
                 }
             }
             .fullScreenCover(isPresented: $showStudy) {
-                StudyView(map: map, theme: theme, onUpgrade: { onUpgrade(false) })
+                StudyView(map: map, theme: theme, onUpgrade: { onUpgrade(false) }, onOpenNode: { show($0) })
             }
             .sheet(item: Binding(get: { dueTarget.map(IdentifiedID.init) }, set: { dueTarget = $0?.id })) { item in
                 if let node = map.root.node(item.id) {
-                    DueDateSheet(title: node.title, current: node.due, theme: theme, onSave: { date in
-                        mutate { $0.root.update(item.id) { node in
-                            node.due = date
-                            node.isTask = true
-                            node.isDone = false
-                        } }
-                        Reminders.shared.requestPermission()
-                    }, onRemove: {
-                        mutate { $0.root.update(item.id) { $0.due = nil } }
-                    })
+                    DueDateSheet(title: node.title, current: node.due, theme: theme, onSave: { setDue(item.id, $0) }, onRemove: { setDue(item.id, nil) })
                     .presentationDetents([.large])
                 }
             }
@@ -241,7 +414,9 @@ struct MapEditorView: View {
         ZStack {
             Group {
                 if mode == .list {
-                    MapOutlineView(map: map, theme: theme, selection: $selection, visible: outlineVisible, highlighted: matches)
+                    MapOutlineView(map: map, theme: theme, selection: $selection, visible: outlineVisible, highlighted: matches,
+                                   topInset: chromeInsets.top + 8,
+                                   bottomInset: max(UIScreen.main.bounds.height - (bottomTop > 0 ? bottomTop : UIScreen.main.bounds.height - 190), 190) + 24)
                 } else {
                     MapCanvasView(
                         layout: layout,
@@ -261,8 +436,9 @@ struct MapEditorView: View {
                         lineStyle: map.lineStyle,
                         lineWeight: map.lineWeightValue,
                         background: map.canvasBackground,
-                        links: map.links,
-                        onLinkTap: { linkMenu = $0 }
+                        links: movePreviewLinks,
+                        onLinkTap: { linkMenu = $0 },
+                        accessibleBand: chromeInsets.top...(bottomTop > chromeInsets.top ? bottomTop : UIScreen.main.bounds.height)
                     )
                 }
             }
@@ -284,7 +460,12 @@ struct MapEditorView: View {
                 presentationControls
             } else {
             VStack(spacing: 0) {
-                topBar
+                VStack(spacing: 0) {
+                    topBar
+                    if let tabs { tabs }
+                }
+                // Ideas scrolled or panned under the bar don't show through its title and tabs.
+                .background(alignment: .top) { chromeFade(edge: .top) }
                 if let focusID, let node = map.root.node(focusID) {
                     focusChip(node)
                         .padding(.top, 4)
@@ -293,8 +474,12 @@ struct MapEditorView: View {
                     linkingChip(node)
                         .padding(.top, 4)
                 }
+                if movingID != nil {
+                    moveChip.padding(.top, 4)
+                }
                 Spacer()
                 bottomArea
+                    .background(alignment: .bottom) { chromeFade(edge: .bottom) }
             }
             }
         }
@@ -303,6 +488,13 @@ struct MapEditorView: View {
         .onAppear(perform: applyDebugState)
         #endif
         .onChange(of: selection) { id in
+            // Choosing where a branch goes: a tap picks the new parent, the branch stays selected.
+            if let moving = movingID, let id, id != moving {
+                if isValidMoveTarget(id) { moveTarget = id; Haptics.selection() }
+                selection = moving
+                return
+            }
+            onSelectionChange(id)
             if let id, linkingFrom != nil { finishLinking(to: id) }
             if let previous = lastSelection, previous != id { clearAIMark(previous) }
             lastSelection = id
@@ -334,7 +526,24 @@ struct MapEditorView: View {
             if let id = selection { clearAIMark(id) }
         }
         .onChange(of: query) { _ in relayout() }
+        .onChange(of: proposal) { pending in
+            if pending != nil { selection = nil }
+            relayout()
+            // The new ideas come into view above the panel.
+            if let pending, let first = pending.proposal.firstNew(in: pending.addedIDs) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    let target = pending.proposal.parent(of: first)?.id ?? first
+                    reveal(target, above: bottomTop > 0 ? bottomTop : nil)
+                }
+            }
+        }
         .onChange(of: isSearching) { _ in relayout() }
+        // An idea the chat asked to show: open the branches above it and select it.
+        .onChange(of: focusRequest) { id in
+            guard let id else { return }
+            focusRequest = nil
+            show(id)
+        }
     }
 
     private func modifiers1<Content: View>(_ content: Content) -> some View {
@@ -374,7 +583,7 @@ struct MapEditorView: View {
             Text("The web page this idea points to.")
         }
         .fullScreenCover(item: $viewer) { item in ImageViewer(item: item) }
-        .sheet(item: Binding(get: { styleNodeID.map(IdentifiedID.init) }, set: { styleNodeID = $0?.id })) { item in
+        .sheet(item: Binding(get: { styleNodeID.map(IdentifiedID.init) }, set: { styleNodeID = $0?.id }), onDismiss: { panelTab = .content }) { item in
             if let node = map.root.node(item.id) {
                 NodeStyleSheet(
                     node: node,
@@ -386,7 +595,7 @@ struct MapEditorView: View {
                     onPaste: { branch in pasteStyle(item.id, wholeBranch: branch) },
                     onReset: { branch in resetStyle(item.id, wholeBranch: branch) }
                 )
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.height(EditorSheetHeight.nodeStyle), .large])
                 .mapVisibleBehindSheet()
             }
         }
@@ -397,15 +606,22 @@ struct MapEditorView: View {
         .sheet(isPresented: $showDesign) {
             MapDesignSheet(
                 map: map,
+                mode: mode,
                 theme: theme,
+                tab: designTab,
                 onStyle: { setStyle($0) },
                 onPalette: { value in setDesign { $0.palette = value == .vivid ? nil : value.rawValue } },
                 onLines: { value in setDesign { $0.lines = value == .curved ? nil : value.rawValue } },
                 onWeight: { value in setDesign { $0.lineWeight = value == .regular ? nil : value.rawValue } },
                 onBackground: { value in setDesign { $0.canvas = value == .dots ? nil : value.rawValue } },
+                onMode: { value in withAnimation(.minorSheet) { mode = value } },
+                onSavedTheme: { saved in
+                    setStyle(MapStyle(rawValue: saved.style ?? "") ?? .classic)
+                    setDesign { saved.apply(to: &$0) }
+                },
                 onResetIdeas: resetAllStyles
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.height(EditorSheetHeight.mapDesign), .large])
             .mapVisibleBehindSheet()
         }
         .confirmationDialog(
@@ -449,7 +665,7 @@ struct MapEditorView: View {
         .alert("Rename", isPresented: $isRenaming) {
             TextField("New idea", text: $renameText)
             Button("Save") { commitRename() }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) { cancelRename() }
         }
         .confirmationDialog(deleteNodeTitle, isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible, presenting: pendingDelete) { id in
             Button("Delete Node", role: .destructive) { deleteNode(id) }
@@ -484,7 +700,7 @@ struct MapEditorView: View {
                 theme: theme,
                 onRename: { afterCard = { startRename(item.id) } },
                 onSaveNote: { note in mutate { $0.root.update(item.id) { $0.note = note } } },
-                onExpand: { hint in afterCard = { expand(item.id, hint: hint) } },
+                onExpand: { hint in afterCard = { hint == .steps ? openNextSteps(item.id) : expand(item.id, hint: hint) } },
                 onAsk: { afterCard = { AuthGate.shared.require { chatNodeID = item.id } } },
                 onDelete: { afterCard = { requestDelete(item.id) } },
                 onOpenImage: { afterCard = { openImage(item.id) } },
@@ -529,8 +745,40 @@ struct MapEditorView: View {
             query = args[i + 1]
         }
         if args.contains("-demoFocus") { focusID = pricing }
-        if args.contains("-demoSelect") { selection = pricing }
+        if args.contains("-demoList") { mode = .list }
+        // After the first fit, as a tap would be, so the idea comes up above the panel.
+        if args.contains("-demoSelect") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { selection = pricing } }
         if args.contains("-demoCard") { cardNodeID = pricing }
+        if args.contains("-demoNodeMore") { selection = pricing; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { actionsNodeID = pricing } }
+        if args.contains("-demoTask") { selection = pricing; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { taskNodeID = pricing } }
+        // -demoMove: Pricing on its way under Channels.
+        if args.contains("-demoMove"), let pricing {
+            startMove(pricing)
+            moveTarget = map.root.children.count > 3 ? map.root.children[3].id : nil
+        }
+        if args.contains("-demoMarks") { selection = pricing; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openPanel(.marks, for: pricing ?? map.root.id) } }
+        if args.contains("-demoNodeStyle") { selection = pricing; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openPanel(.style, for: pricing ?? map.root.id) } }
+        if let i = args.firstIndex(of: "-demoMapDesign") {
+            let tab = args.indices.contains(i + 1) ? args[i + 1] : ""
+            openDesign(tab == "view" ? .view : tab == "lines" ? .lines : .theme)
+        }
+        if args.contains("-demoMapView") { showMapView = true }
+        if args.contains("-demoProposal"), let id = pricing {
+            var proposed = map.root
+            proposed.update(id) { $0.children += [MindNode(title: L("Student plan"), origin: .ai), MindNode(title: L("Team plan"), origin: .ai)] }
+            proposal = MapEditProposal(command: L("Add plans"), current: map.root, proposal: proposed)
+        }
+        if args.contains("-demoSourcesSheet") { openSources(for: nil) }
+        if args.contains("-demoNodeSources") { selection = pricing; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openSources(for: pricing) } }
+        // -demoSourcesOf <branch index>: Sources of a main branch (with -demoOriginals: 0 voice, 2 PDF, 3 web page).
+        if let i = args.firstIndex(of: "-demoSourcesOf"), args.indices.contains(i + 1), let index = Int(args[i + 1]), map.root.children.indices.contains(index) {
+            let id = map.root.children[index].id
+            selection = id
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openSources(for: id) }
+        }
+        if args.contains("-demoNextSteps") { nextStepsTarget = pricing }
+        if args.contains("-demoMemorySheet") { showMemory = true }
+        if args.contains("-demoAddMaterial") { showAddMaterial = true }
         if args.contains("-demoStudy") { showStudy = true }
         if args.contains("-demoCollab") { showCollab = true }
         if args.contains("-demoPresent") {
@@ -549,14 +797,26 @@ struct MapEditorView: View {
 
     // MARK: - Top bar
 
+    // What the map is doing: not saved (a write failed), syncing, waiting for the network, saved.
+    private var saveState: (text: String, error: Bool) {
+        if store.failedSaves.contains(mapID) { return (L("Not saved"), true) }
+        let shared = store.map(mapID)?.collab != nil
+        if shared && collab.busy.contains(mapID) { return (L("Syncing…"), false) }
+        let syncs = shared || (MapSync.isEnabled && AuthService.shared.isSignedIn)
+        if syncs && !network.isOnline { return (L("Saved on this iPhone · offline"), false) }
+        if MapSync.isEnabled && AuthService.shared.isSignedIn && sync.isSyncing { return (L("Syncing…"), false) }
+        return (shared ? L("Saved · Shared") : L("Saved"), false)
+    }
+
     private var topBar: some View {
         HStack(spacing: 0) {
             Button(action: onClose) {
-                Image(systemName: "house.fill")
-                    .font(.system(size: 18))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 19, weight: .semibold))
                     .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .accessibilityLabel("Home")
+            .accessibilityLabel("Back")
             if !history.isEmpty && !isSearching && !isViewer {
                 Button(action: undo) {
                     Image(systemName: "arrow.uturn.backward")
@@ -566,7 +826,6 @@ struct MapEditorView: View {
                 .accessibilityLabel("Undo")
                 .transition(.opacity)
             }
-            Spacer(minLength: 8)
             if isSearching {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass").font(.system(size: 15)).foregroundColor(MinorColor.textTertiary)
@@ -593,23 +852,39 @@ struct MapEditorView: View {
                 .frame(height: 36)
                 .background(RoundedRectangle(cornerRadius: 10).fill(theme.chatRectangle))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.chatStroke, lineWidth: 1))
+                .padding(.leading, 6)
             } else {
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(map.title)
-                        .font(.system(size: 17, weight: .semibold))
+                        .minorFont(17, .semibold, maxScale: 1.25)
                         .lineLimit(1)
-                    Text(store.failedSaves.contains(mapID) ? "\(map.nodeCount) nodes · Not saved" : store.map(mapID)?.collab != nil ? (collab.busy.contains(mapID) ? "\(map.nodeCount) nodes · Syncing" : "\(map.nodeCount) nodes · Shared") : "\(map.nodeCount) nodes · Saved")
-                        .font(.system(size: 12).monospacedDigit())
-                        .foregroundColor(store.failedSaves.contains(mapID) ? MinorColor.dangerText : MinorColor.textTertiary)
+                    Text(saveState.text)
+                        .minorFont(12, style: .caption1, maxScale: 1.25)
+                        .foregroundColor(saveState.error ? MinorColor.dangerText : MinorColor.textTertiary)
+                        .lineLimit(1)
                 }
+                .padding(.leading, 2)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text("\(map.title), \(saveState.text), \(L("\(map.nodeCount) nodes"))"))
                 Spacer(minLength: 8)
-                Button { showExport = true } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 18))
+                Button { showCollab = true } label: {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 16))
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(theme.chatRectangle))
+                        .overlay(Circle().stroke(theme.chatStroke, lineWidth: 1))
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("Export Map")
+                .accessibilityLabel("Edit Together")
                 Menu {
+                    Button { showExport = true } label: { Label("Export Map", systemImage: "square.and.arrow.up") }
+                    Section {
+                        Button { openSources(for: nil) } label: { Label("Sources", systemImage: "doc.text.magnifyingglass") }
+                        Button { showMemory = true } label: { Label("About the Project", systemImage: "list.bullet.clipboard") }
+                        if !isViewer {
+                            Button { openAddMaterial() } label: { Label("Add Material", systemImage: "paperclip") }
+                        }
+                    }
                     if !isViewer {
                         Button { startRename(map.root.id) } label: { Label("Rename", systemImage: "pencil") }
                     }
@@ -617,18 +892,13 @@ struct MapEditorView: View {
                         isSearching = true
                         searchFocused = true
                     } label: { Label("Search", systemImage: "magnifyingglass") }
-                    Picker("Layout", selection: $mode) {
-                        Label("Tree", systemImage: "arrow.triangle.branch").tag(Mode.tree)
-                        Label("Balanced", systemImage: "circle.grid.cross").tag(Mode.balanced)
-                        Label("List", systemImage: "list.bullet").tag(Mode.list)
-                    }
+                    Button { showMapView = true } label: { Label("Map View", systemImage: "circle.grid.cross") }
                     if !isViewer {
-                        Button { showDesign = true } label: { Label("Map Design", systemImage: "paintpalette") }
+                        Button { openDesign() } label: { Label("Map Design", systemImage: "paintpalette") }
                         Button { improveMap() } label: { Label("Improve with AI", systemImage: "wand.and.stars") }
                     }
                     Button { showStudy = true } label: { Label("Study", systemImage: "graduationcap") }
                     Button { onCreateDeck(mapID) } label: { Label("Create Presentation", systemImage: "rectangle.on.rectangle.angled") }
-                    Button { showCollab = true } label: { Label("Edit Together", systemImage: "person.2") }
                     if !isViewer {
                         Button { showHistory = true } label: { Label("Version History", systemImage: "clock.arrow.circlepath") }
                     }
@@ -647,43 +917,78 @@ struct MapEditorView: View {
                     Button(role: .destructive) { confirmDeleteMap = true } label: { Label("Delete Map", systemImage: "trash") }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 18))
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(theme.chatRectangle))
+                        .overlay(Circle().stroke(theme.chatStroke, lineWidth: 1))
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("More")
             }
         }
         .foregroundColor(MinorColor.textPrimary)
-        .padding(.horizontal, 6)
-        .frame(height: 44)
-        // While AI changes the map, only Home stays available.
+        .padding(.leading, 4)
+        .padding(.trailing, 6)
+        .frame(minHeight: 52)
+        // While AI changes the map, only Back stays available.
         .disabled(isApplying)
         .overlay(alignment: .leading) {
             if isApplying {
                 Button(action: onClose) { Color.clear.frame(width: 50, height: 44).contentShape(Rectangle()) }
-                    .accessibilityLabel("Home")
+                    .accessibilityLabel("Back")
             }
         }
         .animation(.minorMenu, value: isSearching)
         .animation(.minorMenu, value: history.isEmpty)
     }
 
+    // The background behind the top bar or the bottom controls: solid at the screen's edge,
+    // fading into the map, so nothing under them collides with their text.
+    private func chromeFade(edge: VerticalEdge) -> some View {
+        let solid = theme.background
+        return LinearGradient(
+            stops: edge == .top
+                ? [.init(color: solid, location: 0), .init(color: solid, location: 0.82), .init(color: solid.opacity(0), location: 1)]
+                : [.init(color: solid.opacity(0), location: 0), .init(color: solid, location: 0.08), .init(color: solid, location: 1)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .padding(edge == .top ? .bottom : .top, -18)
+        .ignoresSafeArea(edges: edge == .top ? .top : .bottom)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    // Connecting: tap the other idea on the map, or choose it from a list.
     private func linkingChip(_ node: MindNode) -> some View {
-        Button {
-            withAnimation(.minorMenu) { linkingFrom = nil }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.triangle.turn.up.right.diamond").font(.system(size: 14))
-                Text("Tap the idea to connect with “\(node.title)”").font(.system(size: 14)).lineLimit(1)
-                Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
+        HStack(spacing: 8) {
+            Button {
+                withAnimation(.minorMenu) { linkingFrom = nil }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.turn.up.right.diamond").font(.system(size: 14))
+                    Text("Tap the idea to connect with “\(node.title)”").font(.system(size: 14)).lineLimit(1)
+                    Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(MinorColor.accent))
             }
-            .foregroundColor(.black)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(Capsule().fill(MinorColor.accent))
+            .buttonStyle(.plain)
+            .accessibilityLabel("Cancel connecting")
+            Button { showLinkPicker = true } label: {
+                Image(systemName: "list.bullet")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(MinorColor.textPrimary)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(theme.chatRectangle))
+                    .overlay(Circle().stroke(theme.chatStroke, lineWidth: 1))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Choose from a List")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Cancel connecting")
     }
 
     private func focusChip(_ node: MindNode) -> some View {
@@ -744,7 +1049,9 @@ struct MapEditorView: View {
             }
 
             if isViewer {
-                HStack(spacing: 8) {
+                // A map shared to view: the same panel for the selected idea, with only what can be
+                // read (note, task, sources, focus) and Discuss with Minor.
+                VStack(spacing: 10) {
                     Label("View only", systemImage: "eye")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(MinorColor.textSecondary)
@@ -753,42 +1060,79 @@ struct MapEditorView: View {
                         .background(Capsule().fill(theme.chatRectangle))
                         .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
                         .accessibilityLabel(L("View only: the owner can make you an editor"))
-                    // A viewer still reads an idea's note, link and picture.
                     if let node = selectedNode, !node.isSuggestion {
-                        Button { cardNodeID = node.id } label: {
-                            Label("Details", systemImage: "text.alignleft")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 16)
-                                .frame(height: 40)
-                                .background(Capsule().fill(MinorColor.accent))
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        nodePanel(for: node)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 30)
+                                    .fill(theme.chatRectangle)
+                                    .overlay(RoundedRectangle(cornerRadius: 30).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.45), radius: 24, y: 6)
+                            )
+                            .padding(.horizontal, -8)
+                            .transition(.opacity.combined(with: .offset(y: 8)))
                     }
                 }
-                .animation(.easeInOut(duration: 0.2), value: selectedNode?.id)
+                .animation(.minorMenu, value: selectedNode?.id)
+            } else if let proposal {
+                MapEditProposalPanel(
+                    proposal: proposal,
+                    stale: store.map(mapID)?.root.editFingerprint != proposal.base,
+                    theme: theme,
+                    onApply: applyProposal,
+                    onCancel: {
+                        withAnimation(.minorMenu) { self.proposal = nil }
+                        Haptics.impact(.light)
+                    },
+                    onAskAgain: {
+                        command = proposal.command
+                        withAnimation(.minorMenu) { self.proposal = nil }
+                        applyCommand()
+                    }
+                )
+                .transition(.opacity.combined(with: .offset(y: 12)))
             } else {
-            Group {
-                if let node = selectedNode, node.isSuggestion {
-                    suggestionActions(for: node)
-                } else if let node = selectedNode {
-                    actionBar(for: node)
-                } else if map.root.suggestionCount > 0 {
-                    suggestionBar
-                } else {
-                    toolChips
-                }
-            }
-            .transition(.opacity.combined(with: .offset(y: 8)))
-            .disabled(isApplying)
-            .opacity(isApplying ? 0.5 : 1)
+                let panelNode = selectedNode.flatMap { $0.isSuggestion ? nil : $0 }
+                let showsPanel = panelNode != nil || movingID.flatMap { map.root.node($0) } != nil
+                VStack(spacing: 12) {
+                    Group {
+                        if let moving = movingID.flatMap({ map.root.node($0) }) {
+                            movePanel(moving)
+                        } else if let node = panelNode {
+                            nodePanel(for: node)
+                        } else if let node = selectedNode {
+                            suggestionActions(for: node)
+                        } else if map.root.suggestionCount > 0 {
+                            suggestionBar
+                        } else {
+                            toolChips
+                        }
+                    }
+                    .transition(.opacity.combined(with: .offset(y: 8)))
+                    .disabled(isApplying)
+                    .opacity(isApplying ? 0.5 : 1)
 
-            composer
+                    // The selected idea's panel has its own Discuss with Minor.
+                    if !showsPanel { composer }
+                }
+                .padding(showsPanel ? 12 : 0)
+                .background {
+                    if showsPanel {
+                        RoundedRectangle(cornerRadius: 30)
+                            .fill(theme.chatRectangle)
+                            .overlay(RoundedRectangle(cornerRadius: 30).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.45), radius: 24, y: 6)
+                            .transition(.opacity)
+                    }
+                }
+                .padding(.horizontal, showsPanel ? -8 : 0)
             }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
+        .background(GeometryReader { geo in
+            Color.clear.preference(key: BottomTopKey.self, value: geo.frame(in: .global).minY)
+        })
         .animation(.minorMenu, value: selection)
         .animation(.minorMenu, value: banner)
         .animation(.minorMenu, value: toast)
@@ -813,7 +1157,7 @@ struct MapEditorView: View {
                     isSearching = true
                     searchFocused = true
                 }
-                chip("Design", "paintpalette") { showDesign = true }
+                chip("Design", "paintpalette") { openDesign() }
                 chip("Study", "graduationcap") { showStudy = true }
                 chip("Slides", "rectangle.on.rectangle.angled") { onCreateDeck(mapID) }
                 if !map.root.children.isEmpty {
@@ -908,117 +1252,179 @@ struct MapEditorView: View {
         .buttonStyle(.plain)
     }
 
-    private func actionBar(for node: MindNode) -> some View {
+    // The selected idea: its whole title and where it is, Rename and Add Branch, its note and task,
+    // Discuss with Minor, and More Actions for everything else this idea can do. Swipe down or ×
+    // to close.
+    private func nodePanel(for node: MindNode) -> some View {
         let isRoot = node.id == map.root.id
-        let siblings = map.root.parent(of: node.id)?.children ?? []
-        let index = siblings.firstIndex { $0.id == node.id } ?? 0
-        return HStack(spacing: 4) {
-            Button {
-                isRoot ? expandAll() : expand(node.id)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles").font(.system(size: 15, weight: .semibold))
-                    Text(isRoot ? "Expand All" : "Expand").font(.system(size: 15, weight: .semibold))
+        return VStack(alignment: .leading, spacing: 10) {
+            Capsule()
+                .fill(Color.white.opacity(0.22))
+                .frame(width: 36, height: 5)
+                .frame(maxWidth: .infinity, minHeight: 10)
+                .contentShape(Rectangle())
+                .gesture(closePanelDrag)
+                .accessibilityHidden(true)
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(node.title.isEmpty ? L("New idea") : node.title)
+                        .minorFont(22, .bold, maxScale: 1.25)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(isRoot ? L("Map topic") : breadcrumb(node))
+                        .minorFont(14, maxScale: 1.25)
+                        .foregroundColor(MinorColor.textSecondary)
+                        .lineLimit(1)
                 }
-                .foregroundColor(.black)
-                .padding(.horizontal, 14)
-                .frame(height: 38)
-                .background(Capsule().fill(MinorColor.sendFill))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .gesture(closePanelDrag)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityValue(panelDetail(node) ?? "")
+                .accessibilityAction(named: Text("Close Panel")) { selection = nil }
+                Button { selection = nil } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(MinorColor.textPrimary)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Color.white.opacity(0.1)))
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Close Panel")
             }
-            .disabled(generating.contains(node.id))
-            barButton("bubble.left", "Ask") { AuthGate.shared.require { chatNodeID = node.id } }
-            barButton("pencil", "Edit") { startRename(node.id) }
-            barButton("paintbrush", "Style") { styleNodeID = node.id }
-            if isRoot {
-                barButton("text.alignleft", "Details") { cardNodeID = node.id }
-            } else {
-                if !node.children.isEmpty {
-                    barButton(node.isCollapsed ? "plus.circle" : "minus.circle", node.isCollapsed ? "Expand Branch" : "Collapse") {
-                        toggleCollapse(node.id)
-                    }
+            // A map shared to view: what can be read, nothing that would change it.
+            if !isViewer {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) { panelButtons(node) }
+                    VStack(spacing: 8) { panelButtons(node) }
                 }
             }
-            Rectangle().fill(theme.chatStroke).frame(width: 1, height: 24)
-            Menu {
-                Button { cardNodeID = node.id } label: { Label("Details & Note", systemImage: "text.alignleft") }
-                Button { addChild(to: node.id) } label: { Label("Add Child", systemImage: "arrow.turn.down.right") }
-                Section {
-                    Button { iconTarget = node.id } label: {
-                        Label(node.icon == nil ? "Add Icon" : "Change Icon", systemImage: "face.smiling")
-                    }
-                    if !isRoot {
-                        Button { toggleTask(node.id) } label: {
-                            Label(node.isTask ? "Remove Checkbox" : "Make It a Task", systemImage: "checkmark.circle")
-                        }
-                    }
-                    if !isRoot {
-                        Button { dueTarget = node.id } label: {
-                            Label(node.due == nil ? "Add Due Date" : "Due \(DueLabel.text(for: node.due!))", systemImage: "calendar")
-                        }
-                    }
-                    Menu {
-                        Picker("Priority", selection: Binding(get: { node.priority ?? 0 }, set: { setPriority(node.id, $0) })) {
-                            Text("None").tag(0)
-                            Text("1 · High").tag(1)
-                            Text("2 · Medium").tag(2)
-                            Text("3 · Low").tag(3)
-                        }
-                    } label: { Label("Priority", systemImage: "flag") }
-                    Button { startLinkEdit(node.id) } label: {
-                        Label(node.link == nil ? "Add Link" : "Edit Link", systemImage: "link")
-                    }
-                    if !isRoot {
-                        Button { toggleCallout(node.id) } label: {
-                            Label(node.isCallout ? "Show as Idea" : "Show as Callout", systemImage: "quote.opening")
-                        }
-                    }
+            VStack(spacing: 0) {
+                panelRow("doc.text", L("Note"), value: node.note.isEmpty ? (isViewer ? L("None") : L("Add")) : String(node.note.prefix(40))) { cardNodeID = node.id }
+                if !isViewer || node.isTask {
+                    Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1).padding(.leading, 48)
+                    panelRow("checkmark.square", L("Task"), value: taskValue(node)) { openTask(node) }
                 }
-                Section {
-                    Button { photoTarget = node.id; showNodePhotos = true } label: {
-                        Label(node.image == nil ? "Add Photo" : "Replace Photo", systemImage: "photo")
-                    }
-                    Button { generateImage(for: node.id) } label: { Label("Create Image with AI", systemImage: "wand.and.stars") }
-                    if node.image != nil {
-                        Button(role: .destructive) { removeImage(node.id) } label: { Label("Remove Image", systemImage: "photo.badge.minus") }
-                    }
-                }
-                Section {
-                    Button { startLinking(from: node.id) } label: {
-                        Label("Connect to Another Idea", systemImage: "arrow.triangle.turn.up.right.diamond")
-                    }
-                    if !isRoot {
-                        Button { startFrameEdit(node.id) } label: {
-                            Label(node.frame == nil ? "Add Frame" : "Edit Frame", systemImage: "rectangle.dashed")
-                        }
-                        if node.frame != nil {
-                            Button(role: .destructive) { mutate { $0.root.update(node.id) { $0.frame = nil } } } label: {
-                                Label("Remove Frame", systemImage: "rectangle.slash")
-                            }
-                        }
-                    }
-                }
-                if !isRoot {
-                    Button { addSibling(of: node.id) } label: { Label("Add Sibling", systemImage: "plus") }
-                    Button { withAnimation(.minorMenu) { focusID = node.id } } label: { Label("Focus on Branch", systemImage: "scope") }
-                    if index > 0 {
-                        Button { reorder(node.id, by: -1) } label: { Label("Move Up", systemImage: "arrow.up") }
-                    }
-                    if index < siblings.count - 1 {
-                        Button { reorder(node.id, by: 1) } label: { Label("Move Down", systemImage: "arrow.down") }
-                    }
-                    Button(role: .destructive) { requestDelete(node.id) } label: { Label("Delete Node", systemImage: "trash") }
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 20))
-                    .foregroundColor(MinorColor.textPrimary)
-                    .frame(width: 40, height: 40)
             }
-            .accessibilityLabel("More")
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+            panelRow("sparkles", L("Discuss with Minor"), value: nil, busy: generating.contains(node.id)) { askInChat(node.id) }
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+            panelRow("ellipsis", L("More Actions"), value: nil) { actionsNodeID = node.id }
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.12), lineWidth: 1))
         }
-        .padding(4)
-        .background(Capsule().fill(theme.chatRectangle))
-        .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private func panelButtons(_ node: MindNode) -> some View {
+        panelButton("pencil", L("Rename")) { startRename(node.id) }
+        // A long press also adds at the same level (not for the topic).
+        panelButton("plus", L("Add Branch")) { addChild(to: node.id) }
+            .contextMenu {
+                Button { addChild(to: node.id) } label: { Label("Add Branch", systemImage: "plus") }
+                if node.id != map.root.id {
+                    Button { addSibling(of: node.id) } label: { Label("Add at the Same Level", systemImage: "plus.square.on.square") }
+                }
+            }
+            .accessibilityAction(named: Text("Add at the Same Level")) { if node.id != map.root.id { addSibling(of: node.id) } }
+    }
+
+    private func panelButton(_ icon: String, _ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 16, weight: .medium))
+                Text(title).minorFont(16, .medium, maxScale: 1.25).lineLimit(1).minimumScaleFactor(0.85)
+            }
+            .foregroundColor(MinorColor.textPrimary)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.1), lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScale())
+    }
+
+    private func panelRow(_ icon: String, _ title: String, value: String?, busy: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Group {
+                    if busy {
+                        ProgressView().tint(MinorColor.textPrimary).scaleEffect(0.8)
+                    } else if icon == "sparkles" {
+                        Image(systemName: icon)
+                            .foregroundStyle(LinearGradient(colors: [BranchColor.lilac.color, BranchColor.sky.color], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    } else {
+                        Image(systemName: icon)
+                    }
+                }
+                .font(.system(size: 17))
+                .frame(width: 24)
+                Text(title).minorFont(16, maxScale: 1.25)
+                Spacer(minLength: 8)
+                if let value {
+                    Text(value)
+                        .minorFont(15, maxScale: 1.25)
+                        .foregroundColor(MinorColor.textSecondary)
+                        .lineLimit(1)
+                }
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundColor(MinorColor.textTertiary)
+            }
+            .foregroundColor(MinorColor.textPrimary)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 50)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+    }
+
+    // "Launch › Script": the parent and the idea.
+    private func breadcrumb(_ node: MindNode) -> String {
+        (map.root.path(to: node.id) ?? []).suffix(2).map(\.title).joined(separator: " › ")
+    }
+
+    private func taskValue(_ node: MindNode) -> String {
+        guard node.isTask else { return L("Make a Task") }
+        if node.isDone { return L("Done") }
+        return node.due.map { DueLabel.text(for: $0) } ?? L("No Date")
+    }
+
+    // Swiping the panel's top down closes it (the idea is deselected).
+    private var closePanelDrag: some Gesture {
+        DragGesture(minimumDistance: 16).onEnded { value in
+            if value.translation.height > 40 { selection = nil }
+        }
+    }
+
+    // What the selected idea is, in a few words: the map's topic, a task and its date, how many
+    // ideas are below it, its labels.
+    private func panelDetail(_ node: MindNode) -> String? {
+        var parts: [String] = []
+        if node.id == map.root.id { parts.append(L("Map topic")) }
+        if node.isTask {
+            parts.append(node.isDone ? L("Done") : L("Task"))
+            if let due = node.due, !node.isDone { parts.append(DueLabel.text(for: due)) }
+        }
+        if !node.children.isEmpty { parts.append(L("Ideas below: \(node.count - 1)")) }
+        if !node.labels.isEmpty { parts.append(node.labels.prefix(2).joined(separator: ", ")) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private func openPanel(_ tab: PanelTab, for id: UUID) {
+        panelTab = tab
+        switch tab {
+        case .content: break
+        case .style: styleNodeID = id
+        case .marks: marksNodeID = id
+        }
+        // The idea stays in view above the half-height sheet.
+        reveal(id, above: UIScreen.main.bounds.height * 0.5)
+    }
+
+    private func askInChat(_ id: UUID) {
+        if let onAskInChat { return onAskInChat(id) }
+        AuthGate.shared.require { chatNodeID = id }
     }
 
     private func barButton(_ icon: String, _ label: LocalizedStringKey, action: @escaping () -> Void) -> some View {
@@ -1035,15 +1441,27 @@ struct MapEditorView: View {
 
     private var composer: some View {
         HStack(spacing: 10) {
+            Button(action: openAddMaterial) {
+                Image(systemName: "paperclip")
+                    .font(.system(size: 18))
+                    .foregroundColor(MinorColor.textSecondary)
+                    .frame(width: 34, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isApplying)
+            .accessibilityLabel("Add Material")
             TextField("", text: $command)
                 .placeholder(when: command.isEmpty) {
-                    Text(isApplying ? "Changing the map…" : "Change this map, or ask a question").foregroundColor(theme.placeholderText)
+                    Text(isApplying ? "Changing the map…" : "What to change in the map?").foregroundColor(theme.placeholderText)
                 }
                 .foregroundColor(MinorColor.textPrimary)
-                .font(.system(size: 17))
+                .font(.system(size: 16))
                 .focused($commandFocused)
                 .submitLabel(.send)
                 .onSubmit(applyCommand)
+                .disabled(isApplying)
+            DictationButton(text: $command, stroke: theme.chatStroke)
                 .disabled(isApplying)
             Button(action: applyCommand) {
                 Group {
@@ -1060,9 +1478,9 @@ struct MapEditorView: View {
             .opacity(command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isApplying ? 0.4 : 1)
             .accessibilityLabel("Send")
         }
-        .padding(.leading, 16)
-        .padding(.trailing, 12)
-        .frame(height: 60)
+        .padding(.leading, 8)
+        .padding(.trailing, 10)
+        .frame(height: 52)
         .minorSurface(theme)
     }
 
@@ -1291,6 +1709,9 @@ struct MapEditorView: View {
         if let id = selection, map.root.node(id) == nil { selection = nil }
         if let id = focusID, map.root.node(id) == nil { focusID = nil }
         if let id = cardNodeID, map.root.node(id) == nil { cardNodeID = nil }
+        // The branch being moved, or its chosen parent, went (deleted here or by someone else).
+        if let id = movingID, map.root.node(id) == nil { movingID = nil; moveTarget = nil }
+        if let id = moveTarget, map.root.node(id) == nil { moveTarget = nil }
         if let id = chatNodeID, map.root.node(id) == nil { chatNodeID = nil }
         if let id = pendingDelete, map.root.node(id) == nil { pendingDelete = nil }
         if let id = renameTarget, map.root.node(id) == nil { renameTarget = nil; isRenaming = false }
@@ -1312,19 +1733,124 @@ struct MapEditorView: View {
         mutate { $0.root.update(id) { $0.isDone.toggle() } }
     }
 
-    private func toggleTask(_ id: UUID) {
-        mutate { $0.root.update(id) { node in
-            node.isTask.toggle()
-            if !node.isTask { node.isDone = false }
-        } }
-    }
-
-    private func setPriority(_ id: UUID, _ value: Int) {
-        mutate { $0.root.update(id) { $0.priority = value == 0 ? nil : value } }
-    }
-
     private func toggleCallout(_ id: UUID) {
         mutate { $0.root.update(id) { $0.isCallout.toggle() } }
+    }
+
+    // An idea someone asked to see: the branches above it open, then it is selected (and in view).
+    private func show(_ id: UUID) {
+        guard map.root.node(id) != nil else { return }
+        mutate(animated: false, undoable: false, personal: true) { map in
+            for ancestor in (map.root.path(to: id) ?? []).dropLast() {
+                map.root.update(ancestor.id) { $0.isCollapsed = false }
+            }
+        }
+        if mode == .list { mode = .tree }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { selection = id }
+    }
+
+    private func openSources(for id: UUID?) {
+        sources = SourcesRequest(scope: id == map.root.id ? nil : id)
+        if let id { reveal(id, above: UIScreen.main.bounds.height * 0.5) }
+    }
+
+    private func openNextSteps(_ id: UUID) {
+        if blockedForViewer() { return }
+        guard AuthService.shared.isSignedIn, AIConsent.isGiven else { return withConsent { openNextSteps(id) } }
+        nextStepsTarget = id
+    }
+
+    private func openAddMaterial() {
+        if blockedForViewer() { return }
+        guard AuthService.shared.isSignedIn, AIConsent.isGiven else { return withConsent(openAddMaterial) }
+        showAddMaterial = true
+    }
+
+    // Chosen next steps become open tasks under the idea (no due date unless one was set); a step
+    // that is already an idea there makes that idea a task.
+    private func addNextSteps(_ choices: [NextStepsSheet.Choice], to id: UUID) {
+        guard !choices.isEmpty, map.root.node(id) != nil else { return }
+        var touched: Set<UUID> = []
+        mutate { map in
+            for choice in choices {
+                if let existing = choice.existing, map.root.node(existing) != nil {
+                    map.root.update(existing) { node in
+                        node.isTask = true
+                        node.isDone = false
+                        if let due = choice.due { node.due = due }
+                    }
+                    touched.insert(existing)
+                } else {
+                    var node = MindNode(title: String(choice.title.prefix(80)), note: choice.detail, isAIAdded: true, isTask: true, origin: .ai)
+                    node.due = choice.due
+                    map.root.update(id) { parent in
+                        parent.isCollapsed = false
+                        parent.children.append(node)
+                    }
+                    touched.insert(node.id)
+                }
+            }
+        }
+        if choices.contains(where: { $0.due != nil }) { Reminders.shared.requestPermission() }
+        flash(touched)
+        showToast(L("Tasks added: \(choices.count)"), canUndo: true)
+        Telemetry.log("next_steps_added", ["count": choices.count])
+        Haptics.success()
+    }
+
+    // The material is kept with the project, and the chosen ideas go under the ideas they belong to
+    // (under the topic when that idea was deleted meanwhile).
+    private func applyMaterial(_ material: ProjectMaterial, _ additions: [MaterialAddition]) {
+        if blockedForViewer() { return }
+        // The added ideas keep their ids, so each one's citation (checked here) points to it.
+        var material = material
+        material.cite(additions.reduce(into: [UUID: [String]]()) { all, addition in all.merge(addition.sources) { first, _ in first } })
+        ProjectMaterialStore.shared.add(material, to: mapID)
+        guard !additions.isEmpty else { return showToast(L("Material saved"), canUndo: false) }
+        var added: Set<UUID> = []
+        mutate { map in
+            for addition in additions {
+                let target = map.root.node(addition.parentID) == nil ? map.root.id : addition.parentID
+                let node = addition.node.withOrigin(.material(material.id))
+                map.root.update(target) { parent in
+                    parent.isCollapsed = false
+                    parent.children.append(node)
+                }
+                added.formUnion(MindNode.allIDs(in: node))
+            }
+        }
+        flash(added)
+        showToast(L("Ideas added: \(added.count)"), canUndo: true)
+        Telemetry.log("material_added", ["kind": material.kind.rawValue, "added": added.count])
+        Haptics.success()
+    }
+
+    // A question from About the Project, into the chat.
+    private func discuss(_ text: String) {
+        if let onDiscuss { return onDiscuss(text) }
+        AuthGate.shared.require {
+            chatPrompt = text
+            chatNodeID = map.root.id
+        }
+    }
+
+    // A due date makes the idea an open task; a reminder needs notifications.
+    private func setDue(_ id: UUID, _ date: Date?) {
+        if let date {
+            mutate { $0.root.update(id) { node in
+                node.due = date
+                node.isTask = true
+                node.isDone = false
+            } }
+            Reminders.shared.requestPermission()
+        } else {
+            mutate { $0.root.update(id) { $0.due = nil } }
+        }
+    }
+
+    private func openDesign(_ tab: MapDesignSheet.Tab = .theme) {
+        designTab = tab
+        showDesign = true
     }
 
     private func setStyle(_ style: MapStyle) {
@@ -1518,12 +2044,25 @@ struct MapEditorView: View {
 
     private func commitRename() {
         let text = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let id = renameTarget, !text.isEmpty else { return }
+        guard let id = renameTarget else { return }
+        // An empty name keeps the old one; a new branch left without one goes again.
+        guard !text.isEmpty else { return cancelRename() }
+        draftID = nil
         mutate { $0.root.update(id) { $0.title = String(text.prefix(80)) } }
     }
 
+    // Cancel on the name of a branch just added takes only that branch away (its own Undo).
+    private func cancelRename() {
+        defer { draftID = nil }
+        guard let draft = draftID, renameTarget == draft, let node = map.root.node(draft),
+              node.children.isEmpty, node.title == L("New idea") else { return }
+        let parent = map.root.parent(of: draft)?.id
+        undo()
+        selection = parent
+    }
+
     private func addChild(to id: UUID) {
-        let child = MindNode(title: L("New idea"))
+        let child = MindNode(title: L("New idea"), origin: .person)
         mutate {
             $0.root.update(id) { node in
                 node.isCollapsed = false
@@ -1533,11 +2072,12 @@ struct MapEditorView: View {
         selection = child.id
         startRename(child.id)
         renameText = ""
+        draftID = child.id
     }
 
     private func addSibling(of id: UUID) {
         guard let parent = map.root.parent(of: id) else { return }
-        let sibling = MindNode(title: L("New idea"))
+        let sibling = MindNode(title: L("New idea"), origin: .person)
         mutate {
             $0.root.update(parent.id) { node in
                 let index = node.children.firstIndex { $0.id == id }.map { $0 + 1 } ?? node.children.count
@@ -1547,6 +2087,205 @@ struct MapEditorView: View {
         selection = sibling.id
         startRename(sibling.id)
         renameText = ""
+        draftID = sibling.id
+    }
+
+    // MARK: - Moving a branch
+
+    private func startMove(_ id: UUID) {
+        if blockedForViewer() { return }
+        guard id != map.root.id, map.root.node(id) != nil else { return }
+        withAnimation(.minorMenu) {
+            movingID = id
+            moveTarget = nil
+        }
+        selection = id
+        UIAccessibility.post(notification: .announcement, argument: L("Choose the new parent"))
+    }
+
+    // Not the branch itself, nothing inside it, not where it already is.
+    private func isValidMoveTarget(_ target: UUID) -> Bool {
+        guard let moving = movingID, let branch = map.root.node(moving), map.root.node(target) != nil else { return false }
+        return target != moving && branch.node(target) == nil && map.root.parent(of: moving)?.id != target
+    }
+
+    // Checked again when applied: the map may have changed meanwhile.
+    private func confirmMove() {
+        guard let moving = movingID, let target = moveTarget else { return }
+        guard isValidMoveTarget(target), !isViewer else {
+            showToast(L("The map changed: choose the new parent again."), canUndo: false)
+            moveTarget = nil
+            return
+        }
+        move(moving, under: target)
+        withAnimation(.minorMenu) {
+            movingID = nil
+            moveTarget = nil
+        }
+        selection = moving
+    }
+
+    private func cancelMove() {
+        withAnimation(.minorMenu) {
+            movingID = nil
+            moveTarget = nil
+        }
+    }
+
+    // The branch and the chosen parent joined by a dashed line until the move is confirmed.
+    private var movePreviewLinks: [MapLink] {
+        guard let moving = movingID, let target = moveTarget else { return map.links }
+        return map.links + [MapLink(from: moving, to: target, label: "")]
+    }
+
+    // A bar under the tabs, as the design: what to do now, and × to stop moving.
+    private var moveChip: some View {
+        HStack(spacing: 8) {
+            Text("Choose the new parent")
+                .minorFont(13, maxScale: 1.3)
+                .foregroundColor(MinorColor.textSecondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+            Button(action: cancelMove) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(MinorColor.textSecondary)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Cancel moving")
+        }
+        .padding(.leading, 40)
+        .padding(.trailing, 4)
+        .frame(minHeight: 34)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
+        .padding(.horizontal, 16)
+    }
+
+    private func movePanel(_ node: MindNode) -> some View {
+        let target = moveTarget.flatMap { map.root.node($0) }
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Move Branch").minorFont(22, .bold, maxScale: 1.25).accessibilityAddTraits(.isHeader)
+                Text("\(node.title) · \(L("\(node.count - 1) child ideas"))")
+                    .minorFont(14, maxScale: 1.25)
+                    .foregroundColor(MinorColor.textSecondary)
+                    .lineLimit(2)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("New parent").minorFont(13, maxScale: 1.25).foregroundColor(MinorColor.textTertiary)
+                Button { showMovePicker = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.turn.down.right").foregroundColor(MinorColor.accent)
+                        Text(target.map { L("Into “\($0.title)”") } ?? L("Tap an idea on the map"))
+                            .minorFont(16, maxScale: 1.25)
+                            .foregroundColor(target == nil ? MinorColor.textSecondary : MinorColor.textPrimary)
+                            .lineLimit(2)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundColor(MinorColor.textTertiary)
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 52)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.05)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                Button("Choose from a List") { showMovePicker = true }
+                    .minorFont(14, .medium, maxScale: 1.25)
+                    .foregroundColor(MinorColor.accent)
+                    .frame(minHeight: 32)
+            }
+            Button(action: confirmMove) {
+                Text("Move")
+                    .minorFont(17, .semibold, maxScale: 1.25)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white))
+            }
+            .buttonStyle(PressScale())
+            .disabled(target == nil)
+            .opacity(target == nil ? 0.45 : 1)
+            Button(action: cancelMove) {
+                Text("Cancel")
+                    .minorFont(16, maxScale: 1.25)
+                    .frame(maxWidth: .infinity, minHeight: 46)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.12), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // A copy of the branch beside it with new ids, its notes, marks, tasks and the connections
+    // inside it; connections to ideas outside the branch aren't copied.
+    private func duplicateBranch(_ id: UUID) {
+        if blockedForViewer() { return }
+        guard let node = map.root.node(id), let parent = map.root.parent(of: id) else { return }
+        var renamed: [UUID: UUID] = [:]
+        func renew(_ item: inout MindNode) {
+            let fresh = UUID()
+            renamed[item.id] = fresh
+            item.id = fresh
+            for i in item.children.indices { renew(&item.children[i]) }
+        }
+        var copy = node
+        renew(&copy)
+        copy.title = L("\(node.title) copy")
+        let inner = map.links.compactMap { link -> MapLink? in
+            guard let from = renamed[link.from], let to = renamed[link.to] else { return nil }
+            return MapLink(from: from, to: to, label: link.label)
+        }
+        mutate { map in
+            map.root.update(parent.id) { item in
+                let at = item.children.firstIndex { $0.id == id }.map { $0 + 1 } ?? item.children.count
+                item.children.insert(copy, at: at)
+            }
+            map.links += inner
+        }
+        selection = copy.id
+        flash(Set(renamed.values))
+        showToast(L("Branch duplicated"), canUndo: true)
+    }
+
+    // The selected idea's task: a node that isn't one becomes a task first (its own Undo).
+    private func openTask(_ node: MindNode) {
+        if !node.isTask {
+            if blockedForViewer() { return }
+            mutate { $0.root.update(node.id) { $0.isTask = true } }
+            showToast(L("Now a task"), canUndo: true)
+        }
+        taskNodeID = node.id
+    }
+
+    private func handle(_ action: NodeAction, _ id: UUID) {
+        let isRoot = id == map.root.id
+        switch action {
+        case .move: startMove(id)
+        case .connect: startLinking(from: id)
+        case .addSibling: addSibling(of: id)
+        case .moveUp: reorder(id, by: -1)
+        case .moveDown: reorder(id, by: 1)
+        case .toggleCollapse: toggleCollapse(id)
+        case .style: openPanel(.style, for: id)
+        case .marks: openPanel(.marks, for: id)
+        case .sources: openSources(for: id)
+        case .photo:
+            photoTarget = id
+            showNodePhotos = true
+        case .removePhoto: removeImage(id)
+        case .link: startLinkEdit(id)
+        case .callout: toggleCallout(id)
+        case .frame: startFrameEdit(id)
+        case .removeFrame: mutate { $0.root.update(id) { $0.frame = nil } }
+        case .expand: isRoot ? expandAll() : expand(id)
+        case .examples: expand(id, hint: .examples)
+        case .questions: expand(id, hint: .questions)
+        case .nextSteps: openNextSteps(id)
+        case .aiImage: generateImage(for: id)
+        case .duplicate: duplicateBranch(id)
+        case .focus: withAnimation(.minorMenu) { focusID = id }
+        case .note: cardNodeID = id
+        case .delete: requestDelete(id)
+        }
     }
 
     private func reorder(_ id: UUID, by offset: Int) {
@@ -1603,7 +2342,7 @@ struct MapEditorView: View {
     }
 
     private func addChildren(_ titles: [String], to id: UUID) {
-        let nodes = titles.map { MindNode(title: String($0.prefix(80)), isAIAdded: true) }
+        let nodes = titles.map { MindNode(title: String($0.prefix(80)), isAIAdded: true, origin: .ai) }
         guard !nodes.isEmpty else { return }
         mutate {
             $0.root.update(id) { node in
@@ -1616,10 +2355,13 @@ struct MapEditorView: View {
 
     // Keeps the selected node above the bottom panel and below the top bar, with the ideas below
     // it in view too when the whole branch fits on screen.
-    private func reveal(_ id: UUID) {
+    // `above` is where a half-height sheet starts, when one is opening over the map.
+    private func reveal(_ id: UUID, above: CGFloat? = nil) {
         guard mode != .list, let node = layout.node(id) else { return }
         let screen = UIScreen.main.bounds.size
-        let visible = CGRect(x: 16, y: 120, width: screen.width - 32, height: screen.height - 120 - 190)
+        let top = chromeInsets.top + 10
+        let bottom = above.map { $0 - 16 } ?? (bottomTop > top ? bottomTop - 12 : screen.height - 202)
+        let visible = CGRect(x: 16, y: top, width: screen.width - 32, height: max(bottom - top, 80))
         let branch = layout.branch(of: id).map(\.node.frame).reduce(node.frame) { $0.union($1) }
         let target = branch.width * viewport.scale <= visible.width && branch.height * viewport.scale <= visible.height ? branch : node.frame
         let frame = CGRect(
@@ -1734,14 +2476,14 @@ struct MapEditorView: View {
                 }
                 guard let current = store.map(mapID) else { return }
                 let root = current.root.merged(with: edited)
-                guard root != current.root else {
+                let pending = MapEditProposal(command: text, current: current.root, proposal: root)
+                guard root != current.root, !pending.diff.isEmpty else {
                     showToast(L("Nothing to change"), canUndo: false)
                     return
                 }
-                let oldIDs = Self.ids(in: current.root) { _ in true }
-                mutate { $0.root = root }
-                flash(Self.ids(in: root) { !oldIDs.contains($0.id) })
-                showToast(L("Map updated"), canUndo: true)
+                // Shown first: new ideas dashed on the map, Apply or Cancel below.
+                withAnimation(.minorMenu) { proposal = pending }
+                UIAccessibility.post(notification: .announcement, argument: L("Suggestion from Minor: \(pending.headline)"))
                 Haptics.success()
             } catch is CancellationError {
                 command = text
@@ -1750,6 +2492,25 @@ struct MapEditorView: View {
                 show(error)
             }
         }
+    }
+
+    // The proposal, if the map is still as Minor read it: new ideas come in visible, Undo brings
+    // the map back.
+    private func applyProposal() {
+        guard let pending = proposal, let current = store.map(mapID) else { return }
+        guard current.root.editFingerprint == pending.base else { return }
+        var root = pending.proposal.keepingCollapse(from: current.root)
+        for id in pending.addedIDs {
+            for ancestor in (root.path(to: id) ?? []).dropLast() where !pending.addedIDs.contains(ancestor.id) {
+                root.update(ancestor.id) { $0.isCollapsed = false }
+            }
+        }
+        withAnimation(.minorMenu) { proposal = nil }
+        mutate { $0.root = root }
+        flash(pending.addedIDs)
+        showToast(L("Map updated"), canUndo: true)
+        Telemetry.log("map_command_applied", ["added": pending.diff.added, "changed": pending.diff.changed, "removed": pending.diff.removed])
+        Haptics.success()
     }
 
     // A copy is a new map: it counts toward the month's maps like a template.
@@ -1875,6 +2636,12 @@ struct MapEditorView: View {
     }
 }
 
+private struct BottomTopKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    // Views that don't measure give 0; the measured top is never replaced by them.
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 struct IdentifiedID: Identifiable {
     let id: UUID
 }
@@ -1886,10 +2653,14 @@ struct MapOutlineView: View {
     @Binding var selection: UUID?
     var visible: Set<UUID>? = nil
     var highlighted: Set<UUID> = []
+    // Room for the editor's top bar (and tabs) and its bottom controls.
+    var topInset: CGFloat = 110
+    var bottomInset: CGFloat = 200
 
     private func shows(_ node: MindNode) -> Bool { visible?.contains(node.id) ?? true }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 Text(map.title)
@@ -1915,9 +2686,17 @@ struct MapOutlineView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 110)
-            .padding(.bottom, 200)
+            .padding(.top, topInset)
+            .padding(.bottom, bottomInset)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        // The selected idea stays in view above the panel that opens for it.
+        .onChange(of: selection) { id in
+            guard let id else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                withAnimation(.minorFit) { proxy.scrollTo(id, anchor: UnitPoint(x: 0.5, y: 0.3)) }
+            }
+        }
         }
         .foregroundColor(MinorColor.textPrimary)
         .background(theme.background)
@@ -1973,6 +2752,7 @@ struct MapOutlineView: View {
             }
         }
         .buttonStyle(.plain)
+        .id(node.id)
         .accessibilityLabel("\(node.title), level \(level)\(node.note.isEmpty ? "" : L(", has note"))")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

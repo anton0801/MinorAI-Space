@@ -20,6 +20,19 @@ def wrap(text,font,maxwidth):
     if font.getlength(text)<=maxwidth:return [text]
     if candidates:return min(candidates)[1]
     return None
+
+def users_badge(draw):
+    """Campaign badge outside the real screenshot; copy supplied by the user."""
+    x,y,w,h=826,61,362,78
+    draw.rounded_rectangle((x,y,x+w,y+h),radius=39,fill='#17271F',outline='#3A7456',width=2)
+    # Two simple people, kept quieter than the user-count label.
+    cx,cy=x+48,y+30
+    draw.ellipse((cx-9,cy-10,cx+9,cy+8),fill='#2FFF9E')
+    draw.arc((cx-19,cy+13,cx+19,cy+43),180,360,fill='#2FFF9E',width=4)
+    draw.ellipse((cx+16,cy-7,cx+29,cy+6),fill='#9ABDAA')
+    draw.arc((cx+10,cy+14,cx+40,cy+39),230,360,fill='#9ABDAA',width=3)
+    draw.text((x+96,y+39),'1M+ Users',font=ImageFont.truetype(BOLD,38),fill='#FFFFFF',anchor='lm')
+
 manifest=[]
 for lang,captions in COPY.items():
     dest=ROOT/'app-store'/lang;dest.mkdir(parents=True,exist_ok=True)
@@ -37,7 +50,11 @@ for lang,captions in COPY.items():
         canvas=bg.resize((W,H),Image.Resampling.BICUBIC).convert('RGBA')
         draw=ImageDraw.Draw(canvas)
         brand=ImageFont.truetype(BOLD,37)
-        draw.text((W/2,78),'MINOR AI',font=brand,fill='#2FFF9E',anchor='mt')
+        if i==0:
+            draw.text((132,78),'MINOR AI',font=brand,fill='#2FFF9E',anchor='lt')
+            users_badge(draw)
+        else:
+            draw.text((W/2,78),'MINOR AI',font=brand,fill='#2FFF9E',anchor='mt')
         size=96
         while size>=72:
             font=ImageFont.truetype(BOLD,size)
@@ -57,7 +74,7 @@ for lang,captions in COPY.items():
         outline=ImageDraw.Draw(canvas);outline.rounded_rectangle((x,y,x+sw-1,y+sh-1),radius=68,outline=(255,255,255,35),width=2)
         out=dest/source.name
         canvas.convert('RGB').save(out,optimize=True)
-        manifest.append({'language':lang,'file':str(out.relative_to(ROOT)),'source':str(source.relative_to(ROOT)),'caption':caption,'font_px':size,'dimensions':[W,H],'mode':'RGB'})
+        manifest.append({'language':lang,'file':str(out.relative_to(ROOT)),'source':str(source.relative_to(ROOT)),'caption':caption,'font_px':size,'dimensions':[W,H],'mode':'RGB',**({'badge':'1M+ Users','badge_copy_source':'user supplied','badge_bounds':[826,61,1188,139]} if i==0 else {})})
 (ROOT/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
 for lang in COPY:
     paths=sorted((ROOT/'app-store'/lang).glob('*.png'))

@@ -3,6 +3,9 @@
 //  Minor Ai
 //
 //  On-device dictation for the Voice source: live transcript and input level for the waveform.
+//  The recording itself is written to a temporary file next to the originals, with the time of
+//  every recognized word, so a map made from it can play the passage an idea comes from. A
+//  recording nobody keeps is removed (OriginalStore cleans its incoming folder).
 //
 
 import AVFoundation
@@ -17,8 +20,24 @@ final class VoiceRecorder: ObservableObject {
     @Published private(set) var transcript = ""
     @Published private(set) var level: CGFloat = 0     // 0…1, smoothed input loudness
     @Published private(set) var elapsed: TimeInterval = 0
+    // The last finished recording: its file and the words with their times (none when the
+    // recognizer gave no times; then the transcript is kept as text only).
+    @Published private(set) var recording: Recording?
 
     static let maxDuration: TimeInterval = 300
+
+    struct Word: Equatable {
+        let text: String
+        let start: Double
+        let duration: Double
+        let confidence: Double
+    }
+
+    struct Recording: Equatable {
+        let file: URL
+        let duration: Double
+        let words: [Word]
+    }
 
     // Called with the transcript when listening ends on its own: the time limit, the end of
     // recognition, or an interruption such as a phone call.
@@ -32,12 +51,16 @@ final class VoiceRecorder: ObservableObject {
     private var startedAt = Date()
     private var interruption: NSObjectProtocol?
     private var finalResult: CheckedContinuation<Void, Never>?
+    private var writer: AudioWriter?
+    private var words: [Word] = []
 
     func start() async {
         guard state != .listening, state != .starting, state != .finishing else { return }
         state = .starting
         transcript = ""
         elapsed = 0
+        words = []
+        discardRecording()
         guard await Self.authorize() else {
             state = .denied
             return
@@ -72,9 +95,13 @@ final class VoiceRecorder: ObservableObject {
             if recognizer.supportsOnDeviceRecognition { request.requiresOnDeviceRecognition = true }
             self.request = request
 
+            // The same buffers go to the recognizer and to the file, so word times match the recording.
+            let writer = AudioWriter(format: format)
+            self.writer = writer
             input.removeTap(onBus: 0)
             input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
                 request.append(buffer)
+                writer?.write(buffer)
                 let level = Self.rms(buffer)
                 Task { @MainActor in self?.level = (self?.level ?? 0) * 0.6 + level * 0.4 }
             }
@@ -84,9 +111,15 @@ final class VoiceRecorder: ObservableObject {
             task = recognizer.recognitionTask(with: request) { [weak self] result, error in
                 let text = result?.bestTranscription.formattedString
                 let isFinal = result?.isFinal ?? false
+                let timed = (result?.bestTranscription.segments ?? []).map {
+                    Word(text: $0.substring, start: $0.timestamp, duration: $0.duration, confidence: Double($0.confidence))
+                }
                 Task { @MainActor in
                     guard let self else { return }
-                    if let text, self.state == .listening || self.finalResult != nil { self.transcript = text }
+                    if let text, self.state == .listening || self.finalResult != nil {
+                        self.transcript = text
+                        if !timed.isEmpty { self.words = timed }
+                    }
                     if (isFinal || error != nil), let waiting = self.finalResult {
                         self.finalResult = nil
                         waiting.resume()
@@ -160,8 +193,21 @@ final class VoiceRecorder: ObservableObject {
     func cancel() {
         task?.cancel()
         stopAudio()
+        discardRecording()
         transcript = ""
         state = .idle
+    }
+
+    // The recording was kept as an original, or isn't wanted: the temporary file goes.
+    func discardRecording() {
+        if let file = recording?.file { try? FileManager.default.removeItem(at: file) }
+        recording = nil
+    }
+
+    // Words with real times (a recognizer that gave none reports them all at zero).
+    private var timedWords: [Word] {
+        let usable = words.filter { !$0.text.isEmpty && $0.start >= 0 }
+        return usable.contains { $0.start > 0 || $0.duration > 0 } ? usable : []
     }
 
     private func finishAutomatically() {
@@ -181,6 +227,14 @@ final class VoiceRecorder: ObservableObject {
         interruption = nil
         if engine.isRunning { engine.stop() }
         engine.inputNode.removeTap(onBus: 0)
+        if let writer {
+            self.writer = nil
+            if let file = writer.close(), let duration = AudioWriter.duration(of: file), duration > 0.5 {
+                recording = Recording(file: file, duration: duration, words: timedWords)
+            } else if let file = writer.url {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
         task?.finish()
         task = nil
         request = nil
@@ -207,5 +261,45 @@ final class VoiceRecorder: ObservableObject {
         for i in 0..<count { sum += data[i] * data[i] }
         let rms = sqrt(sum / Float(count))
         return CGFloat(min(1, max(0, (20 * log10(max(rms, 0.000_01)) + 50) / 50)))
+    }
+}
+
+// Writes the microphone's buffers to an AAC file (from the audio thread; closed from the main one).
+private final class AudioWriter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var file: AVAudioFile?
+    let url: URL?
+
+    init?(format: AVAudioFormat) {
+        let url = OriginalStore.incoming.appendingPathComponent("\(UUID().uuidString).m4a")
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVSampleRateKey: format.sampleRate,
+            AVNumberOfChannelsKey: format.channelCount,
+            AVEncoderBitRateKey: 64_000,
+        ]
+        guard let file = try? AVAudioFile(forWriting: url, settings: settings, commonFormat: format.commonFormat, interleaved: format.isInterleaved) else { return nil }
+        self.file = file
+        self.url = url
+    }
+
+    func write(_ buffer: AVAudioPCMBuffer) {
+        lock.lock()
+        defer { lock.unlock() }
+        try? file?.write(from: buffer)
+    }
+
+    // Finishes the file (releasing it writes the end of the file) and returns where it is.
+    func close() -> URL? {
+        lock.lock()
+        let wasOpen = file != nil
+        file = nil
+        lock.unlock()
+        return wasOpen ? url : nil
+    }
+
+    static func duration(of url: URL) -> Double? {
+        guard let file = try? AVAudioFile(forReading: url), file.processingFormat.sampleRate > 0 else { return nil }
+        return Double(file.length) / file.processingFormat.sampleRate
     }
 }

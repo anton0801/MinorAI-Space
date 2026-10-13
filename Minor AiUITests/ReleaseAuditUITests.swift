@@ -80,17 +80,21 @@ final class ReleaseAuditUITests: XCTestCase {
             let window = app.windows.firstMatch
             switch roll {
             case 0..<40:
-                // A few tries at a random button that can be tapped (checking all of them is slow).
-                let all = app.descendants(matching: .button)
-                let count = all.count
-                guard count > 0 else { continue }
-                for _ in 0..<3 {
-                    let button = all.element(boundBy: Int(random.next() % UInt64(count)))
-                    guard onScreen(button, app) else { continue }
-                    note("tap button \"\(button.label)\"")
-                    button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-                    break
+                // A random button on screen, from one snapshot of the screen: a button that goes
+                // away meanwhile is tapped where it was instead of failing the query.
+                guard let tree = try? app.snapshot() else { continue }
+                let screen = app.frame
+                var buttons: [XCUIElementSnapshot] = []
+                func collect(_ node: XCUIElementSnapshot) {
+                    if node.elementType == .button, node.isEnabled, !node.frame.isEmpty,
+                       screen.contains(CGPoint(x: node.frame.midX, y: node.frame.midY)) { buttons.append(node) }
+                    node.children.forEach(collect)
                 }
+                collect(tree)
+                guard !buttons.isEmpty else { continue }
+                let button = buttons[Int(random.next() % UInt64(buttons.count))]
+                note("tap button \"\(button.label)\"")
+                app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: button.frame.midX - screen.minX, dy: button.frame.midY - screen.minY)).tap()
             case 40..<65:
                 let x = random.unit(), y = 0.08 + random.unit() * 0.88
                 note("tap \(Int(x * 100))%,\(Int(y * 100))%")
@@ -105,23 +109,43 @@ final class ReleaseAuditUITests: XCTestCase {
                 default: window.swipeRight()
                 }
             case 77..<85:
-                let fields = (app.textFields.allElementsBoundByIndex + app.textViews.allElementsBoundByIndex + app.secureTextFields.allElementsBoundByIndex).filter { onScreen($0, app) }
-                guard let field = fields.isEmpty ? nil : random.pick(fields) else { continue }
+                // A field on screen, from one snapshot (a field that goes away meanwhile is tapped where it was).
+                guard let tree = try? app.snapshot() else { continue }
+                let screen = app.frame
+                var fields: [XCUIElementSnapshot] = []
+                func collect(_ node: XCUIElementSnapshot) {
+                    if [.textField, .textView, .secureTextField].contains(node.elementType), !node.frame.isEmpty,
+                       screen.contains(CGPoint(x: node.frame.midX, y: node.frame.midY)) { fields.append(node) }
+                    node.children.forEach(collect)
+                }
+                collect(tree)
+                guard !fields.isEmpty else { continue }
+                let field = fields[Int(random.next() % UInt64(fields.count))]
                 let text = random.pick(words)
                 note("type \(text.prefix(20)) into \(field.label)")
-                field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-                guard app.keyboards.count > 0, !text.isEmpty else { continue }
-                app.typeText(text)
-                if random.next() % 2 == 0 { app.typeText("\n") }
+                app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: field.frame.midX - screen.minX, dy: field.frame.midY - screen.minY)).tap()
+                // Typed only into a field that really has the keyboard (a tap can land elsewhere).
+                let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasKeyboardFocus == true")).firstMatch
+                guard app.keyboards.count > 0, !text.isEmpty, focused.exists else { continue }
+                focused.typeText(text)
+                if random.next() % 2 == 0, focused.exists { focused.typeText("\n") }
             case 85..<89:
                 let x = random.unit(), y = 0.15 + random.unit() * 0.75
                 note("long press \(Int(x * 100))%,\(Int(y * 100))%")
                 window.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y)).press(forDuration: 1.0)
             case 89..<94:
                 let escapes = ["Done", "Готово", "Cancel", "Отмена", "Close", "Закрыть", "Back", "Назад"]
-                if let title = escapes.first(where: { onScreen(app.buttons[$0].firstMatch, app) }) {
-                    note("escape \(title)")
-                    app.buttons[title].firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+                let tree = try? app.snapshot()
+                var found: XCUIElementSnapshot?
+                func find(_ node: XCUIElementSnapshot) {
+                    if found == nil, node.elementType == .button, escapes.contains(node.label), !node.frame.isEmpty,
+                       app.frame.contains(CGPoint(x: node.frame.midX, y: node.frame.midY)) { found = node }
+                    node.children.forEach(find)
+                }
+                if let tree { find(tree) }
+                if let button = found {
+                    note("escape \(button.label)")
+                    app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: button.frame.midX - app.frame.minX, dy: button.frame.midY - app.frame.minY)).tap()
                 } else {
                     note("swipe down to close")
                     window.swipeDown(velocity: .fast)

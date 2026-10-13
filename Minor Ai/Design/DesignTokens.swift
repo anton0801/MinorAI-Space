@@ -28,6 +28,7 @@ enum MinorColor {
     static let textChevron = Color(hex: "#AAAAAA")
     static let textSignature = Color(hex: "#BBBBBB")
     static let sheet = Color(hex: "#232323")
+    static let editorSheet = Color(hex: "#1A1A1A")   // the editors' panels over the map and slides
     static let row = Color(hex: "#323232")
     static let track = Color(hex: "#1C1C1C")
     static let divider = Color(hex: "#6A6A6A")

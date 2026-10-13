@@ -1,0 +1,170 @@
+{
+  "tool": "image_gen (built-in)",
+  "jobs": [
+    {
+      "id": "01-node-actions",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/01-map-rich-nodes.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Map project \"Запуск подкаста\", tabs Карта/Слайды/Чат. Upper half sparse real map: root \"Первый выпуск\", branches \"Сценарий\" selected mint outline, \"Гость\", \"Запись\". Bottom sheet title \"Сценарий\" with close, breadcrumb \"Первый выпуск\". Two prominent equal buttons pencil \"Переименовать\", plus \"Добавить ветку\". Below flat rows note icon \"Заметка\" and \"Добавить\", checkbox icon \"Задача\" and \"Без срока\". Lower flat row sparkles \"Обсудить с Minor\". Bottom outlined button ellipsis \"Другие действия\". Selected node remains visible above sheet. Restrained sparse working interface.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-37b93d7a-2c5c-4501-b7a2-b2189ad1d5d6.png"
+    },
+    {
+      "id": "02-node-more",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/01-map-rich-nodes.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Same sparse map and selected \"Сценарий\" visible in top third. Taller native sheet title \"Другие действия\" subtitle \"Узел «Сценарий»\", close x. Grouped flat rows with SF line symbols and chevrons: \"Переместить\", \"Связать с узлом\"; divider; \"Оформление\", \"Отметки\", \"Источники\"; divider; \"Дублировать\", \"Свернуть ветку\"; divider; muted coral \"Удалить ветку\". 8 legible rows total, generous hit targets, no nested cards or hidden text. This is second-level node menu, not global app menu.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-a7055785-af17-4b12-b559-b2f35df668bc.png"
+    },
+    {
+      "id": "03-node-move",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/01-map-rich-nodes.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Move branch selection state. Same header and project tabs. Map occupies middle: \"Первый выпуск\" root with branches \"Подготовка\" and \"Продвижение\". Floating selected node \"Сценарий\" outlined lilac. Target \"Подготовка\" outlined mint, dashed mint connector preview from target to selected node. Small readable status above canvas \"Выберите нового родителя\". Bottom sheet title \"Переместить ветку\"; \"Сценарий · 3 дочерних узла\". Destination row \"В «Подготовка»\", link \"Выбрать из списка\". White \"Переместить\", secondary \"Отмена\". Clear preview, no completed success yet.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-628ccfc9-f34e-4a92-bfbb-a084f2294433.png"
+    },
+    {
+      "id": "04-today",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Full screen agenda. Back \"Меню\", top right small filter icon. Large title \"Сегодня\", date \"Вторник, 13 октября\". Secondary \"1 из 3 задач на сегодня выполнена\". Small calm outlined action \"Спланировать с Minor\". Flat section \"Просрочено\": empty checkbox and title \"Пригласить гостя\", coral \"Вчера · Запуск подкаста\", chevron. Section \"Сегодня\": unchecked \"Подготовить вопросы\", \"14:00 · Запуск подкаста\"; unchecked \"Проверить презентацию\", \"17:00 · План проекта\"; checked muted \"Выбрать тему выпуска\", \"Запуск подкаста\". Bottom muted \"На этой неделе\" with single row \"Записать первый выпуск\" \"Пятница\". Checkboxes separate from row navigation. No giant metric rings or emoji.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-68704a65-bb43-451d-aa43-d2e6330e2880.png"
+    },
+    {
+      "id": "05-task-detail",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Full screen task sheet with large accessible text and deliberately long title wrapping THREE lines naturally: \"Подготовить вопросы для первого интервью с гостем\". Top \"Задача\", close x. Breadcrumb \"Запуск подкаста › Первый выпуск\". Flat status row empty checkbox \"Не выполнена\". Deadline rows \"Дата\" value \"14 октября\", \"Время\" \"14:00\". Small choices \"Сегодня\" \"Завтра\" selected \"Без срока\" unselected (only Завтра selected). Notification row bell-slash icon heading \"Уведомления выключены\", body \"Срок сохранится. Напоминание не придёт.\", plain link \"Открыть настройки\". Link with node icon \"Открыть узел в карте\". White bottom \"Сохранить срок\". Comfortable large text and clear scroll layout, no clipped text.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-3a41c61d-8dd3-4a7a-821f-643e966aa605.png"
+    },
+    {
+      "id": "06-today-empty",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Full screen calm today empty day, back \"Меню\", title \"Сегодня\", date \"Вторник, 13 октября\". Sparse elegant thin-line calendar check illustration, no emoji/confetti. Heading \"На сегодня задач нет\". Text \"Можно вернуться к проекту или посмотреть планы на неделю.\" White button \"Открыть карты\". Secondary text button \"Посмотреть неделю\". Below roomy flat section \"Ближайшее\" with one row \"Записать первый выпуск\", \"Пятница · Запуск подкаста\". Thus empty today doesn't mean no tasks anywhere. Native dark screen, no fake productivity score.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-bd385547-32d3-42b1-a576-a22c00548a6b.png"
+    },
+    {
+      "id": "07-study-question",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Flashcard front. Back \"К карте\", heading \"Учёба\", subtitle \"Запуск подкаста\". Segments \"Карточки\" selected and \"Тест\". Thin progress line with \"Карточка 3 из 12\". Large SINGLE dark card with breadcrumb \"Первый выпуск › Подготовка\", main question \"Что подготовить перед записью?\" and tiny restrained line drawing of connected nodes below. No answer visible. Under card text \"Сначала попробуйте вспомнить\". White bottom CTA \"Показать ответ\". Elegant focused study app, no mascot, no badges.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-011173db-9b88-46e9-ab10-596a275ad9a4.png"
+    },
+    {
+      "id": "08-study-answer",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Flashcard reverse, same header back \"К карте\", \"Учёба\", subtitle \"Запуск подкаста\", segments Карточки selected/Тест, progress \"Карточка 3 из 12\". Main dark card heading \"Перед записью\", three clear answer lines with subtle mint small dots: \"Согласовать тему с гостем\", \"Подготовить вопросы\", \"Проверить звук\". Text link \"Открыть узел\". Below heading \"Насколько легко вспомнили?\" Four comfortable buttons in TWO BY TWO grid: \"Ещё раз\" subline \"Через 10 минут\"; \"Трудно\" \"Через 1 день\"; \"Хорошо\" \"Через 3 дня\"; \"Легко\" \"Через 7 дней\". Restrained coral/sun/mint/sky labels respectively, dark backgrounds. No fifth CTA, no default selection. Intervals are illustrative.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-f935b2be-8a30-4e0d-8ac2-2414ed803dbf.png"
+    },
+    {
+      "id": "09-quiz-feedback",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.AI quiz incorrect answer review screen. Back \"К карте\", heading \"Учёба\", segments Карточки/Тест selected. Progress \"Вопрос 3 из 5\". Question big \"Что проверить перед записью?\" Two answer rows: selected wrong with coral x \"Только название выпуска\", small \"Ваш ответ\"; correct mint check \"Звук и уровень микрофона\", small \"Верный ответ\". Under divider heading \"Почему\", body \"Проверка звука помогает заметить шум и избежать повторной записи.\" Text link \"Перейти к узлу «Запись»\". White bottom \"Следующий вопрос\". No shame, no red full-screen alarm, no invented citations.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-0b06ac5f-256a-426b-b1c7-247bdbf5319f.png"
+    },
+    {
+      "id": "10-study-result",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/project-continuity/06-next-actions.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Quiz result screen. Back \"К карте\", heading \"Результат теста\". Large typographic \"4 из 5\" with smaller \"верных ответов\", refined thin progress line 80% mint. No emoji or trophy. Text \"Осталось разобрать один вопрос\". Flat section \"Стоит повторить\" one row node icon \"Проверка звука\", subtitle \"Первый выпуск › Запись\", chevron. White bottom \"Разобрать ошибку\". Secondary \"Новый тест\". Tertiary \"Вернуться к карте\". Airy strong typography, normal small phone hierarchy, outcome clear, no fake mastery score.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-b7d666b6-f7d7-49c1-abb9-333ff07a0648.png"
+    },
+    {
+      "id": "11-presenter",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/08-slides-organizer.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Portrait presenter view. Top close x, center elapsed \"03:42\", right expand icon. Small label \"Режим докладчика\", counter \"3 из 8\". Large true 16:9 slide preview ivory with title \"Наш слушатель\", three minimal audience outline portraits and labels \"Любопытство\", \"Практика\", \"Новые идеи\", no photo people. Under it row small 16:9 next thumbnail titled \"Формат выпуска\", label \"Следующий\". Below larger readable area \"Заметки\" text \"Начать с истории первого слушателя. Объяснить, какую пользу он получит от выпуска.\" Bottom previous arrow dark button, white \"Далее\". Notes private on phone, no fake connected-display status. Calm controls that don't compete with slide.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-54ea0067-2c98-444e-b0ae-1df63dd1e568.png"
+    },
+    {
+      "id": "12-export-options",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/08-slides-organizer.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Export presentation full screen sheet. Top title \"Экспорт\", close x; subtitle \"Запуск подкаста\". Medium true 16:9 ivory cover thumbnail \"Голос, который слышат\", fine mint waveform. Two radio rows: selected mint \"PowerPoint\" secondary \"Для редактирования · .pptx\"; unselected \"PDF\" secondary \"Для просмотра · .pdf\". Divider then switch OFF row \"Включить скрытые слайды\" subline \"1 скрытый слайд\". Summary \"Будет экспортировано 7 слайдов\". White bottom button \"Создать файл\". No paywall in this paid user example, no prices. Legible native export options, not grid of apps.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-aaae4754-5366-43b4-9f5d-8f12c6a90964.png"
+    },
+    {
+      "id": "13-export-ready",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/08-slides-organizer.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Export completed full-screen sheet. Top title \"Экспорт\", close x. Central restrained outlined document icon with small mint check, NOT giant success emoji. Heading \"Файл готов\". Filename \"Запуск подкаста.pptx\" readable, small \"7 слайдов\". Lower clear text \"Выберите, куда сохранить или отправить файл.\" White large CTA share icon \"Сохранить или поделиться\". Secondary action \"Другой формат\". No false claim file already in Files, no fake progress, plenty of breathing space, polished premium dark iOS.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-c5cb6a06-919f-4e34-8165-0a6e4176ebd3.png"
+    },
+    {
+      "id": "14-generation-cancel",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/01-map-rich-nodes.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Map generation in progress. Back close x top, heading \"Создаём карту\", subtitle \"Запуск подкаста\". Middle small animated-in-spirit sparse map preview partially built, completed root \"Первый выпуск\" and branches \"Подготовка\",\"Запись\", remaining faint dotted branches. Below stage text \"Собираем структуру\", indeterminate small spinner no numeric percent/time. Bottom native confirmation sheet title \"Остановить создание?\" body \"Готовая карта ещё не создана. Исходная тема останется в поле ввода.\" Two actions white \"Продолжить создание\", secondary coral \"Остановить\". No promise background persistence, no draft success, no content loss scare.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-ae91a95a-b018-434f-bab3-bda575491535.png"
+    },
+    {
+      "id": "15-generation-error",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/DesignSystem/concepts/2026-10-12/advanced-editors/01-map-rich-nodes.png"
+      ],
+      "prompt": "Use case ui-mockup. ONE standalone readable premium iOS Minor AI screen, portrait 887x1774. Match reference phone frame, scale, charcoal backdrop, small even margins. Thin complete black iPhone with 9:41 and home indicator. Russian text exact, SF Pro-like type, native comfortable 16-17pt body, larger headings. Background #121212, sheet #232323, white primary text, gray secondary, mint #2FFF9E highlights; map branches mint/lilac/sky. White primary action, no large emoji, no invented logos, no marketing. Fine dot grid only on map. Clean flat hierarchy, no gratuitous glass layers. New content replaces reference. One screen only, not collage.Generation network error recovered input. Top back \"Меню\", heading \"Создание карты\". Muted label \"ТЕМА\", large editable dark input panel containing \"План запуска подкаста: подготовка, запись и продвижение\". Inline error area below, outline wifi-slash icon, heading \"Не удалось получить результат\", text \"Проверьте соединение и попробуйте ещё раз.\" White button \"Повторить\". Secondary action \"Изменить тему\". Lower muted reassuring line \"Ваш ввод остался на месте.\" No map success, no red overlay over cards, no URL/technical error code. On a shorter content layout with comfortable text and safe bottom space. Dark premium native UI.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-baf55c0a-4b9b-4c44-828e-cb348baaec50.png"
+    }
+  ],
+  "refinements": [
+    {
+      "id": "02-node-more",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/handoff/Minor-AI-Node-Today-Study-Present-2026-10-13/design/02-node-more.png"
+      ],
+      "prompt": "Refine this exact Russian Minor AI screen, keeping same phone 887x1774, colors, type style and all menu action text. Move the entire bottom sheet UP so it starts at about 40% screen height and has MORE vertical room, simplify and reduce visible background map height. Keep selected Сценарий node visible above it. Make last red \"Удалить ветку\" row end at least 85 image pixels ABOVE home indicator, clear empty safe bottom area. All 8 rows legible, normal 44pt hit areas. Replace \"Свернуть ветку\" with \"Фокус на ветке\" because selected node has no visible children. No other feature changes. No giant map or overlapping content.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-3be34436-177f-41bc-97ac-19acc4a2541e.png"
+    },
+    {
+      "id": "07-study-question",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/handoff/Minor-AI-Node-Today-Study-Present-2026-10-13/design/08-study-answer.png",
+        "/Users/antondanilov/Downloads/Minor Ai/handoff/Minor-AI-Node-Today-Study-Present-2026-10-13/design/07-study-question.png"
+      ],
+      "prompt": "Create corrected question-side Minor AI study screen. Image 1 is EXACT canvas 887x1774, phone framing, header, progress, typography and spacing reference: copy those dimensions and phone proportions precisely. Image 2 supplies question wording only. Keep image 1 header \"К карте\", \"Учёба\", \"Запуск подкаста\", tabs Карточки/Тест and counter \"Карточка 3 из 12\". Replace answer card with question front: breadcrumb \"Первый выпуск › Подготовка\", large question \"Что подготовить перед записью?\" NO answer or answer-hint icons. Below question use only three tiny neutral mint connected dots as abstract subtle motif with ample space. Under card \"Сначала попробуйте вспомнить\", white button \"Показать ответ\". Remove all answer text and difficulty grid. One tall phone same shape as image1, not squat. Native elegant dark focus.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-9f8a0877-5b0e-4edf-a1e6-d9d17f4a4fd1.png"
+    },
+    {
+      "id": "09-quiz-feedback",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/handoff/Minor-AI-Node-Today-Study-Present-2026-10-13/design/09-quiz-feedback.png"
+      ],
+      "prompt": "Refine this exact Russian Minor AI quiz screen at same 887x1774 phone frame. REMOVE the entire large mind map illustration between progress and question. In its place put one quiet breadcrumb \"Первый выпуск › Запись\" and move the actual question up under progress: \"Что проверить перед записью?\" with more readable larger type and breathing space. Preserve both answer rows verbatim (wrong selected and correct), explanation \"Почему\" and body, link to node and white \"Следующий вопрос\". Use freed vertical space for comfortable clear hierarchy, not more content or imagery. Keep dark backgrounds, mint check, coral x, original top header and tabs. No map canvas here, no extra badges.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-ee69412c-c936-43f4-a5e4-b418a850326a.png"
+    },
+    {
+      "id": "11-presenter",
+      "refs": [
+        "/Users/antondanilov/Downloads/Minor Ai/handoff/Minor-AI-Node-Today-Study-Present-2026-10-13/design/11-presenter.png"
+      ],
+      "prompt": "Correct this exact Russian Minor AI presenter screen, same 887x1774 device framing, colors, title and controls. CRITICAL make main ivory slide a landscape 16:9 rectangle: width ~730px HEIGHT ~411px, NOT square/tall. Recompose its content to fit 16:9: smaller single-line title \"Наш слушатель\" and three smaller outline portraits with labels Любопытство / Практика / Новые идеи. Keep next-slide thumbnail true16:9. The extra freed space should enlarge NOTES area. Notes are READ-ONLY text, remove inner input border AND remove \"89/500\" character counter entirely. Display notes as calm large text directly under \"Заметки\": \"Начать с истории первого слушателя. Объяснить, какую пользу он получит от выпуска.\" Keep timer03:42, 3из8, close, expand and bottom Назад/Далее. No new controls, no keyboard, no simulated text editor.",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-04fbf6fe-c68f-4680-a4db-b889d4915af4.png"
+    }
+  ],
+  "additions": [
+    {
+      "id": "12b-export-free",
+      "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-c3dec69c-ddb0-455e-8c8b-7b58348308bf.png",
+      "prompt": "Precise UI state variant of this exact Minor AI Russian iOS export screen. Preserve the entire composition, black phone frame, exact 887x1774 portrait proportions, typography, background, slide preview, all spacings, hidden-slide switch OFF, count 7 slides, and close control. This new state is a user WITHOUT subscription. Modify ONLY format selection area and CTA label:\n1) PowerPoint row is NOT selected: neutral subtle gray outline and dark background, no mint radio. At left show small clean outlined padlock instead of selected radio. Keep title \"PowerPoint\" and place small readable mint-outline badge \"Plus\" at its right on same line. Subtitle text exactly \"Доступно с подпиской Plus\". The entire row remains tappable to open subscription paywall; no price or extra purchase button.\n2) PDF row IS selected with mint border and filled mint radio; title \"PDF\", subtitle \"Для просмотра · .pdf\".\n3) Bottom primary white button text \"Создать PDF\".\nEverything else remains unchanged. Clear premium native iOS interface, no additional decorations, no watermark. This is a design mockup of free-user export, not a full paywall.",
+      "refs": [
+        "design/12-export-options.png"
+      ]
+    }
+  ]
+}

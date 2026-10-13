@@ -19,9 +19,46 @@ struct SlideView: View {
     var reveal: Int? = nil          // presenting: how many build steps are shown (nil: all)
     var showElements = true         // the element editor draws them itself
     var probe: SlideLayoutProbe? = nil  // PowerPoint export: where each part lands
+    var selectedPart: String? = nil     // the editor: the text selected by tapping it
 
     static let size = CGSize(width: 1280, height: 720)
     private let pad: CGFloat = 80
+
+    // The slide's own text style (Text panel): the title, and everything else.
+    private var titlePart: SlideTextStyle.Part { slide.text?.title ?? SlideTextStyle.Part() }
+    private var bodyPart: SlideTextStyle.Part { slide.text?.body ?? SlideTextStyle.Part() }
+
+    private func weight(_ base: Font.Weight, _ part: SlideTextStyle.Part) -> Font.Weight {
+        guard let bold = part.bold else { return base }
+        return bold ? (base == .heavy || base == .black ? base : .bold) : .regular
+    }
+
+    // The title in the title font (the Big Number layout sets it in the body font), sized,
+    // weighted and slanted as set.
+    private func titleFont(_ size: CGFloat, _ base: Font.Weight, bodyFace: Bool = false) -> Font {
+        let size = size * CGFloat(titlePart.scale)
+        let font = bodyFace ? style.body(size, weight(base, titlePart)) : style.title(size, weight(base, titlePart))
+        return titlePart.italic ? font.italic() : font
+    }
+
+    // Other text in the body font (or the title font for headings inside the layout).
+    private func bodyFont(_ size: CGFloat, _ base: Font.Weight = .regular, titleFace: Bool = false, italic: Bool = false) -> Font {
+        let size = size * CGFloat(bodyPart.scale)
+        let font = titleFace ? style.title(size, weight(base, bodyPart)) : style.body(size, weight(base, bodyPart))
+        return italic || bodyPart.italic ? font.italic() : font
+    }
+
+    private var titleColor: Color? { titlePart.color.map { Color(hex: $0) } }
+    private var bodyColor: Color? { bodyPart.color.map { Color(hex: $0) } }
+
+    private var titleAlignment: (text: TextAlignment, frame: Alignment)? {
+        switch titlePart.align {
+        case .leading?: return (.leading, .leading)
+        case .center?: return (.center, .center)
+        case .trailing?: return (.trailing, .trailing)
+        case nil: return nil
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -93,12 +130,12 @@ struct SlideView: View {
         HStack {
             Text(brand.map { $0.footer.isEmpty ? deckTitle : $0.footer } ?? deckTitle)
                 .lineLimit(1)
-                .probed("footer", probe)
+                .probed("footer", probe).selected("footer", selectedPart)
             Spacer()
             if brand?.showNumbers != false {
                 Text("\(index + 1) / \(total)")
                     .monospacedDigit()
-                    .probed("page", probe)
+                    .probed("page", probe).selected("page", selectedPart)
             }
         }
         .font(style.body(18, .medium))
@@ -110,12 +147,13 @@ struct SlideView: View {
 
     private func titleText(_ text: String, size: CGFloat = 56) -> some View {
         Text(text)
-            .font(style.title(size, .bold))
+            .font(titleFont(size, .bold))
             .tracking(-1)
             .lineLimit(2)
             .minimumScaleFactor(0.6)
             .fixedSize(horizontal: false, vertical: true)
-            .probed("title", probe)
+            .modifier(TitlePlacement(alignment: titleAlignment, color: titleColor))
+            .probed("title", probe).selected("title", selectedPart)
     }
 
     // `key` names the list for the PowerPoint export ("b.text.0", "col.1.text.2"…).
@@ -128,11 +166,12 @@ struct SlideView: View {
                         .frame(width: size * 0.42, height: size * 0.42)
                         .offset(y: -size * 0.12)
                     Text(item)
-                        .font(style.body(size, .regular))
+                        .font(bodyFont(size))
+                        .foregroundColor(bodyColor)
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
                         .fixedSize(horizontal: false, vertical: true)
-                        .probed("\(key).text.\(i)", probe)
+                        .probed("\(key).text.\(i)", probe).selected("\(key).text.\(i)", selectedPart)
                 }
                 .modifier(builds ? unit(i) : Reveal(effect: .none, shown: true))
             }
@@ -161,20 +200,21 @@ struct SlideView: View {
     private var cover: some View {
         VStack(alignment: .leading, spacing: 28) {
             Capsule().fill(style.accent).frame(width: 96, height: 10)
-                .probed("bar", probe)
+                .probed("bar", probe).selected("bar", selectedPart)
             Text(slide.title)
-                .font(style.title(92, .heavy))
+                .font(titleFont(92, .heavy))
                 .tracking(-2.5)
                 .lineLimit(3)
                 .minimumScaleFactor(0.5)
-                .probed("title", probe)
+                .modifier(TitlePlacement(alignment: titleAlignment, color: titleColor))
+                .probed("title", probe).selected("title", selectedPart)
             if !slide.subtitle.isEmpty {
                 Text(slide.subtitle)
-                    .font(style.body(34, .medium))
-                    .foregroundColor(style.secondary)
+                    .font(bodyFont(34, .medium))
+                    .foregroundColor(bodyColor ?? style.secondary)
                     .lineLimit(3)
                     .minimumScaleFactor(0.7)
-                    .probed("subtitle", probe)
+                    .probed("subtitle", probe).selected("subtitle", selectedPart)
             }
         }
         .frame(maxWidth: 1000, alignment: .leading)
@@ -187,21 +227,22 @@ struct SlideView: View {
             Text(String(format: "%02d", sectionNumber))
                 .font(style.title(200, .heavy).monospacedDigit())
                 .foregroundStyle(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .top, endPoint: .bottom))
-                .probed("number", probe)
+                .probed("number", probe).selected("number", selectedPart)
             VStack(alignment: .leading, spacing: 18) {
                 Text(slide.title)
-                    .font(style.title(72, .bold))
+                    .font(titleFont(72, .bold))
                     .tracking(-1.5)
                     .lineLimit(3)
                     .minimumScaleFactor(0.55)
-                    .probed("title", probe)
+                    .modifier(TitlePlacement(alignment: titleAlignment, color: titleColor))
+                    .probed("title", probe).selected("title", selectedPart)
                 if !slide.subtitle.isEmpty {
                     Text(slide.subtitle)
-                        .font(style.body(30))
-                        .foregroundColor(style.secondary)
+                        .font(bodyFont(30))
+                        .foregroundColor(bodyColor ?? style.secondary)
                         .lineLimit(3)
                         .minimumScaleFactor(0.7)
-                        .probed("subtitle", probe)
+                        .probed("subtitle", probe).selected("subtitle", selectedPart)
                 }
             }
         }
@@ -213,7 +254,7 @@ struct SlideView: View {
         VStack(alignment: .leading, spacing: 44) {
             titleText(slide.title)
             if !slide.subtitle.isEmpty {
-                Text(slide.subtitle).font(style.body(26)).foregroundColor(style.secondary).lineLimit(2).probed("subtitle", probe).padding(.top, -26)
+                Text(slide.subtitle).font(bodyFont(26)).foregroundColor(bodyColor ?? style.secondary).lineLimit(2).probed("subtitle", probe).selected("subtitle", selectedPart).padding(.top, -26)
             }
             bulletList(slide.bullets, size: slide.bullets.count > 4 ? 32 : 40, spacing: slide.bullets.count > 4 ? 22 : 34)
             Spacer(minLength: 0)
@@ -231,18 +272,19 @@ struct SlideView: View {
                     let color = style.palette[i % style.palette.count]
                     VStack(alignment: .leading, spacing: 20) {
                         Capsule().fill(color).frame(width: 56, height: 8)
-                            .probed("col.\(i).bar", probe)
+                            .probed("col.\(i).bar", probe).selected("col.\(i).bar", selectedPart)
                         Text(column.title)
-                            .font(style.title(38, .bold))
+                            .font(bodyFont(38, .bold, titleFace: true))
+                            .foregroundColor(bodyColor)
                             .lineLimit(2)
                             .minimumScaleFactor(0.7)
-                            .probed("col.\(i).title", probe)
+                            .probed("col.\(i).title", probe).selected("col.\(i).title", selectedPart)
                         bulletList(column.bullets, size: column.bullets.count > 4 ? 26 : 30, spacing: 18, dot: color, builds: false, key: "col.\(i)")
                         Spacer(minLength: 0)
                     }
                     .padding(32)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .probed("col.\(i)", probe)
+                    .probed("col.\(i)", probe).selected("col.\(i)", selectedPart)
                     .background(RoundedRectangle(cornerRadius: 30).fill(style.card))
                     .overlay(RoundedRectangle(cornerRadius: 30).stroke(style.line, lineWidth: 1.5))
                     .modifier(unit(i))
@@ -273,7 +315,7 @@ struct SlideView: View {
             }
             .frame(width: 520, height: 560)
             .clipShape(RoundedRectangle(cornerRadius: 36))
-            .probed("image", probe)
+            .probed("image", probe).selected("image", selectedPart)
             VStack(alignment: .leading, spacing: 36) {
                 titleText(slide.title, size: 52)
                 bulletList(slide.bullets, size: 28, spacing: 18)
@@ -288,25 +330,27 @@ struct SlideView: View {
         VStack(spacing: 18) {
             if !slide.title.isEmpty {
                 Text(slide.title)
-                    .font(style.body(34, .semibold))
-                    .foregroundColor(style.secondary)
+                    .font(titleFont(34, .semibold, bodyFace: true))
+                    .foregroundColor(titleColor ?? style.secondary)
                     .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .probed("title", probe)
+                    .multilineTextAlignment(titleAlignment?.text ?? .center)
+                    .frame(maxWidth: titleAlignment == nil ? nil : .infinity, alignment: titleAlignment?.frame ?? .center)
+                    .probed("title", probe).selected("title", selectedPart)
             }
             Text(slide.stat?.value ?? "")
-                .font(style.title(230, .heavy))
+                .font(style.title(230 * CGFloat(bodyPart.scale), .heavy))
                 .tracking(-6)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
-                .foregroundStyle(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .leading, endPoint: .trailing))
-                .probed("stat", probe)
+                .foregroundStyle(bodyColor.map { AnyShapeStyle($0) } ?? AnyShapeStyle(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .leading, endPoint: .trailing)))
+                .probed("stat", probe).selected("stat", selectedPart)
             Text(slide.stat?.label ?? "")
-                .font(style.body(36, .medium))
+                .font(bodyFont(36, .medium))
+                .foregroundColor(bodyColor)
                 .lineLimit(3)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.7)
-                .probed("label", probe)
+                .probed("label", probe).selected("label", selectedPart)
                 .frame(maxWidth: 900)
         }
         .padding(.horizontal, pad)
@@ -319,18 +363,19 @@ struct SlideView: View {
                 .font(style.title(260, .heavy))
                 .foregroundColor(style.accent)
                 .frame(height: 170, alignment: .top)
-                .probed("mark", probe)
+                .probed("mark", probe).selected("mark", selectedPart)
             Text(slide.quote?.text ?? slide.title)
-                .font(style.body(54, .semibold).italic())
+                .font(bodyFont(54, .semibold, italic: true))
+                .foregroundColor(bodyColor)
                 .tracking(-0.8)
                 .lineLimit(5)
                 .minimumScaleFactor(0.55)
-                .probed("quote", probe)
+                .probed("quote", probe).selected("quote", selectedPart)
             if let author = slide.quote?.author, !author.isEmpty {
                 Text("— \(author)")
-                    .font(style.body(30, .medium))
-                    .foregroundColor(style.secondary)
-                    .probed("author", probe)
+                    .font(bodyFont(30, .medium))
+                    .foregroundColor(bodyColor ?? style.secondary)
+                    .probed("author", probe).selected("author", selectedPart)
                     .padding(.top, 18)
             }
         }
@@ -348,7 +393,7 @@ struct SlideView: View {
                 Capsule()
                     .fill(LinearGradient(colors: style.palette.prefix(max(items.count, 2)).map { $0 }, startPoint: .leading, endPoint: .trailing))
                     .frame(height: 6)
-                    .probed("line", probe)
+                    .probed("line", probe).selected("line", selectedPart)
                     .padding(.top, 15)
                 HStack(alignment: .top, spacing: 24) {
                     ForEach(Array(items.enumerated()), id: \.offset) { i, item in
@@ -357,19 +402,20 @@ struct SlideView: View {
                                 .fill(style.palette[i % style.palette.count])
                                 .frame(width: 36, height: 36)
                                 .overlay(Circle().stroke(style.background.first, lineWidth: 6))
-                                .probed("t.\(i).dot", probe)
+                                .probed("t.\(i).dot", probe).selected("t.\(i).dot", selectedPart)
                             Text(item.title)
-                                .font(style.title(items.count > 4 ? 28 : 34, .bold))
+                                .font(bodyFont(items.count > 4 ? 28 : 34, .bold, titleFace: true))
+                                .foregroundColor(bodyColor)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.7)
-                                .probed("t.\(i).title", probe)
+                                .probed("t.\(i).title", probe).selected("t.\(i).title", selectedPart)
                             if !item.detail.isEmpty {
                                 Text(item.detail)
-                                    .font(style.body(items.count > 4 ? 22 : 26))
-                                    .foregroundColor(style.secondary)
+                                    .font(bodyFont(items.count > 4 ? 22 : 26))
+                                    .foregroundColor(bodyColor ?? style.secondary)
                                     .lineLimit(5)
                                     .minimumScaleFactor(0.75)
-                                    .probed("t.\(i).detail", probe)
+                                    .probed("t.\(i).detail", probe).selected("t.\(i).detail", selectedPart)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -394,7 +440,8 @@ struct SlideView: View {
                     HStack(spacing: 0) {
                         ForEach(0..<columns, id: \.self) { c in
                             Text(c < row.count ? row[c] : "")
-                                .font(style.body(rows.count > 5 ? 24 : 28, r == 0 ? .bold : (c == 0 ? .semibold : .regular)))
+                                .font(bodyFont(rows.count > 5 ? 24 : 28, r == 0 ? .bold : (c == 0 ? .semibold : .regular)))
+                                .foregroundColor(bodyColor)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.7)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -406,11 +453,11 @@ struct SlideView: View {
                     .overlay(alignment: .bottom) {
                         if r < rows.count - 1 { Rectangle().fill(style.line).frame(height: 1) }
                     }
-                    .probed("row.\(r)", probe)
+                    .probed("row.\(r)", probe).selected("row.\(r)", selectedPart)
                     .modifier(r == 0 ? Reveal(effect: .none, shown: true) : unit(r - 1))
                 }
             }
-            .probed("table", probe)
+            .probed("table", probe).selected("table", selectedPart)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(style.line, lineWidth: 1.5))
             Spacer(minLength: 0)
@@ -420,54 +467,17 @@ struct SlideView: View {
         .padding(.bottom, 90)
     }
 
+    // Process, cycle, hierarchy or matrix from the shared geometry (also used for PowerPoint).
     private var diagram: some View {
-        let nodes = Array((slide.diagram?.nodes ?? []).prefix(6))
-        let center = CGPoint(x: Self.size.width / 2, y: 420)
-        let positions: [CGPoint] = nodes.indices.map { i in
-            let angle = -Double.pi / 2 + Double(i) * 2 * Double.pi / Double(max(nodes.count, 1))
-            return CGPoint(x: center.x + CGFloat(cos(angle)) * 420, y: center.y + CGFloat(sin(angle)) * 210)
-        }
+        let data = slide.diagram ?? SlideDiagram(center: slide.title)
+        let geometry = DiagramLayout.geometry(data, slideID: slide.id, title: slide.title, scale: CGFloat(bodyPart.scale))
         return ZStack(alignment: .topLeading) {
             titleText(slide.title, size: 48)
                 .padding(.horizontal, pad)
                 .padding(.top, 60)
-            Path { path in
-                for point in positions {
-                    path.move(to: center)
-                    path.addLine(to: point)
-                }
-            }
-            .stroke(style.line, style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [2, 10]))
-            Circle()
-                .fill(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 230, height: 230)
-                .overlay(
-                    Text(slide.diagram?.center ?? slide.title)
-                        .font(style.title(30, .bold))
-                        .foregroundColor(style.onAccent)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.6)
-                        .padding(26)
-                )
-                .probed("center", probe)
-                .position(center)
-            ForEach(Array(nodes.enumerated()), id: \.offset) { i, node in
-                let color = style.palette[i % style.palette.count]
-                Text(node)
-                    .font(style.body(25, .semibold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .frame(maxWidth: 300)
-                    .background(Capsule().fill(style.isLight ? Color.white : Color(hex: "#1D1A20")))
-                    .overlay(Capsule().stroke(color, lineWidth: 3))
-                    .probed("node.\(i)", probe)
-                    .modifier(unit(i))
-                    .position(positions[i])
-            }
+            DiagramView(geometry: geometry, diagram: data.structured(slideID: slide.id), style: style,
+                        font: { size, weight in style.body(size, self.weight(weight, bodyPart)) },
+                        textColor: bodyColor, selectedPart: selectedPart, probe: probe, reveal: { unit($0) })
         }
         .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
     }
@@ -475,29 +485,47 @@ struct SlideView: View {
     private var closing: some View {
         VStack(spacing: 26) {
             Text(slide.title)
-                .font(style.title(84, .heavy))
+                .font(titleFont(84, .heavy))
                 .tracking(-2)
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
                 .minimumScaleFactor(0.5)
-                .probed("title", probe)
+                .modifier(TitlePlacement(alignment: titleAlignment, color: titleColor))
+                .probed("title", probe).selected("title", selectedPart)
             Capsule()
                 .fill(LinearGradient(colors: [style.accent, style.palette.dropFirst().first ?? style.accent], startPoint: .leading, endPoint: .trailing))
                 .frame(width: 140, height: 10)
-                .probed("bar", probe)
+                .probed("bar", probe).selected("bar", selectedPart)
             if !slide.subtitle.isEmpty {
                 Text(slide.subtitle)
-                    .font(style.body(34, .medium))
-                    .foregroundColor(style.secondary)
+                    .font(bodyFont(34, .medium))
+                    .foregroundColor(bodyColor ?? style.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .minimumScaleFactor(0.7)
-                    .probed("subtitle", probe)
+                    .probed("subtitle", probe).selected("subtitle", selectedPart)
             }
         }
         .frame(maxWidth: 1040)
         .padding(.horizontal, pad)
         .frame(width: Self.size.width, height: Self.size.height)
+    }
+}
+
+// A title's own alignment and color (Text panel); without them the layout decides.
+private struct TitlePlacement: ViewModifier {
+    let alignment: (text: TextAlignment, frame: Alignment)?
+    let color: Color?
+
+    func body(content: Content) -> some View {
+        if let alignment {
+            content
+                .multilineTextAlignment(alignment.text)
+                .frame(maxWidth: .infinity, alignment: alignment.frame)
+                .foregroundColor(color)
+        } else {
+            content.foregroundColor(color)
+        }
     }
 }
 
@@ -565,6 +593,33 @@ final class SlideLayoutProbe {
 }
 
 extension View {
+    // The editor's selection around a part of the slide, in slide units (drawn scaled down).
+    @ViewBuilder
+    func selected(_ key: String, _ selection: String?) -> some View {
+        if key == selection, SlidePart.isText(key) {
+            overlay {
+                GeometryReader { geo in
+                    let rect = CGRect(origin: .zero, size: geo.size).insetBy(dx: -14, dy: -10)
+                    ZStack(alignment: .topLeading) {
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(MinorColor.accent, lineWidth: 5)
+                            .frame(width: rect.width, height: rect.height)
+                            .offset(x: rect.minX, y: rect.minY)
+                        ForEach(0..<4, id: \.self) { i in
+                            Circle()
+                                .fill(MinorColor.accent)
+                                .frame(width: 26, height: 26)
+                                .offset(x: (i % 2 == 0 ? rect.minX : rect.maxX) - 13, y: (i < 2 ? rect.minY : rect.maxY) - 13)
+                        }
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+        } else {
+            self
+        }
+    }
+
     // Reports this view's frame to the probe (only while exporting).
     @ViewBuilder
     func probed(_ key: String, _ probe: SlideLayoutProbe?) -> some View {
@@ -582,11 +637,13 @@ struct SlideCanvas: View {
     let deck: Deck
     var index = 0
     var reveal: Int? = nil
+    var probe: SlideLayoutProbe? = nil   // the editor: where each part is, to select it by tapping
+    var selectedPart: String? = nil
 
     var body: some View {
         GeometryReader { geo in
             SlideView(slide: slide, style: deck.style(for: slide), index: index, total: deck.slides.count, deckTitle: deck.title,
-                      sectionNumber: Self.sectionNumber(of: index, in: deck), brand: deck.brand, reveal: reveal)
+                      sectionNumber: Self.sectionNumber(of: index, in: deck), brand: deck.brand, reveal: reveal, probe: probe, selectedPart: selectedPart)
                 .scaleEffect(geo.size.width / SlideView.size.width, anchor: .topLeading)
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                 // The full-size slide under the scale doesn't take touches; the whole picture does.

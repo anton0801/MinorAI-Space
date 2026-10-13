@@ -12,6 +12,9 @@ var LAYOUTS = [
   "diagram",
   "closing"
 ];
+var REF = /^n[1-9]\d{0,4}$/;
+var LINEAGE_RULE = `Each idea in the mind map has a "ref" such as "n7". On every slide, set "src" to the ref of the idea the slide is mainly about; leave it out on the cover and closing slides. When a slide has "bullets", also set "bulletSrc": an array as long as "bullets" with the ref of the idea each bullet comes from, or "" when a bullet sums up several ideas. On timeline "items", set "src" on each item the same way. Use only refs that appear in the map.`;
+var ref = (value) => typeof value === "string" && REF.test(value) ? value : void 0;
 var SLIDE_SHAPES = `Each slide has "layout" and the fields that layout uses, plus "notes":
 - "cover": title, subtitle
 - "section": title, subtitle (a divider between parts of the talk)
@@ -143,8 +146,14 @@ function normalizeSlide(raw) {
   if (title) slide.title = title;
   const subtitle = clip(r.subtitle, 160);
   if (subtitle) slide.subtitle = subtitle;
-  const bullets = list(r.bullets, 6, 140);
+  const rawBullets = Array.isArray(r.bullets) ? r.bullets : [];
+  const rawSrc = Array.isArray(r.bulletSrc) ? r.bulletSrc : [];
+  const pairs = rawBullets.map((b, i) => [clip(b, 140), ref(rawSrc[i]) ?? ""]).filter(([text]) => text).slice(0, 6);
+  const bullets = pairs.map(([text]) => text);
   if (bullets.length) slide.bullets = bullets;
+  if (bullets.length && pairs.some(([, src]) => src)) slide.bulletSrc = pairs.map(([, src]) => src);
+  const slideSrc = ref(r.src);
+  if (slideSrc) slide.src = slideSrc;
   if (Array.isArray(r.columns)) {
     const columns = r.columns.slice(0, 3).map((c) => ({ title: clip(c?.title, 60), bullets: list(c?.bullets, 5, 120) })).filter((c) => c.title || c.bullets.length);
     if (columns.length >= 2) slide.columns = columns;
@@ -154,6 +163,8 @@ function normalizeSlide(raw) {
       const item = { title: clip(i?.title, 60) };
       const detail = clip(i?.detail, 140);
       if (detail) item.detail = detail;
+      const src = ref(i?.src);
+      if (src) item.src = src;
       return item;
     }).filter((i) => i.title);
     if (items.length) slide.items = items;
@@ -215,6 +226,8 @@ export {
   ELEMENT_RULES,
   FONTS,
   LAYOUTS,
+  LINEAGE_RULE,
+  REF,
   SLIDE_SHAPES,
   STYLE_RULES,
   deckRules,

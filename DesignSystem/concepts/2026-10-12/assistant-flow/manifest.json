@@ -1,0 +1,38 @@
+{
+  "tool": "built-in image_gen",
+  "screens": [
+    {
+      "file": "01-chat-to-map.png",
+      "size": [
+        887,
+        1774
+      ],
+      "sha256": "7aca98a08ed7b9b444567b8c6dc869733516d08af27d544337967577b6212109"
+    },
+    {
+      "file": "02-map-ai-preview.png",
+      "size": [
+        887,
+        1774
+      ],
+      "sha256": "1aae6ed49e857618dd8068cd495a4a0da2c49752759d773db0d0109f24dad8ec"
+    },
+    {
+      "file": "03-slides-export.png",
+      "size": [
+        887,
+        1774
+      ],
+      "sha256": "234cfdd1c1e85b7d5886aae822a8890f362ae150b69e7dfdfbc7b9604a890958"
+    },
+    {
+      "file": "04-voice-listening.png",
+      "size": [
+        887,
+        1774
+      ],
+      "sha256": "cac189e54440928cc0a8e3282ce82a09bafd202683fdaa30cf77b50107eb61f0"
+    }
+  ],
+  "app_code_changed": false
+}

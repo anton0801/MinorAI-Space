@@ -1,0 +1,142 @@
+{
+  "date": "2026-10-12",
+  "generation": "built-in image_gen",
+  "scope": "visual concepts only; no app code changes",
+  "standalone_screens": [
+    {
+      "file": "focus/01-home.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "78902409795afbfa747c2809d1f99976b45e299c73c0ea909bfa795bb21c5d89"
+    },
+    {
+      "file": "focus/02-mind-map.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "537444fad5667d6fb901867d5d5a7222b645900d16ce87233f5f9fc47b17e188"
+    },
+    {
+      "file": "focus/03-slides.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "1adb6dba3420f144aa78f99cda88890c029a6a6303151bcd6b743bd31289c4b4"
+    },
+    {
+      "file": "onboarding-first-map/01.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "d0b2d9bfe50e4005bbec31288da820b276f0619488931e98c8f738f0311bed79"
+    },
+    {
+      "file": "onboarding-first-map/02.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "d5201a317dc46cc48f612bb688169a4526fa81871a3b70d58180905276a1e754"
+    },
+    {
+      "file": "onboarding-first-map/03.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "b1bf26a5c4ec103139210eff4d7af1808f179a94e6d14c05f4e9f2d090c9e48c"
+    },
+    {
+      "file": "onboarding-tour/01.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "a645209419e8f3533e2fff377522d9f212258d9f8d41b9dae51bd43b28b50731"
+    },
+    {
+      "file": "onboarding-tour/02.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "655ad225fa74b1415af422876877d5ae1746a6befa8dbbb0df00d4052caf37d0"
+    },
+    {
+      "file": "onboarding-tour/03.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "1fad27fd9966161b935c211a0ae9b8959d6364ba6d9977c0974312f9744cbe29"
+    },
+    {
+      "file": "paper/01-home.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "e01cc0a325593e8e00bbcda09d5335767c0b9bff238415927d7d32bb4b97b155"
+    },
+    {
+      "file": "paper/02-mind-map.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "de3130eb96c0ee573efbae95b43a7d23d945a615bbf2de1ac31274aa4feadec9"
+    },
+    {
+      "file": "paper/03-slides.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "5441e84071a4368974434719787d371d80c34daf99cc67f32b5f46d322ff11d4"
+    },
+    {
+      "file": "space/01-home.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "05f7214161cbb019b4e7fb261350d071aa511cb22e0b72e3574c78ce0214a846"
+    },
+    {
+      "file": "space/02-mind-map.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "2962bde6ed1da1d1305959f7a5247f9509531fb9a213225709a0e5d72f06cce4"
+    },
+    {
+      "file": "space/03-slides.png",
+      "dimensions": [
+        887,
+        1774
+      ],
+      "mode": "RGB",
+      "sha256": "6786955e74b51fc2b92a2c117accd844c30ceb7fe163753f341a396852b1ef4f"
+    }
+  ]
+}

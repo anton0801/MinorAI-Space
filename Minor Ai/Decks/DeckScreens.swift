@@ -11,6 +11,8 @@ import SwiftUI
 struct NewDeckView: View {
     let theme: AppTheme
     var preselectedMap: UUID?
+    // A template picked in the template library (its id).
+    var preselectedTemplate: String? = nil
     var onCreated: (UUID) -> Void
     var onUpgrade: () -> Void
 
@@ -199,6 +201,9 @@ struct NewDeckView: View {
         .interactiveDismissDisabled(working)
         .onAppear {
             slides = min(slides, maxSlides)
+            if let preselectedTemplate {
+                template = (DeckTemplates.all + saved.templates).first { $0.id == preselectedTemplate }
+            }
             if let preselectedMap, let map = maps.map(preselectedMap) {
                 kind = .map
                 mapID = preselectedMap
@@ -335,6 +340,8 @@ struct NewDeckView: View {
                 var deck = template?.fill(with: generated.slides, title: generated.title)
                     ?? Deck(title: generated.title, slides: generated.slides, theme: theme, sourceMapID: mapSource)
                 deck.sourceMapID = mapSource
+                deck.lineage = generated.lineage
+                if case .map(let map) = source { deck.sourceRevision = map.contentFingerprint }
                 DeckStore.shared.save(deck)
                 Telemetry.log("deck_created", ["source": kind.rawValue, "slides": deck.slides.count, "template": template?.id ?? "none"])
                 account.noteDeckCreated()
@@ -405,85 +412,5 @@ struct WritingSlidesView: View {
         .onReceive(timer) { _ in shown += 1 }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Writing your slides")
-    }
-}
-
-struct SidebarDecksView: View {
-    var onOpen: (UUID) -> Void
-    var onNew: () -> Void
-
-    @ObservedObject private var store = DeckStore.shared
-    @State private var pendingDelete: Deck?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if store.decks.isEmpty {
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "rectangle.on.rectangle.angled").font(.system(size: 44))
-                    Text("No Presentations Yet").font(.system(size: 18, weight: .bold))
-                    Text("Make one from a map, a topic or a chat in about half a minute.")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(MinorColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                    Button(action: onNew) {
-                        Label("New Presentation", systemImage: "sparkles")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 20)
-                            .frame(height: 46)
-                            .background(Capsule().fill(MinorColor.accent))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 6)
-                }
-                .padding(.horizontal, 36)
-                Spacer()
-            } else {
-                List {
-                    ForEach(store.decks) { deck in
-                        Button { onOpen(deck.id) } label: {
-                            HStack(spacing: 12) {
-                                if let first = deck.slides.first {
-                                    SlideCanvas(slide: first, deck: deck)
-                                        .frame(width: 96)
-                                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                                }
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(deck.title).font(.system(size: 16, weight: .medium)).lineLimit(2)
-                                    Text(L("\(deck.slides.count) slides · \(deck.updatedAt.formatted(.relative(presentation: .named).locale(AppLanguage.current.locale)))"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(MinorColor.textTertiary)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .padding(10)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.08)))
-                            .contentShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 4, trailing: 20))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { pendingDelete = deck } label: { Label("Delete", systemImage: "trash") }
-                        }
-                        .accessibilityAction(named: "Delete") { pendingDelete = deck }
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-            }
-        }
-        .foregroundColor(MinorColor.textPrimary)
-        .confirmationDialog(
-            pendingDelete.map { L("Delete “\($0.title)”?") } ?? "",
-            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
-            titleVisibility: .visible,
-            presenting: pendingDelete
-        ) { deck in
-            Button("Delete Presentation", role: .destructive) { store.delete(deck.id) }
-            Button("Cancel", role: .cancel) {}
-        }
     }
 }

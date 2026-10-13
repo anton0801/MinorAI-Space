@@ -28,22 +28,54 @@ enum DeckExport {
         let url = fileURL(deck, ext: "pdf")
         var box = CGRect(origin: .zero, size: SlideView.size)
         guard let context = CGContext(url as CFURL, mediaBox: &box, nil) else { throw ExportError.cannotCreate }
-        for (i, slide) in deck.slides.enumerated() {
-            let view = SlideView(slide: slide, style: deck.style(for: slide), index: i, total: deck.slides.count, deckTitle: deck.title,
-                                 sectionNumber: SlideCanvas.sectionNumber(of: i, in: deck), brand: deck.brand)
-            let renderer = ImageRenderer(content: view)
-            renderer.proposedSize = ProposedViewSize(SlideView.size)
-            renderer.render { _, draw in
-                context.beginPDFPage(nil)
-                draw(context)
-                context.endPDFPage()
+        for i in deck.slides.indices { drawPDFPage(deck, i, into: context) }
+        context.closePDF()
+        return url
+    }
+
+    // The same a slide at a time, so a progress bar can move and Cancel can stop it.
+    @MainActor
+    static func pdf(_ deck: Deck, progress: @escaping (Double) -> Void) async throws -> URL {
+        let url = fileURL(deck, ext: "pdf")
+        var box = CGRect(origin: .zero, size: SlideView.size)
+        guard let context = CGContext(url as CFURL, mediaBox: &box, nil) else { throw ExportError.cannotCreate }
+        for i in deck.slides.indices {
+            do {
+                try Task.checkCancellation()
+            } catch {
+                context.closePDF()
+                try? FileManager.default.removeItem(at: url)
+                throw error
             }
+            drawPDFPage(deck, i, into: context)
+            progress(Double(i + 1) / Double(max(deck.slides.count, 1)))
+            await Task.yield()
         }
         context.closePDF()
         return url
     }
 
+    @MainActor
+    private static func drawPDFPage(_ deck: Deck, _ i: Int, into context: CGContext) {
+        let slide = deck.slides[i]
+        let view = SlideView(slide: slide, style: deck.style(for: slide), index: i, total: deck.slides.count, deckTitle: deck.title,
+                             sectionNumber: SlideCanvas.sectionNumber(of: i, in: deck), brand: deck.brand)
+        let renderer = ImageRenderer(content: view)
+        renderer.proposedSize = ProposedViewSize(SlideView.size)
+        renderer.render { _, draw in
+            context.beginPDFPage(nil)
+            draw(context)
+            context.endPDFPage()
+        }
+    }
+
     // MARK: - PowerPoint
+
+    // One slide's XML, as it goes into the file (for checking its shapes and connectors).
+    @MainActor
+    static func slideXML(_ deck: Deck, _ index: Int) -> String {
+        SlideWriter(deck: deck, slide: deck.slides[index], index: index).xml()
+    }
 
     @MainActor
     static func pptx(_ deck: Deck) throws -> URL {
@@ -52,6 +84,24 @@ enum DeckExport {
         let builder = PPTXBuilder(deck: deck)
         for (name, data) in builder.parts() { zip.add(name, data) }
         try zip.finish().write(to: url, options: .atomic)
+        return url
+    }
+
+    @MainActor
+    static func pptx(_ deck: Deck, progress: @escaping (Double) -> Void) async throws -> URL {
+        let url = fileURL(deck, ext: "pptx")
+        var zip = ZipWriter()
+        let builder = PPTXBuilder(deck: deck)
+        var parts = builder.headerParts()
+        for i in deck.slides.indices {
+            try Task.checkCancellation()
+            parts += builder.slideParts(i)
+            progress(Double(i + 1) / Double(max(deck.slides.count, 1)) * 0.95)
+            await Task.yield()
+        }
+        for (name, data) in parts { zip.add(name, data) }
+        try zip.finish().write(to: url, options: .atomic)
+        progress(1)
         return url
     }
 }
@@ -66,8 +116,13 @@ private struct PPTXBuilder {
 
     @MainActor
     func parts() -> [(String, Data)] {
+        headerParts() + deck.slides.indices.flatMap { slideParts($0) }
+    }
+
+    // Everything but the slides: package, presentation, master, layout, themes, notes master.
+    @MainActor
+    func headerParts() -> [(String, Data)] {
         var parts: [(String, String)] = []
-        var media: [(String, Data)] = []
         let count = deck.slides.count
 
         var types = """
@@ -105,17 +160,21 @@ private struct PPTXBuilder {
         parts.append(("ppt/theme/theme2.xml", themeXML(name: "Minor Notes")))
         parts.append(("ppt/notesMasters/notesMaster1.xml", "\(Self.head)<p:notesMaster \(Self.ns)><p:cSld>\(emptyTree)</p:cSld><p:clrMap bg1=\"lt1\" tx1=\"dk1\" bg2=\"lt2\" tx2=\"dk2\" accent1=\"accent1\" accent2=\"accent2\" accent3=\"accent3\" accent4=\"accent4\" accent5=\"accent5\" accent6=\"accent6\" hlink=\"hlink\" folHlink=\"folHlink\"/></p:notesMaster>"))
         parts.append(("ppt/notesMasters/_rels/notesMaster1.xml.rels", XML.rels("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"../theme/theme2.xml\"/>")))
+        return parts.map { ($0.0, Data($0.1.utf8)) }
+    }
 
-        for (i, slide) in deck.slides.enumerated() {
-            let n = i + 1
-            let writer = SlideWriter(deck: deck, slide: slide, index: i)
-            parts.append(("ppt/slides/slide\(n).xml", writer.xml()))
-            parts.append(("ppt/slides/_rels/slide\(n).xml.rels", XML.rels("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout\" Target=\"../slideLayouts/slideLayout1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide\" Target=\"../notesSlides/notesSlide\(n).xml\"/>" + writer.rels)))
-            media += writer.media
-            parts.append(("ppt/notesSlides/notesSlide\(n).xml", notesXML(slide.notes)))
-            parts.append(("ppt/notesSlides/_rels/notesSlide\(n).xml.rels", XML.rels("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster\" Target=\"../notesMasters/notesMaster1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"../slides/slide\(n).xml\"/>")))
-        }
-        return parts.map { ($0.0, Data($0.1.utf8)) } + media
+    // One slide: its drawing, relationships, pictures and speaker notes.
+    @MainActor
+    func slideParts(_ i: Int) -> [(String, Data)] {
+        let slide = deck.slides[i]
+        let n = i + 1
+        let writer = SlideWriter(deck: deck, slide: slide, index: i)
+        var parts: [(String, String)] = []
+        parts.append(("ppt/slides/slide\(n).xml", writer.xml()))
+        parts.append(("ppt/slides/_rels/slide\(n).xml.rels", XML.rels("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout\" Target=\"../slideLayouts/slideLayout1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide\" Target=\"../notesSlides/notesSlide\(n).xml\"/>" + writer.rels)))
+        parts.append(("ppt/notesSlides/notesSlide\(n).xml", notesXML(slide.notes)))
+        parts.append(("ppt/notesSlides/_rels/notesSlide\(n).xml.rels", XML.rels("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster\" Target=\"../notesMasters/notesMaster1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"../slides/slide\(n).xml\"/>")))
+        return parts.map { ($0.0, Data($0.1.utf8)) } + writer.media
     }
 
     private func notesXML(_ notes: String) -> String {
@@ -229,6 +288,18 @@ private final class SlideWriter {
     private var palette: [String] { (0..<max(style.palette.count, 1)).map(paletteHex) }
 
     private func newID() -> Int { defer { nextID += 1 }; return nextID }
+
+    // The slide's own text style (Text panel) for a part: the title, or everything else; nil for
+    // the parts it doesn't change (section number, quote mark, footer, page number).
+    private func part(_ key: String) -> SlideTextStyle.Part? {
+        if key == "title" { return slide.text?.title }
+        if ["number", "mark", "footer", "page"].contains(key) { return nil }
+        return slide.text?.body
+    }
+
+    private var body: SlideTextStyle.Part { slide.text?.body ?? SlideTextStyle.Part() }
+
+    private func own(_ hex: String?) -> String? { hex.map { $0.replacingOccurrences(of: "#", with: "").uppercased() } }
 
     private func addMedia(_ data: Data, ext: String) -> String {
         let rel = "rId\(nextRel)"
@@ -386,6 +457,21 @@ private final class SlideWriter {
                             align: String = "l", tracking: CGFloat = 0, room: CGFloat? = nil, fit: Bool = true, gradient: [String]? = nil, gradientAngle: Double = 90, fallback: CGRect) -> Int? {
         guard !text.isEmpty else { return nil }
         let font = font ?? style.bodyFont
+        // As the slide draws it with its own text style.
+        var size = size, bold = bold, italic = italic, color = color, align = align, gradient = gradient
+        if let part = part(key) {
+            size *= CGFloat(part.scale)
+            if let hex = own(part.color) {
+                color = hex
+                gradient = nil
+            }
+            // The big number keeps its weight; only its size and color follow the text style.
+            if key != "stat" {
+                if let weight = part.bold { bold = weight }
+                italic = italic || part.italic
+            }
+            if key == "title", let side = part.align { align = side == .leading ? "l" : side == .center ? "ctr" : "r" }
+        }
         var frame = probe[key] ?? fallback
         if let room, room > frame.width {
             let extra = room - frame.width
@@ -405,20 +491,23 @@ private final class SlideWriter {
     @discardableResult
     private func bulletBox(_ key: String, items: [String], size: CGFloat, dots: [String], right: CGFloat, fallback: CGRect) -> Int? {
         guard !items.isEmpty else { return nil }
+        // The dot keeps the layout's size; the text follows the slide's text style.
         let indent = size * 0.42 + 22               // the dot and the gap before the text
+        let size = size * CGFloat(body.scale)
+        let bold = body.bold ?? false, italic = body.italic, color = own(body.color) ?? textHex
         let frames = items.indices.compactMap { probe["\(key).text.\($0)"] }
         guard frames.count == items.count, let first = frames.first, let last = frames.last else {
             let paragraphs = items.enumerated().map { i, item in
-                paragraph(run(item, size: size, color: textHex), bullet: dots[i % dots.count], indent: indent, spaceBefore: i == 0 ? 0 : size * 0.5)
+                paragraph(run(item, size: size, color: color, bold: bold, italic: italic), bullet: dots[i % dots.count], indent: indent, spaceBefore: i == 0 ? 0 : size * 0.5)
             }
             return textBox(x: fallback.minX, y: fallback.minY, w: fallback.width, h: fallback.height, paragraphs: paragraphs)
         }
         let x = first.minX - indent
         let w = max(right - x, (frames.map(\.maxX).max() ?? right) - x)
         let paragraphs = items.enumerated().map { i, item -> String in
-            let s = fitted(item, font: style.bodyFont, size: size, bold: false, in: CGSize(width: w - indent, height: frames[i].height))
+            let s = fitted(item, font: style.bodyFont, size: size, bold: bold, italic: italic, in: CGSize(width: w - indent, height: frames[i].height))
             let gap = i == 0 ? 0 : max(0, frames[i].minY - frames[i - 1].maxY)
-            return paragraph(run(item, size: s, color: textHex), bullet: dots[i % dots.count], indent: indent, spaceBefore: gap, lineHeight: lineHeight(style.bodyFont, s, bold: false))
+            return paragraph(run(item, size: s, color: color, bold: bold, italic: italic), bullet: dots[i % dots.count], indent: indent, spaceBefore: gap, lineHeight: lineHeight(style.bodyFont, s, bold: bold))
         }
         return textBox(x: x, y: first.minY, w: w, h: last.maxY - first.minY + size * 0.4, paragraphs: paragraphs)
     }
@@ -474,7 +563,11 @@ private final class SlideWriter {
     }
 
     @discardableResult
-    private func table(rows: [[String]], frame: CGRect, heights: [CGFloat], size: CGFloat, padding: CGFloat, firstColumnBold: Bool = true) -> Int {
+    // `styled`: the layout's table, drawn with the slide's text style (free tables have their own).
+    private func table(rows: [[String]], frame: CGRect, heights: [CGFloat], size: CGFloat, padding: CGFloat, firstColumnBold: Bool = true, styled: Bool = false) -> Int {
+        let own = styled ? body : SlideTextStyle.Part()
+        let size = size * CGFloat(own.scale)
+        let color = self.own(own.color) ?? textHex
         let id = newID()
         let columns = max(rows.map(\.count).max() ?? 1, 1)
         let colWidth = e(frame.width / CGFloat(columns))
@@ -490,8 +583,8 @@ private final class SlideWriter {
             for c in 0..<columns {
                 let text = c < row.count ? row[c] : ""
                 let fill = r == 0 ? fillXML(header) : (r % 2 == 0 ? fillXML(stripe) : "<a:noFill/>")
-                let bold = r == 0 || (firstColumnBold && c == 0)
-                let cell = paragraph(run(text, size: size, color: textHex, bold: bold))
+                let bold = own.bold ?? (r == 0 || (firstColumnBold && c == 0))
+                let cell = paragraph(run(text, size: size, color: color, bold: bold, italic: own.italic))
                 // A line under each row and around the table, as on the slide.
                 let borders = (c == 0 ? edge("lnL", 1.5) : "") + (c == columns - 1 ? edge("lnR", 1.5) : "") + (r == 0 ? edge("lnT", 1.5) : "") + edge("lnB", r == rows.count - 1 ? 1.5 : 1)
                 xml += "<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>\(cell)</a:txBody><a:tcPr marL=\"\(e(padding))\" marR=\"\(e(padding))\" marT=\"0\" marB=\"0\" anchor=\"ctr\">\(borders)\(fill)</a:tcPr></a:tc>"
@@ -652,36 +745,175 @@ private final class SlideWriter {
             let rowHeight: CGFloat = rows.count > 5 ? 64 : 76
             let frame = probe["table"] ?? CGRect(x: pad, y: 210, width: full, height: rowHeight * CGFloat(rows.count))
             let heights = rows.indices.map { probe["row.\($0)"]?.height ?? rowHeight }
-            table(rows: rows, frame: frame, heights: heights, size: rows.count > 5 ? 24 : 28, padding: 26)
+            table(rows: rows, frame: frame, heights: heights, size: rows.count > 5 ? 24 : 28, padding: 26, styled: true)
         case .diagram:
             title(48, top: 60, height: 100)
-            let nodes = Array((slide.diagram?.nodes ?? []).prefix(6))
-            let center = probe["center"] ?? CGRect(x: 640 - 115, y: 420 - 115, width: 230, height: 230)
-            let middle = CGPoint(x: center.midX, y: center.midY)
-            let frames: [CGRect] = nodes.indices.map { i in
-                if let frame = probe["node.\(i)"] { return frame }
-                let angle = -Double.pi / 2 + Double(i) * 2 * Double.pi / Double(max(nodes.count, 1))
-                return CGRect(x: 640 + CGFloat(cos(angle)) * 420 - 150, y: 420 + CGFloat(sin(angle)) * 210 - 36, width: 300, height: 72)
-            }
-            let lines = frames.map { line(from: middle, to: CGPoint(x: $0.midX, y: $0.midY), color: hex(style.line)) }
-            let label = slide.diagram?.center ?? slide.title
-            let labelSize = fitted(label, font: style.titleFont, size: 30, bold: true, in: center.insetBy(dx: 26, dy: 26).size)
-            let labelLines = brokenRuns(label, width: center.width - 52, size: labelSize, color: hex(style.onAccent), bold: true, font: style.titleFont)
-            textBox(x: center.minX, y: center.minY, w: center.width, h: center.height,
-                    paragraphs: [paragraph(labelLines.runs, align: "ctr", lineHeight: lineHeight(style.titleFont, labelSize, bold: true))],
-                    anchor: "ctr", gradient: [accentHex, second], gradientAngle: 45, geometry: "ellipse", wrap: false)
-            for (i, node) in nodes.enumerated() {
-                let frame = frames[i]
-                let size = fitted(node, font: style.bodyFont, size: 25, bold: true, in: CGSize(width: frame.width - 48, height: frame.height - 22))
-                let label = brokenRuns(node, width: frame.width - 48, size: size, color: textHex, bold: true)
-                let box = textBox(x: frame.minX, y: frame.minY, w: frame.width, h: frame.height, paragraphs: [paragraph(label.runs, align: "ctr", lineHeight: lineHeight(style.bodyFont, size, bold: true))], anchor: "ctr",
-                                  fill: style.isLight ? "FFFFFF" : "1D1A20", geometry: "roundRect", radius: frame.height / 2, line: paletteHex(i), lineWidth: 3, wrap: false)
-                step([.shape(lines[i]), .shape(box)])
-            }
+            diagram()
         case .closing:
             placedText("title", slide.title, size: 84, font: style.titleFont, bold: true, align: "ctr", tracking: -2, room: 1040, fallback: CGRect(x: 120, y: 200, width: 1040, height: 200))
             shape(probe["bar"] ?? CGRect(x: 570, y: 420, width: 140, height: 10), geometry: "roundRect", radius: 5, gradient: [accentHex, second])
             placedText("subtitle", slide.subtitle, size: 34, color: secondaryHex, align: "ctr", room: 1040, fallback: CGRect(x: 120, y: 450, width: 1040, height: 120))
+        }
+    }
+
+    // MARK: Diagrams
+
+    // The diagram from the geometry the slide draws: each box an editable shape with its text (and
+    // its icon, grouped with it), each connection a connector attached to the sides of its boxes,
+    // so PowerPoint keeps them joined when a box moves. A matrix gets its grid, quadrants and axes.
+    private func diagram() {
+        let data = slide.diagram ?? SlideDiagram(center: slide.title)
+        let structured = data.structured(slideID: slide.id)
+        let geometry = DiagramLayout.geometry(data, slideID: slide.id, title: slide.title, scale: CGFloat(body.scale))
+        if let axes = geometry.axes { matrixAxes(axes) }
+        var shapeIDs: [UUID: Int] = [:]
+        for box in geometry.boxes {
+            shapeIDs[box.id] = diagramBox(box, filled: structured.filled != false)
+        }
+        var built: Set<UUID> = []
+        for (i, box) in geometry.boxes.enumerated() {
+            guard let id = shapeIDs[box.id] else { continue }
+            var targets: [Target] = [.shape(id)]
+            for connector in geometry.connectors where connector.to == box.id && !built.contains(connector.id) {
+                guard let a = shapeIDs[connector.from] else { continue }
+                targets.append(.shape(diagramConnector(connector, from: a, to: id)))
+                built.insert(connector.id)
+            }
+            _ = i
+            step(targets)
+        }
+        for connector in geometry.connectors where !built.contains(connector.id) {
+            guard let a = shapeIDs[connector.from], let b = shapeIDs[connector.to] else { continue }
+            diagramConnector(connector, from: a, to: b)
+        }
+    }
+
+    // A box with its label; with an icon, a group of the box and the icon above the text.
+    @discardableResult
+    private func diagramBox(_ box: DiagramGeometry.Box, filled: Bool) -> Int {
+        let frame = box.frame
+        let bold = body.bold ?? true, italic = body.italic
+        let color = own(body.color)
+        let tint = paletteHex(box.color)
+        var fill: String?, alpha = 1.0, line: String?, lineWidth: CGFloat = 0, radius: CGFloat = 22, gradient: [String]?, textColor = color ?? textHex
+        switch box.shape {
+        case .circle:
+            gradient = [accentHex, style.palette.count > 1 ? paletteHex(1) : accentHex]
+            radius = frame.width / 2
+            textColor = color ?? hex(style.onAccent)
+        case .chip:
+            fill = style.isLight ? "FFFFFF" : "1D1A20"
+            line = tint
+            lineWidth = 3
+            radius = frame.height / 2
+        case .roundRect:
+            if filled {
+                fill = tint
+                alpha = style.isLight ? 0.2 : 0.24
+            } else {
+                fill = hex(style.card)
+                line = tint
+                lineWidth = 3
+            }
+        }
+        // Built apart, so a box with an icon can be wrapped in a group with it.
+        let saved = shapes
+        shapes = ""
+        let iconSide = box.icon == nil ? 0 : box.fontSize * 1.6
+        let textWidth = frame.width - 32
+        let size = fitted(box.label, font: style.bodyFont, size: box.fontSize, bold: bold, italic: italic,
+                          in: CGSize(width: textWidth, height: max(frame.height - 24 - (iconSide > 0 ? iconSide + 8 : 0), box.fontSize * 1.3)))
+        let lines = brokenRuns(box.label, width: textWidth, size: size, color: textColor, bold: bold, italic: italic)
+        let text = paragraph(lines.runs, align: "ctr", lineHeight: lineHeight(style.bodyFont, size, bold: bold))
+        // With an icon the text sits lower by the icon and its gap, as on the slide.
+        let topInset = iconSide > 0 ? iconSide + 8 : 0
+        let id = newID()
+        let lineXML = line.map { "<a:ln w=\"\(e(lineWidth))\"><a:solidFill><a:srgbClr val=\"\($0)\"/></a:solidFill></a:ln>" } ?? "<a:ln><a:noFill/></a:ln>"
+        shapes += "<p:sp><p:nvSpPr><p:cNvPr id=\"\(id)\" name=\"\(XML.escape(String(box.label.prefix(40))))\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>\(xfrm(frame.minX, frame.minY, frame.width, frame.height))\(geometryXML(box.shape == .circle ? "ellipse" : "roundRect", radius: radius, w: frame.width, h: frame.height))\(fillXML(fill, alpha: alpha, gradient: gradient, angle: 45))\(lineXML)</p:spPr><p:txBody><a:bodyPr wrap=\"square\" lIns=\"\(e(12))\" tIns=\"\(e(topInset))\" rIns=\"\(e(12))\" bIns=\"0\" anchor=\"ctr\"><a:normAutofit/></a:bodyPr><a:lstStyle/>\(text)</p:txBody></p:sp>"
+        textShapes.insert(id)
+        if let icon = box.icon, let rel = iconImage(icon, tint: tint, filled: filled, side: iconSide) {
+            let textHeight = DiagramLayout.textHeight(box.label, size: box.fontSize, width: textWidth)
+            let group = iconSide + 8 + textHeight
+            let top = frame.midY - group / 2
+            picture(rel: rel, frame: CGRect(x: frame.midX - iconSide / 2, y: top, width: iconSide, height: iconSide))
+            let inner = shapes
+            shapes = ""
+            let group_ = newID()
+            let off = "<a:off x=\"\(e(frame.minX))\" y=\"\(e(frame.minY))\"/><a:ext cx=\"\(e(frame.width))\" cy=\"\(e(frame.height))\"/>"
+            shapes += "<p:grpSp><p:nvGrpSpPr><p:cNvPr id=\"\(group_)\" name=\"Group \(group_)\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm>\(off)<a:chOff x=\"\(e(frame.minX))\" y=\"\(e(frame.minY))\"/><a:chExt cx=\"\(e(frame.width))\" cy=\"\(e(frame.height))\"/></a:xfrm></p:grpSpPr>\(inner)</p:grpSp>"
+        }
+        shapes = saved + shapes
+        return id
+    }
+
+    // The icon in its circle, as on the slide.
+    private func iconImage(_ name: String, tint: String, filled: Bool, side: CGFloat) -> String? {
+        let scale: CGFloat = 4
+        let size = CGSize(width: side * scale, height: side * scale)
+        let circle = UIColor(Color(hex: "#" + tint))
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            (filled ? circle : circle.withAlphaComponent(0.18)).setFill()
+            UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).fill()
+            let configuration = UIImage.SymbolConfiguration(pointSize: side * 0.56 * scale, weight: .semibold)
+            let glyph = UIImage(systemName: name, withConfiguration: configuration)?
+                .withTintColor(filled ? (style.isLight ? .white : .black) : circle, renderingMode: .alwaysOriginal)
+            if let glyph {
+                glyph.draw(in: CGRect(x: (size.width - glyph.size.width) / 2, y: (size.height - glyph.size.height) / 2, width: glyph.size.width, height: glyph.size.height))
+            }
+        }
+        return image.pngData().map { addMedia($0, ext: "png") }
+    }
+
+    // A connector attached to two boxes at the middles of their facing sides. A tree's elbow is
+    // PowerPoint's bent connector turned a quarter (it runs across first otherwise).
+    @discardableResult
+    private func diagramConnector(_ c: DiagramGeometry.Connector, from a: Int, to b: Int) -> Int {
+        let id = newID()
+        let color = c.dashed || !c.directed ? hex(style.secondary.opacity(0.7)) : accentHex
+        let arrow = c.directed ? "<a:tailEnd type=\"triangle\" w=\"med\" len=\"med\"/>" : ""
+        let dash = c.dashed ? "<a:prstDash val=\"sysDot\"/>" : ""
+        let line = "<a:ln w=\"\(e(4))\" cap=\"rnd\"><a:solidFill><a:srgbClr val=\"\(color)\"/></a:solidFill>\(dash)<a:round/>\(arrow)</a:ln>"
+        let links = "<a:stCxn id=\"\(a)\" idx=\"\(c.startSide.rawValue)\"/><a:endCxn id=\"\(b)\" idx=\"\(c.endSide.rawValue)\"/>"
+        let transform: String, geometry: String
+        if c.elbow, c.start.x != c.end.x {
+            let w = abs(c.end.y - c.start.y), h = abs(c.end.x - c.start.x)
+            let middle = CGPoint(x: (c.start.x + c.end.x) / 2, y: (c.start.y + c.end.y) / 2)
+            let flip = c.end.x > c.start.x ? " flipV=\"1\"" : ""
+            transform = "<a:xfrm rot=\"5400000\"\(flip)><a:off x=\"\(e(middle.x - w / 2))\" y=\"\(e(middle.y - h / 2))\"/><a:ext cx=\"\(e(max(w, 1)))\" cy=\"\(e(max(h, 1)))\"/></a:xfrm>"
+            geometry = "<a:prstGeom prst=\"bentConnector3\"><a:avLst><a:gd name=\"adj1\" fmla=\"val 50000\"/></a:avLst></a:prstGeom>"
+        } else {
+            let flipH = c.end.x < c.start.x ? " flipH=\"1\"" : ""
+            let flipV = c.end.y < c.start.y ? " flipV=\"1\"" : ""
+            transform = "<a:xfrm\(flipH)\(flipV)><a:off x=\"\(e(min(c.start.x, c.end.x)))\" y=\"\(e(min(c.start.y, c.end.y)))\"/><a:ext cx=\"\(e(abs(c.end.x - c.start.x)))\" cy=\"\(e(abs(c.end.y - c.start.y)))\"/></a:xfrm>"
+            geometry = "<a:prstGeom prst=\"straightConnector1\"><a:avLst/></a:prstGeom>"
+        }
+        shapes += "<p:cxnSp><p:nvCxnSpPr><p:cNvPr id=\"\(id)\" name=\"Connector \(id)\"/><p:cNvCxnSpPr>\(links)</p:cNvCxnSpPr><p:nvPr/></p:nvCxnSpPr><p:spPr>\(transform)\(geometry)\(line)</p:spPr></p:cxnSp>"
+        if !c.label.isEmpty {
+            let middle = CGPoint(x: (c.start.x + c.end.x) / 2, y: (c.start.y + c.end.y) / 2)
+            let width = min(260, (c.label as NSString).size(withAttributes: [.font: UIFont.systemFont(ofSize: 18, weight: .medium)]).width + 24)
+            textBox(x: middle.x - width / 2, y: middle.y - 16, w: width, h: 32, paragraphs: [paragraph(run(c.label, size: 18, color: secondaryHex), align: "ctr")],
+                    anchor: "ctr", fill: style.isLight ? "FFFFFF" : "000000", fillAlpha: style.isLight ? 0.9 : 0.55, geometry: "roundRect", radius: 16)
+        }
+        return id
+    }
+
+    // A matrix's grid with its middle lines, the quadrants' names and the axes.
+    private func matrixAxes(_ axes: DiagramGeometry.Axes) {
+        let grid = axes.grid
+        shape(grid, geometry: "roundRect", radius: 18, fill: hex(style.card), alpha: 0.6, line: hex(style.line), lineWidth: 2)
+        line(from: CGPoint(x: grid.midX, y: grid.minY), to: CGPoint(x: grid.midX, y: grid.maxY), color: hex(style.line), width: 2, dotted: !axes.showsQuadrants)
+        line(from: CGPoint(x: grid.minX, y: grid.midY), to: CGPoint(x: grid.maxX, y: grid.midY), color: hex(style.line), width: 2, dotted: !axes.showsQuadrants)
+        if axes.showsQuadrants {
+            for (rect, label) in axes.quadrantLabels where !label.isEmpty {
+                textBox(x: rect.minX, y: rect.minY, w: rect.width, h: rect.height, paragraphs: [paragraph(run(label, size: 20, color: secondaryHex, bold: true))])
+            }
+        }
+        let x = DiagramView.horizontalAxisText(axes.xLow, axes.xTitle, axes.xHigh), y = DiagramView.verticalAxisText(axes)
+        if !x.isEmpty {
+            textBox(x: grid.minX, y: grid.maxY + 10, w: grid.width, h: 30, paragraphs: [paragraph(run(x, size: 18, color: secondaryHex, bold: true), align: "ctr")])
+        }
+        if !y.isEmpty {
+            textBox(x: grid.minX, y: grid.minY - 36, w: grid.width, h: 30, paragraphs: [paragraph(run(y, size: 18, color: secondaryHex, bold: true))])
         }
     }
 

@@ -146,6 +146,8 @@ struct ActionCard: View {
         case .opened: return "point.3.connected.trianglepath.dotted"
         case .deckCreated, .deckOpened: return "rectangle.on.rectangle.angled"
         case .deckEdited: return action.undone == true ? "arrow.uturn.backward" : "rectangle.stack.badge.plus"
+        case .mapProposal: return "sparkles"
+        case .mapCreated: return "point.3.connected.trianglepath.dotted"
         }
     }
 
@@ -156,6 +158,8 @@ struct ActionCard: View {
         case .deckCreated: return L("Presentation ready")
         case .deckEdited: return action.undone == true ? L("Change undone") : L("Presentation updated")
         case .deckOpened: return L("Opened presentation")
+        case .mapProposal: return action.applied == true ? L("Map updated") : L("Suggested changes")
+        case .mapCreated: return L("Map ready")
         case .images:
             let total = action.imageNodes?.count ?? 0
             guard let done = action.imagesDone else { return L("Pictures for \(total) ideas?") }

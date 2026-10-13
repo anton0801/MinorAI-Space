@@ -440,7 +440,11 @@ extension Deck {
     // The look slides are drawn with: the deck's own, or its ready-made theme.
     var style: SlideStyle { look.map(SlideStyle.init(look:)) ?? SlideStyle(theme: deckTheme) }
 
-    func style(for slide: Slide) -> SlideStyle { style.with(background: slide.background) }
+    // The presentation's style, or the slide's own ("This slide"), then the slide's own background.
+    func style(for slide: Slide) -> SlideStyle {
+        let own = slide.look.map(SlideStyle.init(look:)) ?? slide.theme.flatMap(DeckTheme.init(rawValue:)).map(SlideStyle.init(theme:))
+        return (own ?? style).with(background: slide.background)
+    }
 
     // How many taps a slide takes before the next one: bullets and elements that come in one by one.
     static func buildSteps(_ slide: Slide) -> Int {
@@ -456,7 +460,7 @@ extension Slide {
         case .bullets, .imageText: return bullets.count
         case .twoColumns: return min(columns.count, 3)
         case .timeline: return min(items.count, 6)
-        case .diagram: return min(diagram?.nodes.count ?? 0, 6)
+        case .diagram: return (diagram ?? SlideDiagram(center: title)).structured(slideID: id).allItems.count
         case .table: return max(min(table.count, 6) - 1, 0)
         default: return 0
         }

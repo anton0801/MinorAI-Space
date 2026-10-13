@@ -1,0 +1,44 @@
+[
+  {
+    "file": "01-slides-empty.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "07b2907d8f34ffbf7fb63347733075fe673df24513e181264ccf828426ca0ca7"
+  },
+  {
+    "file": "02-slides-switcher.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "865c9b7725cea4eb6e08ce0456df6e16ec0a330820457706b7d5f23abeddfe3e"
+  },
+  {
+    "file": "03-sources-sheet.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "89c992792ba3eb278c8b3b02663db1ddb0602696a7b0b63a207876c371c1ec04"
+  },
+  {
+    "file": "04-add-material.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "abd46019cf03c2c310d8b1a621474009b2bb0399187bfbfd425364541e0c8079"
+  },
+  {
+    "file": "05-project-memory.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "06b0186f2bb9c9310db18fcb9bf31f559e39a8f20214241e014ebeecae20d9e0"
+  },
+  {
+    "file": "06-next-actions.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "5ef6e741a124008a7170c0154f7801bdda58389d93f36824832ea74dd8d4d558"
+  }
+]

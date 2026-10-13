@@ -226,13 +226,15 @@ admin_email = "no-reply@minorai.site"
 sender_name = "Minor AI"
 
 # The app confirms sign-ups and resets passwords with the 6-digit code ({{ .Token }}), so both
-# emails show the code instead of a link.
+# emails show the code instead of a link. They're in the language the app sent at sign-up
+# ({{ .Data.lang }}: "ru" or "en"; English when it's missing). The header picture is
+# website/assets/email-header.jpg, made by templates/header.swift.
 [auth.email.template.confirmation]
-subject = "Your Minor AI code: {{ .Token }}"
+subject = '{{ if eq .Data.lang "ru" }}Код Minor AI: {{ .Token }}{{ else }}Your Minor AI code: {{ .Token }}{{ end }}'
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your Minor AI password: {{ .Token }}"
+subject = '{{ if eq .Data.lang "ru" }}Сброс пароля Minor AI: {{ .Token }}{{ else }}Reset your Minor AI password: {{ .Token }}{{ end }}'
 content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template

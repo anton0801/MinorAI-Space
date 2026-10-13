@@ -1,0 +1,72 @@
+[
+  {
+    "file": "01-map-rich-nodes.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "f1a6216d899aa9e9ae2d79939df6107706d6a350dc5aa714534439cb82874408"
+  },
+  {
+    "file": "02-map-node-style.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "b353feb37b2943be0b48483b01dfff8e733e79c1278c7372fa9c4d63e111b808"
+  },
+  {
+    "file": "03-map-marks.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "cc6ae3d4e3818fedc966dc0da271285af4a61eb871206f2fb71fad6f384fe266"
+  },
+  {
+    "file": "04-map-design.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "f23fca6538db2bb099ce805d29abc12f4f5b2281ef9ead5411b28afa56f796d6"
+  },
+  {
+    "file": "05-slides-edit-text.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "1c719675aafc77a5856bad85de9a9f6008a38af45fa9cf4022f2c7903bd4c9a5"
+  },
+  {
+    "file": "06-slides-layouts.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "0c1d052bf3735540b43211a4b97e042f91160d0f395daf7df1cb26919dd1300c"
+  },
+  {
+    "file": "07-slides-theme.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "7a2a879ac8416ec936cfe654356bcddb2f0bd7d7f1aecc63ce35391a9e6043ec"
+  },
+  {
+    "file": "08-slides-organizer.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "3202cb1569e37a64c07025fe867e63062e81c406ae405a47aa9c511a927324ba"
+  },
+  {
+    "file": "09-map-layouts.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "994e9fdfd7e8c32c16329a3ac216552823453f1d682ad13992260d99402b895f"
+  },
+  {
+    "file": "10-slides-templates.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "sha256": "5d184dca4a35f18b86fbcdd79e4d07591877915a4d497b2d7d8bcecae02c405e"
+  }
+]

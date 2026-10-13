@@ -7,7 +7,9 @@
 //
 
 #if DEBUG
+import AVFoundation
 import Foundation
+import PDFKit
 import UIKit
 
 enum DemoMap {
@@ -47,6 +49,12 @@ enum DemoMap {
         let args = ProcessInfo.processInfo.arguments
         if let i = args.firstIndex(of: "-demoLayout"), args.indices.contains(i + 1) { map.layout = args[i + 1] }
         map.root.children[2].note = demoText("Three tiers keep the choice simple.", "Три тарифа упрощают выбор.")
+        // -demoLabels: the person's own labels on a few ideas.
+        if args.contains("-demoLabels") {
+            map.root.children[2].labels = [demoText("Idea", "Идея"), demoText("To review", "На проверку")]
+            map.root.children[4].children[1].labels = [demoText("To review", "На проверку")]
+            map.root.children[4].children[1].due = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date())
+        }
         if let i = args.firstIndex(of: "-demoStyle"), args.indices.contains(i + 1) { map.style = args[i + 1] }
         // -demoShapes: every shape and fill, other lines, a palette and a due date.
         if args.contains("-demoShapes") || args.contains("-demoToday") {
@@ -61,6 +69,24 @@ enum DemoMap {
             map.root.children[4].isCollapsed = false
             map.root.children[4].children[1].due = Calendar.current.date(byAdding: .day, value: 2, to: Date())
             map.root.children[4].children[2].due = Calendar.current.date(byAdding: .day, value: -1, to: Date())
+            // As the Today design: three tasks for today (one done), one overdue, one this week.
+            if args.contains("-demoToday") && !args.contains("-demoTodayClear") && !args.contains("-demoTodayNone") {
+                let calendar = Calendar.current
+                map.root.children[4].children[0].due = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: Date())
+                for (index, hour) in [(0, 14), (1, 17)] {
+                    map.root.children[3].children[index].isTask = true
+                    map.root.children[3].children[index].due = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date())
+                }
+            }
+            // -demoTodayClear: nothing due today or earlier, the next task in four days.
+            if args.contains("-demoTodayClear") {
+                map.root.children[4].children[1].due = Calendar.current.date(byAdding: .day, value: 4, to: Date())
+                map.root.children[4].children[2].due = Calendar.current.date(byAdding: .day, value: 6, to: Date())
+            }
+            // -demoTodayNone: no tasks at all.
+            if args.contains("-demoTodayNone") {
+                for index in map.root.children[4].children.indices { map.root.children[4].children[index].isTask = false }
+            }
             map.root.children[4].color = .blue
             map.root.children[4].frame = demoText("Q1 plan", "План на I квартал")
             map.links = [MapLink(from: map.root.children[2].id, to: map.root.children[3].id, label: demoText("drives", "привлекает")),
@@ -86,8 +112,129 @@ enum DemoMap {
         if let data = picture.jpegData(compressionQuality: 0.9), let stored = MapStore.shared.storeImage(data, isAI: true) {
             map.root.children[1].image = stored
         }
+        let args = ProcessInfo.processInfo.arguments
+        // -demoSources: the pitch deck the map came from, Minor's ideas, one idea added by hand,
+        // and About the Project (-demoMemory).
+        ProjectMaterialStore.shared.delete(map.id)
+        ProjectMemoryStore.shared.delete(map.id)
+        if args.contains("-demoSources") {
+            let text = demoText(
+                "Minor AI turns any material into a clear mind map.\nAudience: students who use iPad, creators, small teams and researchers.\nPricing: Free gives 3 maps a month. Plus is $12.99 and PRO is $24.99; paying yearly saves up to 27%.\nChannels: App Store search, TikTok demos and Product Hunt.\nRisks: API costs grow with heavy use.",
+                "Minor AI превращает любой материал в понятную карту.\nАудитория: студенты с iPad, авторы, небольшие команды и исследователи.\nТарифы: Free даёт 3 карты в месяц. Plus стоит $12.99, PRO — $24.99; при оплате за год экономия до 27%.\nКаналы: поиск в App Store, демо в TikTok и Product Hunt.\nРиски: расходы на API растут при активном использовании.")
+            // -demoOriginals: the deck as a real PDF with its passages, a voice note and a web page,
+            // each cited by one idea (screenshot fixtures; real ones come from the import).
+            if args.contains("-demoOriginals") {
+                installOriginals(into: &map)
+            } else {
+                let material = ProjectMaterial(kind: .document, title: demoText("Pitch deck.pdf", "Презентация.pdf"), text: text, pages: 6)
+                ProjectMaterialStore.shared.add(material, to: map.id)
+                map.root = map.root.withOrigin(.material(material.id))
+            }
+            for index in map.root.children[3].children.indices { map.root.children[3].children[index].origin = .ai }
+            map.root.children[2].children.append(MindNode(title: demoText("Student discount", "Скидка для студентов"), origin: .person))
+            map.root.children[5].children.append(MindNode(title: demoText("Users want offline maps", "Нужны карты без сети"), isSuggestion: true, origin: .ai))
+        }
+        if args.contains("-demoMemory") {
+            ProjectMemoryStore.shared.update(map.id) { memory in
+                memory.goal = demoText("Launch in January with 1,000 paying users.", "Запуститься в январе и набрать 1 000 платящих.")
+                memory.decisions = [.init(text: demoText("Three plans: Free, Plus and PRO", "Три тарифа: Free, Plus и PRO")), .init(text: demoText("Beta in November", "Бета в ноябре"), byMinor: true)]
+                memory.questions = [.init(text: demoText("Which channel to try first?", "С какого канала начать?"))]
+                memory.suggestions = [.init(kind: .decision, text: demoText("Yearly plan with a 27% discount", "Годовой тариф со скидкой 27%"))]
+            }
+        }
         MapStore.shared.save(map)
         return map
+    }
+
+    // The pitch deck as a six-page PDF with a real text layer (pricing on page 4), a voice note and a
+    // web page; Pricing cites the deck, Audience the recording, Channels the page.
+    @MainActor
+    static func installOriginals(into map: inout MindMap) {
+        let deckName = demoText("Pitch deck.pdf", "Презентация.pdf")
+        let pages: [(String, String)] = [
+            ("Minor AI", demoText("Pitch deck · October", "Презентация · октябрь")),
+            (demoText("Problem", "Проблема"), demoText("Notes, documents and links pile up. Turning them into a plan takes hours.", "Заметки, документы и ссылки копятся. Превратить их в план — часы работы.")),
+            (demoText("Audience", "Аудитория"), demoText("Students who use iPad, creators, small teams and researchers.", "Студенты с iPad, авторы, небольшие команды и исследователи.")),
+            (demoText("Pricing", "Тарифы"), demoText("Three plans keep the choice simple.\n\nFree gives 3 maps a month. Plus is $12.99 and PRO is $24.99.\n\nPaying yearly saves up to 27%.", "Три тарифа, чтобы выбор был простым.\n\nFree даёт 3 карты в месяц. Plus стоит $12.99, PRO — $24.99.\n\nПри оплате за год экономия до 27%.")),
+            (demoText("Channels", "Каналы"), demoText("App Store search, TikTok demos and Product Hunt.", "Поиск в App Store, демо в TikTok и Product Hunt.")),
+            (demoText("Risks", "Риски"), demoText("API costs grow with heavy use.", "Расходы на API растут при активном использовании.")),
+        ]
+        let data = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792)).pdfData { context in
+            for (title, body) in pages {
+                context.beginPage()
+                (title as NSString).draw(at: CGPoint(x: 64, y: 90), withAttributes: [.font: UIFont.systemFont(ofSize: 40, weight: .bold), .foregroundColor: UIColor.black])
+                (body as NSString).draw(in: CGRect(x: 64, y: 170, width: 484, height: 520), withAttributes: [.font: UIFont.systemFont(ofSize: 20), .foregroundColor: UIColor.darkGray])
+            }
+        }
+        let pricing = map.root.children[2].id
+        let audience = map.root.children[0].id
+        let channels = map.root.children[3].id
+
+        if let original = try? OriginalStore.keep(data: data, ext: "pdf", name: deckName), let pdf = PDFDocument(data: data) {
+            let id = UUID()
+            let cut = SourceSegmenter.pdf(pdf, materialID: id, version: 1)
+            var deck = ProjectMaterial(kind: .document, title: deckName, draft: SourceDraft(materialID: id, original: original, text: cut.text, segments: cut.segments, pages: pages.count))
+            let cited = cut.segments.first { $0.text.contains("12.99") }.map { [$0.id] }
+            deck.cite([pricing: cited ?? []])
+            ProjectMaterialStore.shared.add(deck, to: map.id)
+            map.root = map.root.withOrigin(.material(id))
+        }
+
+        // About two minutes of voice-like sound, with the passages heard in it.
+        let lines: [(Double, Double, String)] = [
+            (14, 27, demoText("Let’s start with who it is for.", "Начнём с того, для кого это.")),
+            (31, 46, demoText("Students with iPad are the first audience: they turn lectures into maps.", "Первая аудитория — студенты с iPad: они превращают лекции в карты.")),
+            (49, 63, demoText("Creators and small teams come next.", "Следом — авторы и небольшие команды.")),
+            (66, 80, demoText("Researchers care most about sources and quotes.", "Исследователям важнее всего источники и цитаты.")),
+        ]
+        let recording = OriginalStore.incoming.appendingPathComponent("\(UUID().uuidString).m4a")
+        if writeDemoVoice(to: recording, seconds: 96, speech: lines.map { ($0.0, $0.1) }),
+           let original = try? OriginalStore.adopt(recording, name: demoText("Audience call", "Разговор об аудитории") + ".m4a", mime: "audio/mp4") {
+            let id = UUID()
+            let segments = lines.enumerated().map { index, line in
+                SourceSegment(id: "s\(index + 1)", materialID: id, version: 1, text: line.2, start: line.0, end: line.1, confidence: 0.9)
+            }
+            var voice = ProjectMaterial(kind: .voice, title: demoText("Audience call", "Разговор об аудитории"),
+                                        draft: SourceDraft(materialID: id, original: original, text: segments.map(\.text).joined(separator: " "), segments: segments, duration: 96))
+            voice.cite([audience: ["s2"]])
+            ProjectMaterialStore.shared.add(voice, to: map.id)
+            map.root.update(audience) { $0.origin = .material(id) }
+        }
+
+        var page = ProjectMaterial(kind: .link, title: "minorai.site", url: "https://minorai.site")
+        page.adopt(MapService.FetchedSource(segments: [
+            .init(id: "s1", text: demoText("Minor AI turns notes, documents and links into clear mind maps and slides.", "Minor AI превращает заметки, документы и ссылки в понятные карты и слайды."), start: nil, end: nil),
+            .init(id: "s2", text: demoText("Find it in the App Store, watch short demos on TikTok, or vote for it on Product Hunt.", "Найдите его в App Store, смотрите короткие демо в TikTok или поддержите на Product Hunt."), start: nil, end: nil),
+        ], extractedAt: Date().addingTimeInterval(-2 * 86_400)))
+        page.cite([channels: ["s2"]])
+        ProjectMaterialStore.shared.add(page, to: map.id)
+        map.root.update(channels) { $0.origin = .material(page.id) }
+    }
+
+    // Noise shaped like speech (syllables and pauses) inside the given spans, quiet elsewhere.
+    private static func writeDemoVoice(to url: URL, seconds: Double, speech: [(Double, Double)]) -> Bool {
+        let rate = 16_000.0
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1),
+              let file = try? AVAudioFile(forWriting: url, settings: [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: rate, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32_000],
+                                          commonFormat: .pcmFormatFloat32, interleaved: false) else { return false }
+        let total = Int(seconds * rate)
+        var written = 0
+        var generator = SystemRandomNumberGenerator()
+        while written < total {
+            let count = min(16_000, total - written)
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)), let samples = buffer.floatChannelData?[0] else { return false }
+            buffer.frameLength = AVAudioFrameCount(count)
+            for i in 0..<count {
+                let t = Double(written + i) / rate
+                let speaking = speech.contains { t >= $0.0 && t <= $0.1 }
+                let syllable = 0.5 + 0.5 * sin(t * 2 * .pi * 3.7) * sin(t * 2 * .pi * 0.9)
+                let amplitude = speaking ? 0.35 * syllable : 0.02
+                samples[i] = Float(amplitude * (Double(generator.next() % 2000) / 1000 - 1))
+            }
+            guard (try? file.write(from: buffer)) != nil else { return false }
+            written += count
+        }
+        return true
     }
 
     // A conversation with a Markdown answer, for chat screenshots (-demoChat).
@@ -119,7 +266,7 @@ enum DemoMap {
         let section = Slide(layout: .section, title: demoText("Who we serve", "Для кого мы работаем"), subtitle: demoText("Students, creators and small teams", "Студенты, авторы и небольшие команды"))
         let bullets = Slide(layout: .bullets, title: demoText("Why people switch to Minor", "Почему выбирают Minor"), bullets: [demoText("Maps from any source in seconds", "Карты из любого источника за секунды"), demoText("An assistant that knows your maps", "Помощник, который знает ваши карты"), demoText("Tasks, reminders and a Today screen", "Задачи, напоминания и экран «Сегодня»"), demoText("Beautiful presentations in one tap", "Красивые презентации одним касанием")])
         var two = Slide(layout: .twoColumns, title: demoText("Free and Plus", "Free и Plus"))
-        two.columns = [SlideColumn(title: "Free", bullets: [demoText("3 maps a month", "3 карты в месяц"), demoText("Every chat model", "Все модели чата"), demoText("1 presentation", "1 презентация")]), SlideColumn(title: "Plus", bullets: [demoText("300 maps a month", "300 карт в месяц"), demoText("YouTube and voice", "YouTube и голос"), demoText("20 presentations", "20 презентаций")])]
+        two.columns = [SlideColumn(title: "Free", bullets: [demoText("3 maps a month", "3 карты в месяц"), demoText("Light chat models", "Лёгкие модели чата"), demoText("1 presentation", "1 презентация")]), SlideColumn(title: "Plus", bullets: [demoText("300 maps a month", "300 карт в месяц"), demoText("YouTube and voice", "YouTube и голос"), demoText("20 presentations", "20 презентаций")])]
         var image = Slide(layout: .imageText, title: demoText("Think in maps", "Мыслите картами"), bullets: [demoText("See the whole idea at once", "Вся идея перед глазами"), demoText("Expand any branch with AI", "Развивайте любую ветку с ИИ"), demoText("Present it in one tap", "Покажите её одним касанием")])
         image.imagePrompt = demoText("A glowing mind map floating above a desk at night", "Светящаяся карта мыслей над рабочим столом ночью")
         var big = Slide(layout: .bigNumber, title: demoText("Study time saved", "Экономия времени на учёбу"))
@@ -133,7 +280,23 @@ enum DemoMap {
         var diagram = Slide(layout: .diagram, title: demoText("Everything connects", "Всё связано"))
         diagram.diagram = SlideDiagram(center: demoText("Your map", "Ваша карта"), nodes: [demoText("Assistant", "Помощник"), demoText("Tasks", "Задачи"), demoText("Presentations", "Презентации"), demoText("Study", "Учёба"), demoText("Widgets", "Виджеты"), demoText("Sync", "Синхронизация")])
         let closing = Slide(layout: .closing, title: demoText("Let’s build it together", "Создадим это вместе"), subtitle: demoText("Questions? support@minorai.site", "Вопросы? support@minorai.site"))
-        return Deck(title: demoText("Launch plan", "План запуска"), slides: [cover, section, bullets, two, image, big, quote, timeline, table, diagram, closing], theme: theme)
+        var deck = Deck(title: demoText("Launch plan", "План запуска"), slides: [cover, section, bullets, two, image, big, quote, timeline, table, diagram, closing], theme: theme)
+        let args = ProcessInfo.processInfo.arguments
+        // -demoHiddenSlide: the quote is hidden; -demoOverflow: more steps than the timeline shows;
+        // -demoSlideStyle: the cover has its own theme and a styled title.
+        if args.contains("-demoHiddenSlide") { deck.slides[6].isHidden = true }
+        if args.contains("-demoOverflow") {
+            deck.slides[7].items += [SlideItem(title: demoText("Summer", "Лето"), detail: demoText("Android", "Android")), SlideItem(title: demoText("Autumn", "Осень"), detail: demoText("Teams", "Команды")), SlideItem(title: demoText("Winter", "Зима"), detail: demoText("Web", "Веб"))]
+        }
+        if args.contains("-demoSlideStyle") {
+            deck.slides[0].theme = DeckTheme.paper.rawValue
+            var text = SlideTextStyle()
+            text.title.scale = 1.2
+            text.title.align = .center
+            text.title.color = "#E8553F"
+            deck.slides[0].text = text
+        }
+        return deck
     }
 
     // A designed presentation (-demoDesign): own look, a slide background, elements of every kind,
@@ -175,6 +338,132 @@ enum DemoMap {
         deck.slides[4].bullets = [demoText("Free to start", "Бесплатный старт"), demoText("Plus and PRO plans", "Тарифы Plus и PRO")]
         deck.slides[4].elements = [table]
         deck.brand = DeckBrand(logo: nil, corner: .topRight, size: 64, onCover: true, footer: "Minor AI · 2026", showNumbers: true)
+        return deck
+    }
+
+    // Many maps with long names for the Library's long list (-demoManyMaps); kept in memory only.
+    static func many(_ count: Int) -> [MindMap] {
+        let topics = [demoText("Quarterly research plan for the new onboarding and the paywall experiments", "Квартальный план исследований нового онбординга и экспериментов с подпиской"),
+                      demoText("Lecture notes", "Конспект лекции"), demoText("Trip to Lisbon", "Поездка в Лиссабон"),
+                      demoText("Podcast launch", "Запуск подкаста"), demoText("Thesis outline", "План диплома")]
+        return (0..<count).map { i in
+            let children = (0..<(i % 5 + 1)).map { MindNode(title: demoText("Idea \($0 + 1)", "Идея \($0 + 1)")) }
+            var map = MindMap(root: MindNode(title: "\(topics[i % topics.count]) \(i + 1)", children: children))
+            map.id = UUID(uuidString: String(format: "00000000-0000-4000-8000-%012d", i + 1)) ?? UUID()
+            map.updatedAt = Date().addingTimeInterval(-Double(i) * 5400)
+            return map
+        }
+    }
+
+    // Saved chats for the Library's Chats (-libraryChats).
+    static func conversations() -> [Conversation] {
+        let items: [(String, String, String, Double)] = [
+            ("7E1A0000-0000-4000-8000-000000000001", demoText("Plan my study week", "Спланируй неделю учёбы"), demoText("Here is a plan with three focus blocks a day.", "Вот план с тремя блоками в день."), 0),
+            ("7E1A0000-0000-4000-8000-000000000002", demoText("Ideas for a podcast about design", "Идеи для подкаста о дизайне"), demoText("Ten episode ideas, from interviews to teardowns.", "Десять идей выпусков: от интервью до разборов."), 26 * 3600),
+            ("7E1A0000-0000-4000-8000-000000000003", demoText("Explain photosynthesis simply", "Объясни фотосинтез простыми словами"), demoText("Plants turn light, water and air into sugar.", "Растения превращают свет, воду и воздух в сахар."), 4 * 86400),
+        ]
+        return items.map { id, question, answer, age in
+            Conversation(id: UUID(uuidString: id)!, title: question,
+                         messages: [ChatMessage(role: .user, text: question), ChatMessage(role: .assistant, text: answer)],
+                         updatedAt: Date().addingTimeInterval(-age))
+        }
+    }
+
+    // Every kind of diagram (-demoDiagrams): a process with icons, a cycle, a tree, a 2×2 matrix,
+    // a matrix by values, and one saved before 2.1 (center and nodes only).
+    static func diagramDeck() -> Deck {
+        func slide(_ title: String, _ diagram: SlideDiagram) -> Slide {
+            var slide = Slide(layout: .diagram, title: title)
+            slide.diagram = diagram
+            return slide
+        }
+        var process = SlideDiagram()
+        process.kind = .process
+        for (label, icon) in [(demoText("Idea", "Идея"), "lightbulb"), (demoText("Recording", "Запись"), "mic"), (demoText("Editing", "Монтаж"), "scissors"), (demoText("Publishing", "Публикация"), "paperplane")] {
+            let id = process.insertStep(after: process.allItems.last?.id, label: label)
+            process.updateNode(id) { $0.icon = icon }
+        }
+        var cycle = SlideDiagram()
+        cycle.kind = .cycle
+        for label in [demoText("Plan", "План"), demoText("Build", "Сделать"), demoText("Measure", "Измерить"), demoText("Learn", "Выводы"), demoText("Adjust", "Поправить")] {
+            cycle.insertStep(after: cycle.allItems.last?.id, label: label)
+        }
+        var tree = SlideDiagram()
+        tree.kind = .hierarchy
+        tree.radial = false
+        let root = tree.addChild(to: nil, label: demoText("Podcast", "Подкаст"))
+        tree.updateNode(root) { $0.parent = nil }
+        let content = tree.addChild(to: root, label: demoText("Content", "Содержание"))
+        let growth = tree.addChild(to: root, label: demoText("Growth", "Рост"))
+        tree.addChild(to: content, label: demoText("Guests", "Гости"))
+        tree.addChild(to: content, label: demoText("Topics for the first season", "Темы первого сезона"))
+        tree.addChild(to: growth, label: demoText("Social clips", "Нарезки для соцсетей"))
+        tree.addChild(to: growth, label: "Product Hunt")
+        var quadrants = SlideDiagram()
+        quadrants.kind = .matrix
+        quadrants.axes = DiagramAxes(x: DiagramAxis(title: demoText("Effort", "Усилия"), low: demoText("low", "мало"), high: demoText("high", "много")),
+                                     y: DiagramAxis(title: demoText("Impact", "Влияние"), low: demoText("low", "мало"), high: demoText("high", "много")),
+                                     quadrants: [demoText("Quick wins", "Быстрые победы"), demoText("Big bets", "Крупные ставки"), demoText("Fill-ins", "Мелочи"), demoText("Not now", "Не сейчас")])
+        for (label, q) in [(demoText("Clips from episodes", "Нарезки из выпусков"), 0), (demoText("Guest newsletter", "Рассылка гостям"), 0), (demoText("Own studio", "Своя студия"), 1),
+                           (demoText("Cover art", "Обложка"), 2), (demoText("Video version", "Видеоверсия"), 3)] {
+            var node = DiagramNode(label: label)
+            node.quadrant = q
+            quadrants.items = quadrants.allItems + [node]
+        }
+        quadrants.setMatrixMode(.quadrants)
+        var values = quadrants
+        values.setMatrixMode(.values)
+        values.updateNode(values.allItems[0].id) { $0.value = [2, 8.5] }
+        values.updateNode(values.allItems[1].id) { $0.value = [3.5, 6.5] }
+        values.updateNode(values.allItems[2].id) { $0.value = [8.5, 8] }
+        let legacy = SlideDiagram(center: demoText("Minor AI", "Minor AI"), nodes: [demoText("Maps", "Карты"), demoText("Slides", "Слайды"), demoText("Chat", "Чат"), demoText("Sources", "Источники")])
+        var deck = Deck(title: demoText("Podcast launch", "Запуск подкаста"), slides: [
+            slide(demoText("The first episode’s path", "Путь первого выпуска"), process),
+            slide(demoText("Every week", "Каждую неделю"), cycle),
+            slide(demoText("What the podcast needs", "Из чего состоит подкаст"), tree),
+            slide(demoText("What to do first", "Что делать сначала"), quadrants),
+            slide(demoText("Effort and impact", "Усилия и влияние"), values),
+            slide(demoText("Made before 2.1", "Сделано до 2.1"), legacy),
+        ], theme: .paper)
+        deck.id = UUID(uuidString: "D1A6AA11-0000-4000-8000-000000000001")!
+        return deck
+    }
+
+    // Update from Map (-demoMerge): slides linked to the map, one bullet rewritten by hand, then the
+    // map changes — a renamed price, a renamed audience the person also rewrote (a conflict), a new
+    // channel, a removed one and a new branch.
+    @MainActor
+    static func installMergeDemo() -> Deck {
+        var map = install()
+        let audience = map.root.children[0], pricing = map.root.children[2], channels = map.root.children[3]
+        func bulletsSlide(_ node: MindNode) -> Slide {
+            var slide = Slide(layout: .bullets, title: node.title, bullets: node.children.map(\.title))
+            slide.bulletIDs = slide.bullets.map { _ in UUID() }
+            return slide
+        }
+        var slides = [Slide(layout: .cover, title: map.title), bulletsSlide(audience), bulletsSlide(pricing), bulletsSlide(channels),
+                      Slide(layout: .closing, title: demoText("Thank you", "Спасибо"))]
+        var lineage = DeckLineage.manual([(slides[1], audience), (slides[2], pricing), (slides[3], channels)], map: map)
+        for (index, node) in [(1, audience), (2, pricing), (3, channels)] {
+            for (k, child) in node.children.enumerated() {
+                lineage.links.append(LineageLink(nodeID: child.id, slideID: slides[index].id, field: .bullet(slides[index].bulletIDs![k]), nodeText: child.title, base: child.title))
+            }
+        }
+        slides[1].bullets[1] = demoText("Authors and bloggers", "Авторы и блогеры")
+        slides[2].notes = demoText("Mention the yearly discount.", "Упомянуть скидку за год.")
+        var deck = Deck(title: map.title, slides: slides, theme: .midnight, sourceMapID: map.id)
+        deck.id = UUID(uuidString: "D1A6AA11-0000-4000-8000-000000000002")!
+        deck.lineage = lineage
+        deck.sourceRevision = map.contentFingerprint
+        map.root.update(pricing.children[1].id) { $0.title = "Plus · $9.99" }
+        map.root.update(audience.children[1].id) { $0.title = demoText("Content creators", "Создатели контента") }
+        map.root.update(channels.id) { branch in
+            branch.children.removeAll { $0.title == "Product Hunt" }
+            branch.children.append(MindNode(title: demoText("Podcasts", "Подкасты")))
+        }
+        map.root.children.insert(MindNode(title: demoText("Risks", "Риски"), children: [MindNode(title: demoText("API costs", "Расходы на API")), MindNode(title: demoText("Competitors", "Конкуренты"))]), at: 4)
+        MapStore.shared.save(map)
+        DeckStore.shared.save(deck)
         return deck
     }
 

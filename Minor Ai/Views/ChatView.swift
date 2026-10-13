@@ -13,9 +13,11 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     let theme: AppTheme
     @Binding var model: AIModelOption
-    var onHome: () -> Void
+    var onLibrary: () -> Void
     var onMapThis: (String) -> Void = { _ in }
     var onUpgrade: () -> Void = {}
+    // A model the plan doesn't include was picked: show the plan that opens it.
+    var onLockedModel: (AIModelOption) -> Void = { _ in }
 
     @State private var draft: String = ""
     @State private var images: [Data] = []
@@ -29,6 +31,7 @@ struct ChatView: View {
     @State private var dictating = false
     @State private var voiceMode = false
     @ObservedObject private var speaker = Speaker.shared
+    @ObservedObject private var account = AccountStore.shared
     @FocusState private var inputFocused: Bool
     @ObservedObject private var mapStore = MapStore.shared
 
@@ -73,55 +76,79 @@ struct ChatView: View {
         }
     }
 
+    // The assistant's own header, as on the start screen: history, the conversation, the model.
     private var header: some View {
-        HStack(spacing: 12) {
-            Button(action: onHome) {
-                Image(systemName: "house.fill")
-                    .foregroundColor(.white)
-                    .font(.system(size: 18))
-                    .frame(width: 44, height: 44)
+        ZStack {
+            VStack(spacing: 1) {
+                Text(verbatim: "Minor AI")
+                    .minorFont(17, .semibold, maxScale: 1.2)
+                    .lineLimit(1)
+                Text(viewModel.currentTitle)
+                    .minorFont(11, style: .caption2, maxScale: 1.2)
+                    .foregroundColor(MinorColor.textTertiary)
+                    .lineLimit(1)
             }
-            .accessibilityLabel("Home")
-            // Any model, any plan: the number shows how fast it uses the monthly AI allowance.
-            Menu {
-                ForEach(AIModelCatalog.all) { option in
-                    Button {
-                        model = option
-                    } label: {
-                        if option == model {
-                            Label(option.displayName, systemImage: "checkmark")
-                        } else {
-                            Text("\(option.displayName)  ×\(option.usage)")
-                        }
-                    }
+            .foregroundColor(.white)
+            .padding(.horizontal, 110)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            HStack(spacing: 0) {
+                Button(action: onLibrary) {
+                    Image(systemName: "books.vertical")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(model.displayName)
-                        .font(.system(size: 17, weight: .semibold))
-                    Image(systemName: "chevron.down").font(.system(size: 12, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(minHeight: 44)
+                .accessibilityLabel("Library")
+                Spacer(minLength: 8)
+                modelMenu
             }
-            .accessibilityLabel("AI model: \(model.displayName)")
-            Spacer()
-            Button {
-                guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { voiceMode = true } }
-                Telemetry.log("voice_mode_start")
-                voiceMode = true
-            } label: {
-                Image(systemName: "waveform")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(MinorColor.accent))
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Voice Mode")
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .frame(height: 52)
+    }
+
+    // Light models for every plan; a stronger one shows the plan that opens it. The number
+    // shows how fast a model uses the monthly AI allowance.
+    private var modelMenu: some View {
+        Menu {
+            ForEach(AIModelCatalog.all) { option in
+                Button {
+                    if account.allowsChat(with: option) { model = option } else { onLockedModel(option) }
+                } label: {
+                    if option == model {
+                        Label(option.displayName, systemImage: "checkmark")
+                    } else if !account.allowsChat(with: option) {
+                        Label("\(option.displayName) · \(option.chatPlan == .pro ? "PRO" : "Plus")", systemImage: "lock.fill")
+                    } else {
+                        Text("\(option.displayName)  ×\(option.usage)")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text("Model")
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 12)
+            .frame(height: 32)
+            .background(Capsule().fill(theme.chatRectangle))
+            .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
+            .frame(height: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("AI model: \(model.displayName)")
+    }
+
+    private func startVoice() {
+        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require { voiceMode = true } }
+        Telemetry.log("voice_mode_start")
+        voiceMode = true
     }
 
     private var messages: some View {
@@ -213,7 +240,7 @@ struct ChatView: View {
                     .padding(.vertical, 6)
                     .overlay(RoundedRectangle(cornerRadius: 15).stroke(accent.opacity(0.6), lineWidth: 1))
                 }
-                if let action = message.action {
+                if let action = message.action, action.kind != .mapCreated {
                     ActionCard(
                         action: action,
                         theme: theme,
@@ -244,16 +271,17 @@ struct ChatView: View {
                     }
                     .foregroundColor(.white)
                     .font(.system(size: 16))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, isUser ? 14 : 2)
+                    .padding(.vertical, isUser ? 10 : 2)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(isUser ? accent.opacity(0.18) : theme.chatRectangle)
+                            .fill(isUser ? accent.opacity(0.14) : Color.clear)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .stroke(isUser ? accent.opacity(0.6) : theme.chatStroke, lineWidth: 1)
+                                    .stroke(isUser ? accent.opacity(0.45) : Color.clear, lineWidth: 1)
                             )
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: 16))
                     .contextMenu {
                         Button {
                             UIPasteboard.general.string = message.text
@@ -269,6 +297,10 @@ struct ChatView: View {
                             } label: { Label("Map This", systemImage: "point.3.connected.trianglepath.dotted") }
                         }
                     }
+                }
+                // The map made from the conversation comes after the words about it.
+                if let action = message.action, action.kind == .mapCreated {
+                    MapResultCard(action: action, theme: theme, onOpen: { viewModel.openMap(action.mapID) }, onSlides: { viewModel.makeSlides(from: action.mapID) }, onUpgrade: onUpgrade)
                 }
                 if isUser, let reason = message.failed {
                     failureNote(message, reason: reason)
@@ -304,7 +336,8 @@ struct ChatView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
-            if !isUser { Spacer(minLength: 40) }
+            // Answers keep a margin on the right; a map card uses the full width.
+            if !isUser && message.action?.kind != .mapCreated { Spacer(minLength: 40) }
         }
     }
 
@@ -436,51 +469,16 @@ struct ChatView: View {
         .accessibilityLabel("Remove attachment")
     }
 
+    // The same field as on the start screen: words on top; attach, photos, dictation and send under
+    // them. With nothing typed, the round button starts a voice conversation instead.
     private var composer: some View {
-        HStack(spacing: 10) {
-            Menu {
-                Button { showPhotos = true } label: { Label("Photo Library", systemImage: "photo") }
-                Button { DocumentPicker.present { attachFile($0) } } label: { Label("File", systemImage: "doc.text") }
-                if !mapStore.maps.isEmpty {
-                    // Starts a mention; the list of maps appears above the field.
-                    Button {
-                        draft += draft.isEmpty || draft.hasSuffix(" ") ? "@" : " @"
-                        inputFocused = true
-                    } label: { Label("Mind Map", systemImage: "point.3.connected.trianglepath.dotted") }
-                }
-            } label: {
-                Image(systemName: "plus")
-                    .foregroundColor(.white)
-                    .font(.system(size: 12, weight: .bold))
-                    .frame(width: 32, height: 32)
-                    .overlay(Circle().stroke(theme.chatStroke, lineWidth: 1))
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Attach")
-            .disabled(imageMode)
-            // Image mode: the message becomes a description for an AI picture.
-            Button {
-                imageMode.toggle()
-                Haptics.selection()
-            } label: {
-                Image(systemName: imageMode ? "paintbrush.pointed.fill" : "paintbrush.pointed")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(imageMode ? .black : .white)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(imageMode ? MinorColor.accent : Color.clear))
-                    .overlay(Circle().stroke(imageMode ? Color.clear : theme.chatStroke, lineWidth: 1))
-                    .frame(width: 40, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Create an image")
-            .accessibilityAddTraits(imageMode ? .isSelected : [])
+        VStack(alignment: .leading, spacing: 0) {
             TextField("", text: $draft, axis: .vertical)
-                .accessibilityLabel(imageMode ? "Image description" : "Message")
+                .accessibilityLabel(imageMode ? "Describe an image" : "Ask Minor")
                 .lineLimit(1...5)
                 .foregroundColor(.white)
                 .placeholder(when: draft.isEmpty) {
-                    Text(imageMode ? "Describe an image" : "Message")
+                    Text(imageMode ? "Describe an image" : "Ask Minor")
                         .foregroundColor(theme.placeholderText)
                 }
                 .focused($inputFocused)
@@ -488,40 +486,95 @@ struct ChatView: View {
                 .onSubmit(sendDraft)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 17))
-
-            // Dictation: the words appear in the field; the person checks them and sends.
-            DictationButton(text: $draft, stroke: theme.chatStroke, onError: { attachError = $0 }, onListeningChange: { dictating = $0 })
-
-            Button(action: sendDraft) {
-                Group {
-                    if viewModel.isSending {
-                        ProgressView()
-                            .tint(.black)
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .foregroundColor(.black)
-                            .font(.system(size: 16, weight: .bold))
+                .padding(.horizontal, 4)
+                .frame(minHeight: 36, alignment: .topLeading)
+            HStack(alignment: .center, spacing: 10) {
+                Menu {
+                    Button { showPhotos = true } label: { Label("Photo Library", systemImage: "photo") }
+                    Button { DocumentPicker.present { attachFile($0) } } label: { Label("File", systemImage: "doc.text") }
+                    if !mapStore.maps.isEmpty {
+                        // Starts a mention; the list of maps appears above the field.
+                        Button {
+                            draft += draft.isEmpty || draft.hasSuffix(" ") ? "@" : " @"
+                            inputFocused = true
+                        } label: { Label("Mind Map", systemImage: "point.3.connected.trianglepath.dotted") }
                     }
+                    // Image mode: the message becomes a description for an AI picture.
+                    Button {
+                        imageMode.toggle()
+                        Haptics.selection()
+                    } label: {
+                        Label(imageMode ? "Back to Chat" : "Create an Image", systemImage: "paintbrush.pointed")
+                    }
+                } label: {
+                    Image(systemName: imageMode ? "paintbrush.pointed.fill" : "plus")
+                        .foregroundColor(imageMode ? .black : .white)
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(imageMode ? MinorColor.accent : Color.clear))
+                        .overlay(Circle().stroke(imageMode || file != nil ? Color.clear : theme.chatStroke, lineWidth: 1))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .frame(width: 34, height: 34)
-                .background(Color.white.opacity(0.9))
-                .clipShape(Circle())
+                .padding(.leading, -6)
+                .accessibilityLabel(imageMode ? "Create an image" : "Attach")
+                .accessibilityAddTraits(imageMode ? .isSelected : [])
+
+                Button { showPhotos = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 15))
+                            .frame(width: 20, height: 20)
+                        Text(images.isEmpty ? "Media" : "\(images.count) Photo\(images.count == 1 ? "" : "s")")
+                            .font(.system(size: 14))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(!images.isEmpty ? MinorColor.accent : theme.chatStroke, lineWidth: 1))
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(imageMode)
+                .opacity(imageMode ? 0.4 : 1)
+
+                Spacer(minLength: 0)
+                // Dictation: the words appear in the field; the person checks them and sends.
+                DictationButton(text: $draft, stroke: theme.chatStroke, onError: { attachError = $0 }, onListeningChange: { dictating = $0 })
+
+                Button {
+                    if canSend || viewModel.isSending { sendDraft() } else { startVoice() }
+                } label: {
+                    Group {
+                        if viewModel.isSending {
+                            ProgressView().tint(.black)
+                        } else {
+                            Image(systemName: canSend ? "arrow.up" : "waveform")
+                                .foregroundColor(.black)
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                    }
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.9))
+                    .clipShape(Circle())
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+                }
+                .disabled(viewModel.isSending || dictating)
+                .opacity(dictating ? 0.4 : 1)
+                .padding(.trailing, -6)
+                .accessibilityLabel(canSend || viewModel.isSending ? "Send" : "Voice Mode")
             }
-            .disabled(!canSend || viewModel.isSending || dictating)
-            .opacity((canSend && !dictating) || viewModel.isSending ? 1 : 0.4)
-            .padding(.trailing, 12)
-            .accessibilityLabel("Send")
         }
-        .padding(.leading, 4)
-        .padding(.vertical, 8)
-        .frame(minHeight: 60)
+        .padding(.horizontal, 14)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(theme.chatRectangle)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(theme.chatStroke, lineWidth: 1)
-                )
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(theme.chatStroke, lineWidth: 1))
         )
         .padding(.horizontal, 16)
         .padding(.bottom, 12)

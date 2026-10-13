@@ -1,0 +1,26 @@
+[
+  {
+    "file": "01-existing-deck.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-2d919255-d571-49d9-ae27-1ae1f67a89da.png",
+    "sha256": "b20e72fc4e81519b1aa65c1988f9a6a6cfa1ceaaadc3d2ed4f10dfef3aa97b9d"
+  },
+  {
+    "file": "02-switch-deck.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-46faaaac-78c1-4967-bfd1-953409a03181.png",
+    "sha256": "ae678dfab061a80cfa0913d8159f1dbfdf91de232e4684d8330d343278d90b51"
+  },
+  {
+    "file": "03-create-another.png",
+    "width": 887,
+    "height": 1774,
+    "mode": "RGB",
+    "source": "/Users/antondanilov/.codex/generated_images/01a0fed6-1940-75a1-864a-c21a895be576/exec-327d2efe-c168-46e8-bcbc-b82596e56829.png",
+    "sha256": "fcae5114b3ab80e6684a4f00083abb3c248ccc514ef6b8dbc256242aae24c9b9"
+  }
+]

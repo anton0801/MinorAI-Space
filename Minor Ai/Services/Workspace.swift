@@ -11,7 +11,7 @@ import Foundation
 
 @MainActor
 enum Workspace {
-    // Settings → "Assistant Sees My Maps".
+    // Settings → Data and AI → "Map Access".
     static var isEnabled: Bool {
         get { UserDefaults.standard.object(forKey: "assistantSeesMaps") as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: "assistantSeesMaps") }
