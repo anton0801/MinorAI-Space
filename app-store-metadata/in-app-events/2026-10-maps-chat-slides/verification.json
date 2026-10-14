@@ -1,0 +1,103 @@
+{
+  "checked_at": "2026-10-14",
+  "media": [
+    {
+      "file": "media/event-card.jpg",
+      "size": [
+        1920,
+        1080
+      ],
+      "mode": "RGB",
+      "profile": "sRGB IEC61966-2.1 (EXIF ColorSpace=1; ColorSync recognized)",
+      "bytes": 174068,
+      "sha256": "ae1157008ad71cf0a47fdca90ecb5c478c4723b986cc0baf0bfe62f57c22a21e",
+      "source_size": [
+        1672,
+        940
+      ],
+      "center_crop_size": [
+        1664,
+        936
+      ],
+      "export": "sips mechanical center crop to exact ratio, resize, sRGB JPEG",
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/in-app-events/2026-10-maps-chat-slides/media/event-card.jpg\n  pixelWidth: 1920\n  pixelHeight: 1080\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "media/event-details.jpg",
+      "size": [
+        1080,
+        1920
+      ],
+      "mode": "RGB",
+      "profile": "sRGB IEC61966-2.1 (EXIF ColorSpace=1; ColorSync recognized)",
+      "bytes": 167910,
+      "sha256": "676fa3b72f38b25ee4f4d90d2f9dda8cbe0986ffd09712613d6d41df666ab927",
+      "source_size": [
+        941,
+        1672
+      ],
+      "center_crop_size": [
+        936,
+        1664
+      ],
+      "export": "sips mechanical center crop to exact ratio, resize, sRGB JPEG",
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/in-app-events/2026-10-maps-chat-slides/media/event-details.jpg\n  pixelWidth: 1080\n  pixelHeight: 1920\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    }
+  ],
+  "metadata_checks": [
+    {
+      "locale": "en-US",
+      "counts": {
+        "name": 30,
+        "short_description": 44,
+        "long_description": 114
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "fr-FR",
+      "counts": {
+        "name": 27,
+        "short_description": 50,
+        "long_description": 112
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "it",
+      "counts": {
+        "name": 29,
+        "short_description": 48,
+        "long_description": 118
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "ru",
+      "counts": {
+        "name": 26,
+        "short_description": 46,
+        "long_description": 113
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "es-ES",
+      "counts": {
+        "name": 23,
+        "short_description": 50,
+        "long_description": 119
+      },
+      "within_limits": true
+    }
+  ],
+  "visual_review": {
+    "method": "Generated images inspected visually; final contact sheet inspected separately",
+    "contains_text_or_logos": false,
+    "contains_prices": false,
+    "artwork_type": "Symbolic original campaign illustration, not an app screenshot",
+    "app_store_connect_preview_checked": false,
+    "app_review_status": "Not submitted"
+  },
+  "notes": "Same two JPEGs are intended for each of the five localizations."
+}

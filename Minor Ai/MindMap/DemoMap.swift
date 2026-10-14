@@ -19,6 +19,10 @@ enum DemoMap {
     }
 
     static func make() -> MindMap {
+        #if DEBUG
+        // -demoStory: the real-life sample (photosynthesis exam prep) for the App Store preview.
+        if DemoStory.isOn { return DemoStory.map() }
+        #endif
         func node(_ title: String, _ children: [String] = []) -> MindNode {
             MindNode(title: title, children: children.map { MindNode(title: $0) })
         }
@@ -109,7 +113,12 @@ enum DemoMap {
             UIColor.white.withAlphaComponent(0.9).setFill()
             context.cgContext.fillEllipse(in: CGRect(x: 320, y: 170, width: 160, height: 160))
         }
-        if let data = picture.jpegData(compressionQuality: 0.9), let stored = MapStore.shared.storeImage(data, isAI: true) {
+        #if DEBUG
+        let story = DemoStory.isOn
+        #else
+        let story = false
+        #endif
+        if !story, let data = picture.jpegData(compressionQuality: 0.9), let stored = MapStore.shared.storeImage(data, isAI: true) {
             map.root.children[1].image = stored
         }
         let args = ProcessInfo.processInfo.arguments
@@ -261,6 +270,9 @@ enum DemoMap {
 
     // A presentation with every layout (-demoDeck, -demoSlides).
     static func deck(theme: DeckTheme = .midnight) -> Deck {
+        #if DEBUG
+        if DemoStory.isOn { return DemoStory.deck() }
+        #endif
         var cover = Slide(layout: .cover, title: demoText("Launch plan", "План запуска"), subtitle: demoText("How Minor AI reaches its first 100,000 people", "Как Minor AI найдёт первых 100 000 пользователей"))
         cover.notes = demoText("Welcome everyone. Today: who we serve, how we price, and how we launch.", "Сегодня обсудим аудиторию, тарифы и запуск.")
         let section = Slide(layout: .section, title: demoText("Who we serve", "Для кого мы работаем"), subtitle: demoText("Students, creators and small teams", "Студенты, авторы и небольшие команды"))

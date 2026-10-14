@@ -226,7 +226,7 @@ final class ProjectMaterialStore: ObservableObject {
     private let io = DispatchQueue(label: "com.minorailifegroup.MinorAI.materials", qos: .utility)
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         folder = base.appendingPathComponent("Materials", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
@@ -431,7 +431,7 @@ final class ProjectMemoryStore: ObservableObject {
     private let io = DispatchQueue(label: "com.minorailifegroup.MinorAI.memory", qos: .utility)
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         file = base.appendingPathComponent("ProjectMemory.json")
         if let data = try? Data(contentsOf: file),

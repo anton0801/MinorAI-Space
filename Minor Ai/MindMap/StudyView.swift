@@ -414,6 +414,13 @@ struct StudyView: View {
     // Cards due for review first, then new ones (up to 20 a session); practice takes them all.
     private func restartCards() {
         let all = Flashcards.make(from: map)
+        #if DEBUG
+        // The App Store preview's sample goes through its cards in the map's order.
+        if DemoStory.isOn {
+            deck = all
+            return resetProgress()
+        }
+        #endif
         if practice {
             deck = all.shuffled()
         } else {

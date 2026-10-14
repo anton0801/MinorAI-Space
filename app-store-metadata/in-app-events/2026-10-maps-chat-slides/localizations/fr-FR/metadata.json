@@ -1,0 +1,12 @@
+{
+  "locale": "fr-FR",
+  "language": "Français",
+  "name": "Du chat aux cartes mentales",
+  "short_description": "Chat IA, cartes mentales et présentations repensés",
+  "long_description": "Explorez les nouveautés du chat IA, des cartes mentales et des présentations. Structurez et présentez vos idées.",
+  "character_counts": {
+    "name": 27,
+    "short_description": 50,
+    "long_description": 112
+  }
+}

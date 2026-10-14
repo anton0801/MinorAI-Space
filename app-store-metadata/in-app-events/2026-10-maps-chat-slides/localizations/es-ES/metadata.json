@@ -1,0 +1,12 @@
+{
+  "locale": "es-ES",
+  "language": "Español",
+  "name": "Del chat al mapa mental",
+  "short_description": "Chat IA, mapas mentales y presentaciones renovados",
+  "long_description": "Descubre las novedades del chat IA, los mapas mentales y las presentaciones. Desarrolla, organiza y presenta tus ideas.",
+  "character_counts": {
+    "name": 23,
+    "short_description": 50,
+    "long_description": 119
+  }
+}

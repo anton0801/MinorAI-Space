@@ -23,7 +23,7 @@ final class DeckStore: ObservableObject {
     private let io = DispatchQueue(label: "com.minorailifegroup.MinorAI.decks", qos: .utility)
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         folder = base.appendingPathComponent("Decks", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         encoder.dateEncodingStrategy = .iso8601
@@ -213,6 +213,14 @@ final class DeckService {
 
     // `layouts`: a template's slides in order, for the AI to fill instead of choosing its own.
     func generate(_ source: Source, slides: Int, audience: String = "", quality: String? = nil, layouts: [SlideLayout]? = nil) async throws -> Generated {
+        #if DEBUG
+        // -demoGenerate: the sample presentation after a few seconds, without the server.
+        if ProcessInfo.processInfo.arguments.contains("-demoGenerate") {
+            try await Task.sleep(nanoseconds: 3_000_000_000)
+            let sample = DemoMap.deck()
+            return Generated(title: sample.title, slides: Array(sample.slides.prefix(max(slides, 1))))
+        }
+        #endif
         struct SourceBody: Encodable { let kind: String; let value: String?; let map: APINode? }
         struct Body: Encodable { let action = "deck"; let source: SourceBody; let slides: Int; let audience: String?; let quality: String?; let layouts: [String]?; let lineage: Bool? }
         struct Reply: Decodable { let deck: APIDeck }

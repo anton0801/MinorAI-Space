@@ -23,7 +23,13 @@ final class MapSync: ObservableObject {
     @Published private(set) var rejectedTitles: [String] = []
 
     static var isEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: "syncMaps") as? Bool ?? true }
+        get {
+            #if DEBUG
+            // Recordings and tests never write to the account signed in on the simulator.
+            if TestRun.offServer { return false }
+            #endif
+            return UserDefaults.standard.object(forKey: "syncMaps") as? Bool ?? true
+        }
         set {
             UserDefaults.standard.set(newValue, forKey: "syncMaps")
             if newValue { shared.syncSoon() }
@@ -229,9 +235,23 @@ final class MapSync: ObservableObject {
         }
         guard let remote = row.map, remote.id == row.id else { return }
         if state.tombstones[row.id] != nil { return }
+        let remoteHash = Self.hash(remote)
+        if let local, Self.alreadyHave(remoteHash, local: Self.hash(local), state: &state, id: row.id) { return }
         if let local, local.updatedAt > remote.updatedAt, Self.hash(local) != state.hashes[row.id] { return }
         MapStore.shared.applySynced(remote)
-        state.hashes[row.id] = Self.hash(remote)
+        state.hashes[row.id] = remoteHash
+    }
+
+    // A row this device already has: every pull sees the newest rows again (the overlap above), and
+    // our own uploads come back. Applying them republished the store, which started the next sync —
+    // a loop every few seconds that closed menus and panels on iOS 17.
+    static func alreadyHave(_ remote: String, local: String, state: inout State, id: UUID) -> Bool {
+        if remote == local {
+            state.hashes[id] = remote
+            return true
+        }
+        // The version last sent or received: a local edit made since then goes up in push.
+        return remote == state.hashes[id]
     }
 
     private func applyDeck(_ row: Row, state: inout State) {
@@ -245,9 +265,11 @@ final class MapSync: ObservableObject {
         }
         guard let remote = row.deck, remote.id == row.id else { return }
         if state.tombstones[row.id] != nil { return }
+        let remoteHash = Self.hash(remote)
+        if let local, Self.alreadyHave(remoteHash, local: Self.hash(local), state: &state, id: row.id) { return }
         if let local, local.updatedAt > remote.updatedAt, Self.hash(local) != state.hashes[row.id] { return }
         DeckStore.shared.applySynced(remote)
-        state.hashes[row.id] = Self.hash(remote)
+        state.hashes[row.id] = remoteHash
     }
 
     // MARK: - Push

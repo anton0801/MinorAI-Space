@@ -27,7 +27,7 @@ final class StudyStore: ObservableObject {
     private let file: URL
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         file = base.appendingPathComponent("Study.json")
         if let data = try? Data(contentsOf: file),
            let saved = try? JSONDecoder.iso.decode([UUID: CardState].self, from: data) {

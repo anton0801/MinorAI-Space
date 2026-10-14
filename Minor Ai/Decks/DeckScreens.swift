@@ -304,8 +304,8 @@ struct NewDeckView: View {
     // MARK: - Create
 
     private func create() {
-        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require(create) }
-        guard AIConsent.isGiven else {
+        guard AuthService.shared.isSignedIn || GenerationCenter.demoGenerate else { return AuthGate.shared.require(create) }
+        guard AIConsent.isGiven || GenerationCenter.demoGenerate else {
             error = L("Allow AI in Settings → AI Data Sharing to create presentations.")
             errorIsLimit = false
             return
@@ -371,9 +371,10 @@ extension NewDeckView {
     }
 }
 
-// While the AI writes: slides appear one by one in the chosen theme.
+// While the AI writes: slides appear one by one in the chosen theme. With `onStop`, a Stop button.
 struct WritingSlidesView: View {
     let theme: DeckTheme
+    var onStop: (() -> Void)?
     @State private var shown = 0
     private let timer = Timer.publish(every: 0.7, on: .main, in: .common).autoconnect()
 
@@ -407,10 +408,23 @@ struct WritingSlidesView: View {
                 Text("This takes about half a minute.")
                     .font(.system(size: 14))
                     .foregroundColor(MinorColor.textSecondary)
+                if let onStop {
+                    Button(action: onStop) {
+                        Text("Stop")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 28)
+                            .frame(minHeight: 44)
+                            .background(Capsule().fill(Color.white.opacity(0.12)))
+                            .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
+                    }
+                    .buttonStyle(PressScale())
+                    .padding(.top, 6)
+                }
             }
         }
         .onReceive(timer) { _ in shown += 1 }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: onStop == nil ? .combine : .contain)
         .accessibilityLabel("Writing your slides")
     }
 }

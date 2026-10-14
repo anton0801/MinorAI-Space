@@ -1,0 +1,12 @@
+{
+  "locale": "fr-FR",
+  "language": "Français",
+  "name": "Minor AI accueille GPT-6 Astra",
+  "short_description": "Chat IA, cartes mentales et présentations",
+  "long_description": "GPT-6 Astra rejoint Minor AI. Découvrez le chat IA, les cartes mentales et les présentations repensés.",
+  "character_counts": {
+    "name": 30,
+    "short_description": 41,
+    "long_description": 102
+  }
+}

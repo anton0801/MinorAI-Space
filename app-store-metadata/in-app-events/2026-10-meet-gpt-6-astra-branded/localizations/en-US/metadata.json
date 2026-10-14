@@ -1,0 +1,12 @@
+{
+  "locale": "en-US",
+  "language": "English",
+  "name": "Minor AI: Meet GPT-6 Astra",
+  "short_description": "AI chat, mind maps and presentations",
+  "long_description": "Meet GPT-6 Astra in Minor AI. Explore updated AI chat, mind maps and presentations, from first idea to slides.",
+  "character_counts": {
+    "name": 26,
+    "short_description": 36,
+    "long_description": 110
+  }
+}

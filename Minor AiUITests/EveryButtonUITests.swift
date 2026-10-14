@@ -144,7 +144,7 @@ final class EveryButtonUITests: XCTestCase {
     }
 
     func testTodayOpenMapsGoesToTheLibrary() {
-        let app = launch(["-demoToday", "-demoTodayNone"])
+        let app = launch(["-demoToday", "-demoTodayNone", "-isolatedStore", "today-none"])
         XCTAssertTrue(app.staticTexts["No tasks yet"].waitForExistence(timeout: 10))
         press(app.buttons["Open Maps"])
         XCTAssertTrue(app.staticTexts["Library"].waitForExistence(timeout: 5), "Open Maps shows the maps")
@@ -188,7 +188,8 @@ final class EveryButtonUITests: XCTestCase {
         let result = launch(["-demoMap", "-demoStudy", "-demoQuizResult"])
         XCTAssertTrue(result.staticTexts["Quiz Result"].waitForExistence(timeout: 10))
         XCTAssertFalse(result.buttons["Flashcards"].exists, "The result stands alone")
-        press(result.buttons.matching(NSPredicate(format: "label CONTAINS 'Pricing'")).firstMatch)
+        // The result's row, not the map's idea of the same name while the result is still sliding in.
+        press(result.buttons.matching(NSPredicate(format: "label CONTAINS 'Pricing' AND NOT (label CONTAINS 'branch')")).firstMatch)
         XCTAssertTrue(result.staticTexts["Mistake 1 of 1"].waitForExistence(timeout: 5), "A mistake opens its question")
         press(result.buttons["Back to Result"])
         press(result.buttons["Return to Map"])

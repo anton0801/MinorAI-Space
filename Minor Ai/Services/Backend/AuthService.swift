@@ -31,8 +31,9 @@ final class AuthService: ObservableObject {
 
     #if DEBUG
     // -auditSignedOut: automated tests run as if signed out and never read or change the saved
-    // session, so a person's account on the simulator stays untouched.
-    private let keychain = KeychainStore(account: ProcessInfo.processInfo.arguments.contains("-auditSignedOut") ? "audit.session" : "supabase.session")
+    // session, so a person's account on the simulator stays untouched. (The first test slot,
+    // "audit.session", kept a real sign-in made by hand in a test run; tests now use a fresh one.)
+    private let keychain = KeychainStore(account: ProcessInfo.processInfo.arguments.contains("-auditSignedOut") ? "uitests.session" : "supabase.session")
     #else
     private let keychain = KeychainStore(account: "supabase.session")
     #endif

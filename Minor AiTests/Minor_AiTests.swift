@@ -741,6 +741,25 @@ struct SyncAndWidgetTests {
         #expect(MapSync.hash(map) != first)
     }
 
+    // Rows a pull sees again (the overlap window, this device's own upload) must not be applied:
+    // applying republished the store and started the next sync, every few seconds.
+    @Test func rowsAlreadyHereAreNotAppliedAgain() {
+        var map = sampleMap()
+        let id = map.id
+        var state = MapSync.State()
+        let sent = MapSync.hash(map)
+        #expect(MapSync.alreadyHave(sent, local: sent, state: &state, id: id), "the same content as here")
+        #expect(state.hashes[id] == sent)
+        // Edited here since: the old version coming back is skipped, the edit goes up in push.
+        map.root.children[0].title = "Edited here"
+        #expect(MapSync.alreadyHave(sent, local: MapSync.hash(map), state: &state, id: id))
+        #expect(state.hashes[id] == sent, "still marked as unsent")
+        // A newer version from another device is applied.
+        var other = sampleMap()
+        other.root.children[1].title = "Edited elsewhere"
+        #expect(!MapSync.alreadyHave(MapSync.hash(other), local: MapSync.hash(map), state: &state, id: id))
+    }
+
     @Test func syncedMapsSurviveTheRoundTrip() throws {
         var map = sampleMap()
         map.links = [MapLink(from: map.root.children[0].id, to: map.root.children[1].id, label: "feeds")]

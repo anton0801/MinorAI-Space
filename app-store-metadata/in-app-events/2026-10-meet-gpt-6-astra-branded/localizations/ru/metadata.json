@@ -1,0 +1,12 @@
+{
+  "locale": "ru",
+  "language": "Русский",
+  "name": "Minor AI встречает GPT-6 Astra",
+  "short_description": "ИИ-чат, карты мыслей и презентации",
+  "long_description": "Встречайте GPT-6 Astra в Minor AI. Попробуйте обновлённые ИИ-чат, карты мыслей и презентации.",
+  "character_counts": {
+    "name": 30,
+    "short_description": 34,
+    "long_description": 93
+  }
+}

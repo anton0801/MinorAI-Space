@@ -1,0 +1,74 @@
+{
+  "reference_name": "Minor AI — Maps, Chat & Slides — Major Update",
+  "badge": "Major Update",
+  "purpose_recommendation": "Appropriate for all users",
+  "localizations": [
+    {
+      "locale": "en-US",
+      "language": "English",
+      "name": "Mind Maps: From Chat to Slides",
+      "short_description": "Updated AI chat, mind maps and presentations",
+      "long_description": "Explore updated AI chat, mind maps and slides. Shape an idea in conversation, map it out and build a presentation.",
+      "character_counts": {
+        "name": 30,
+        "short_description": 44,
+        "long_description": 114
+      }
+    },
+    {
+      "locale": "fr-FR",
+      "language": "Français",
+      "name": "Du chat aux cartes mentales",
+      "short_description": "Chat IA, cartes mentales et présentations repensés",
+      "long_description": "Explorez les nouveautés du chat IA, des cartes mentales et des présentations. Structurez et présentez vos idées.",
+      "character_counts": {
+        "name": 27,
+        "short_description": 50,
+        "long_description": 112
+      }
+    },
+    {
+      "locale": "it",
+      "language": "Italiano",
+      "name": "Dalla chat alle mappe mentali",
+      "short_description": "Chat IA, mappe mentali e presentazioni rinnovate",
+      "long_description": "Scopri le novità di chat IA, mappe mentali e presentazioni. Sviluppa idee in chat, organizzale e trasformale in slide.",
+      "character_counts": {
+        "name": 29,
+        "short_description": 48,
+        "long_description": 118
+      }
+    },
+    {
+      "locale": "ru",
+      "language": "Русский",
+      "name": "Из чата — в карты и слайды",
+      "short_description": "Обновлённые ИИ-чат, карты мыслей и презентации",
+      "long_description": "Попробуйте обновлённые карты, ИИ-чат и слайды. Обсудите идею с помощником, соберите карту и создайте презентацию.",
+      "character_counts": {
+        "name": 26,
+        "short_description": 46,
+        "long_description": 113
+      }
+    },
+    {
+      "locale": "es-ES",
+      "language": "Español",
+      "name": "Del chat al mapa mental",
+      "short_description": "Chat IA, mapas mentales y presentaciones renovados",
+      "long_description": "Descubre las novedades del chat IA, los mapas mentales y las presentaciones. Desarrolla, organiza y presenta tus ideas.",
+      "character_counts": {
+        "name": 23,
+        "short_description": 50,
+        "long_description": 119
+      }
+    }
+  ],
+  "shared_media": {
+    "event_card": "media/event-card.jpg",
+    "event_details": "media/event-details.jpg"
+  },
+  "dates": null,
+  "deep_link": null,
+  "publishing_status": "Prepared locally; not uploaded or submitted"
+}

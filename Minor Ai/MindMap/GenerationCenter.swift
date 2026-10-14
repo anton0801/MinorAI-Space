@@ -88,6 +88,16 @@ final class GenerationCenter: ObservableObject {
         openRequest = nil
     }
 
+    // -demoGenerate (DEBUG only): maps are "made" from the sample map, signed out and offline from
+    // the server, for recording the App Store preview.
+    static var demoGenerate: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("-demoGenerate")
+        #else
+        return false
+        #endif
+    }
+
     #if DEBUG
     // Screenshots of Creating the Map without the server: a job that stays at one stage.
     func installDemoJob(_ input: MapInput, step: Int, error: BackendError?) -> UUID {
@@ -127,6 +137,23 @@ final class GenerationCenter: ObservableObject {
                 }
             }
             defer { ticker.cancel() }
+            #if DEBUG
+            // -demoGenerate: the stages as usual, then the sample map, without the server
+            // (App Store preview recording).
+            if Self.demoGenerate {
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                self.advance(id, to: 3)
+                try? await Task.sleep(nanoseconds: 1_300_000_000)
+                guard !Task.isCancelled, self.jobs[id] != nil else { return }
+                self.advance(id, to: 4)
+                MapStore.shared.save(MindMap(id: id, root: DemoMap.make().root, source: input.source))
+                self.jobs[id] = nil
+                self.tasks[id] = nil
+                Haptics.success()
+                if !self.watched.contains(id) { self.ready = id }
+                return
+            }
+            #endif
             do {
                 // The material's passages (from the file it was read from, or cut from its text),
                 // so the ideas can say which passage each comes from.

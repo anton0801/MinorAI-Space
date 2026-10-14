@@ -1,0 +1,87 @@
+{
+  "checked_at": "2026-10-14",
+  "media": [
+    {
+      "file": "media/event-card.jpg",
+      "size": [
+        1920,
+        1080
+      ],
+      "mode": "RGB",
+      "sha256": "c9778bbc2873aa3c40bcb5465cddc465a4944afd2826d8c9306f1379251c8743",
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/in-app-events/2026-10-meet-gpt-6-astra-branded/media/event-card.jpg\n  pixelWidth: 1920\n  pixelHeight: 1080\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    },
+    {
+      "file": "media/event-details.jpg",
+      "size": [
+        1080,
+        1920
+      ],
+      "mode": "RGB",
+      "sha256": "39cec7863d5aa6d706f55ad8e304655a7f34aae60ef1f7ecdb5527ce7d928782",
+      "sips": "/Users/antondanilov/Downloads/Minor Ai/app-store-metadata/in-app-events/2026-10-meet-gpt-6-astra-branded/media/event-details.jpg\n  pixelWidth: 1080\n  pixelHeight: 1920\n  hasAlpha: no\n  profile: sRGB IEC61966-2.1\n"
+    }
+  ],
+  "metadata_checks": [
+    {
+      "locale": "en-US",
+      "counts": {
+        "name": 26,
+        "short_description": 36,
+        "long_description": 110
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "fr-FR",
+      "counts": {
+        "name": 30,
+        "short_description": 41,
+        "long_description": 102
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "it",
+      "counts": {
+        "name": 30,
+        "short_description": 38,
+        "long_description": 111
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "ru",
+      "counts": {
+        "name": 30,
+        "short_description": 34,
+        "long_description": 93
+      },
+      "within_limits": true
+    },
+    {
+      "locale": "es-ES",
+      "counts": {
+        "name": 28,
+        "short_description": 40,
+        "long_description": 101
+      },
+      "within_limits": true
+    }
+  ],
+  "visual_review": {
+    "logos_and_text_composited_separately": true,
+    "generated_artwork_contains_real_ui": false,
+    "contains_prices": false,
+    "image_text": [
+      "Minor AI",
+      "GPT-6",
+      "Astra",
+      "OpenAI"
+    ],
+    "app_store_connect_preview_checked": false,
+    "app_review_status": "Not submitted",
+    "logo_source": "Published OpenAI brand page SVG; app-owned Minor logo"
+  },
+  "notes": "JPEG artwork contains user-requested brand marks and model headline. Text-free alternative retained. No guarantee of App Review approval."
+}

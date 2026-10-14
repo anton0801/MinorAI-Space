@@ -48,4 +48,42 @@ final class ProjectTabsUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label == 'Back'")).allElementsBoundByIndex.first { $0.isHittable }?.tap()
         XCTAssertTrue(app.buttons["Menu"].waitForExistence(timeout: 5), "Back should return to the assistant")
     }
+
+    private func startSlides(_ app: XCUIApplication) -> XCUIElement {
+        app.launchArguments = ["-didOnboard", "YES", "-appLanguage", "en", "-auditSignedOut", "-demoMap", "-demoGenerate", "-demoPlus"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Chat"].firstMatch.waitForExistence(timeout: 10))
+        tab(app, "Slides")
+        let create = app.buttons["Create Presentation"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        // The map stays alive under Slides, but out of reach: VoiceOver and taps see only this tab.
+        XCTAssertFalse(app.buttons["Add Branch"].exists || app.buttons["Present"].exists, "The hidden map's controls should not be reachable")
+        create.tap()
+        XCTAssertTrue(app.staticTexts["Writing your slides…"].waitForExistence(timeout: 3), "The slides being written should show")
+        return create
+    }
+
+    // The path that crashed 3.0.0 on iPhones: slides made from the project, then the new
+    // presentation opening right away.
+    func testCreatedSlidesAreShownBeingWrittenThenOpen() {
+        let app = XCUIApplication()
+        _ = startSlides(app)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "writing-slides"
+        shot.lifetime = .keepAlways
+        add(shot)
+        XCTAssertTrue(app.buttons["Present"].waitForExistence(timeout: 15), "The new presentation should open")
+        XCTAssertTrue(app.staticTexts["Speaker Notes"].exists, "with its editor")
+        XCTAssertEqual(app.state, .runningForeground)
+    }
+
+    func testStoppingTheSlidesLeavesNothingBehind() {
+        let app = XCUIApplication()
+        let create = startSlides(app)
+        app.buttons["Stop"].tap()
+        XCTAssertTrue(create.waitForExistence(timeout: 5), "Back to the start, ready to create again")
+        XCTAssertFalse(app.staticTexts["Writing your slides…"].exists)
+        let present = app.buttons["Present"]
+        XCTAssertFalse(present.waitForExistence(timeout: 4), "No presentation should be made: \(present.debugDescription)")
+    }
 }

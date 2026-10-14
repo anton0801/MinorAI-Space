@@ -59,6 +59,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         Task { @MainActor in
             MapStore.shared.removeUnusedImages(keeping: DeckStore.shared.imageIDs.union(LookStore.shared.imageIDs).union(TemplateStore.shared.imageIDs))
             Reminders.shared.start()
+            #if DEBUG
+            // Recordings and tests: nothing goes to the server (maps, shared maps, push tokens).
+            if TestRun.offServer {
+                WidgetBridge.shared.start()
+                return
+            }
+            #endif
             MapSync.shared.start()
             WidgetBridge.shared.start()
             CalendarSync.shared.start()

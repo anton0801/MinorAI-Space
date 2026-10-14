@@ -226,8 +226,14 @@ struct MapEditorView: View {
 
     // MARK: - Body
 
+    // Each group of modifiers sits behind AnyView: as one nested chain the body was ~27 KB, and
+    // SwiftUI walks such a chain level by level on the main thread's 1 MB stack (opening a
+    // presentation built the same way crashed 3.0.0 on iPhone).
     var body: some View {
-        projectModifiers(panelModifiers(tasksModifiers(modifiers3(modifiers2(modifiers1(core))))))
+        let screen = AnyView(modifiers1(AnyView(core)))
+        let sheets = AnyView(modifiers3(AnyView(modifiers2(screen))))
+        let tasks = AnyView(panelModifiers(AnyView(tasksModifiers(sheets))))
+        return projectModifiers(tasks)
     }
 
     // Sources, Next Steps, About the Project and Add Material.
@@ -410,6 +416,7 @@ struct MapEditorView: View {
             }
     }
 
+    // The bars and panels go in behind AnyView (see body): each keeps its own small value.
     private var core: some View {
         ZStack {
             Group {
@@ -457,11 +464,11 @@ struct MapEditorView: View {
             .allowsHitTesting(false)
 
             if presenting {
-                presentationControls
+                AnyView(presentationControls)
             } else {
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
-                    topBar
+                    AnyView(topBar)
                     if let tabs { tabs }
                 }
                 // Ideas scrolled or panned under the bar don't show through its title and tabs.
@@ -478,7 +485,7 @@ struct MapEditorView: View {
                     moveChip.padding(.top, 4)
                 }
                 Spacer()
-                bottomArea
+                AnyView(bottomArea)
                     .background(alignment: .bottom) { chromeFade(edge: .bottom) }
             }
             }
@@ -1061,7 +1068,7 @@ struct MapEditorView: View {
                         .overlay(Capsule().stroke(theme.chatStroke, lineWidth: 1))
                         .accessibilityLabel(L("View only: the owner can make you an editor"))
                     if let node = selectedNode, !node.isSuggestion {
-                        nodePanel(for: node)
+                        AnyView(nodePanel(for: node))
                             .padding(12)
                             .background(
                                 RoundedRectangle(cornerRadius: 30)
@@ -1097,15 +1104,15 @@ struct MapEditorView: View {
                 VStack(spacing: 12) {
                     Group {
                         if let moving = movingID.flatMap({ map.root.node($0) }) {
-                            movePanel(moving)
+                            AnyView(movePanel(moving))
                         } else if let node = panelNode {
-                            nodePanel(for: node)
+                            AnyView(nodePanel(for: node))
                         } else if let node = selectedNode {
-                            suggestionActions(for: node)
+                            AnyView(suggestionActions(for: node))
                         } else if map.root.suggestionCount > 0 {
-                            suggestionBar
+                            AnyView(suggestionBar)
                         } else {
-                            toolChips
+                            AnyView(toolChips)
                         }
                     }
                     .transition(.opacity.combined(with: .offset(y: 8)))
@@ -1113,7 +1120,7 @@ struct MapEditorView: View {
                     .opacity(isApplying ? 0.5 : 1)
 
                     // The selected idea's panel has its own Discuss with Minor.
-                    if !showsPanel { composer }
+                    if !showsPanel { AnyView(composer) }
                 }
                 .padding(showsPanel ? 12 : 0)
                 .background {
@@ -1296,8 +1303,8 @@ struct MapEditorView: View {
             // A map shared to view: what can be read, nothing that would change it.
             if !isViewer {
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) { panelButtons(node) }
-                    VStack(spacing: 8) { panelButtons(node) }
+                    HStack(spacing: 8) { AnyView(panelButtons(node)) }
+                    VStack(spacing: 8) { AnyView(panelButtons(node)) }
                 }
             }
             VStack(spacing: 0) {

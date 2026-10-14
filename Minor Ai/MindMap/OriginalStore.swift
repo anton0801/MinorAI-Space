@@ -29,7 +29,7 @@ enum OriginalStore {
     }
 
     static let folder: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         let folder = base.appendingPathComponent("Originals", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder.appendingPathComponent(".incoming", isDirectory: true), withIntermediateDirectories: true)
         return folder

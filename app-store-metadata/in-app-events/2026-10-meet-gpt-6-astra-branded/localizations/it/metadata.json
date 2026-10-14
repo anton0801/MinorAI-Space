@@ -1,0 +1,12 @@
+{
+  "locale": "it",
+  "language": "Italiano",
+  "name": "GPT-6 Astra arriva su Minor AI",
+  "short_description": "Chat IA, mappe mentali e presentazioni",
+  "long_description": "GPT-6 Astra arriva su Minor AI. Scopri chat IA, mappe mentali e presentazioni rinnovate, dalle idee alle slide.",
+  "character_counts": {
+    "name": 30,
+    "short_description": 38,
+    "long_description": 111
+  }
+}

@@ -148,6 +148,9 @@ private struct ProjectLayer: ViewModifier {
         content
             .opacity(active ? 1 : 0)
             .allowsHitTesting(active)
+            // Hidden alone left controls in scroll views (the map's tool chips) reachable by
+            // VoiceOver; a layer that isn't on screen is one ignored element.
+            .accessibilityElement(children: active ? .contain : .ignore)
             .accessibilityHidden(!active)
             .zIndex(active ? 1 : 0)
     }

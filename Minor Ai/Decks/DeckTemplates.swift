@@ -171,7 +171,7 @@ final class TemplateStore: ObservableObject {
     private let url: URL
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         url = base.appendingPathComponent("Templates.json")
         if let data = try? Data(contentsOf: url), let saved = try? JSONDecoder.iso.decode([Deck].self, from: data) {
             decks = saved

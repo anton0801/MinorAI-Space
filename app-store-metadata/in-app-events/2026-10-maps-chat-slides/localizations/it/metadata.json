@@ -1,0 +1,12 @@
+{
+  "locale": "it",
+  "language": "Italiano",
+  "name": "Dalla chat alle mappe mentali",
+  "short_description": "Chat IA, mappe mentali e presentazioni rinnovate",
+  "long_description": "Scopri le novità di chat IA, mappe mentali e presentazioni. Sviluppa idee in chat, organizzale e trasformale in slide.",
+  "character_counts": {
+    "name": 29,
+    "short_description": 48,
+    "long_description": 118
+  }
+}

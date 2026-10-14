@@ -31,7 +31,7 @@ final class MapStore: ObservableObject {
     private let io = DispatchQueue(label: "com.minorailifegroup.MinorAI.maps", qos: .utility)
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         folder = base.appendingPathComponent("Maps", isDirectory: true)
         imagesFolder = folder.appendingPathComponent("Images", isDirectory: true)
         historyFolder = folder.appendingPathComponent("History", isDirectory: true)

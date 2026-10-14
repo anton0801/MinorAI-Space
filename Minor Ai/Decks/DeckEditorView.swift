@@ -100,21 +100,34 @@ struct DeckEditorView: View {
         return deck.slides[index]
     }
 
+    // The screen and its many sheets are built in groups, each behind AnyView. As one chain of ~45
+    // modifiers the body was ~26 KB, and SwiftUI walks such a chain level by level on the main
+    // thread's stack: opening a presentation overflowed the iPhone's 1 MB stack (the 3.0.0 crash).
     var body: some View {
+        let screen = AnyView(screenContent)
+        let design = AnyView(designSheets(screen))
+        let look = AnyView(lookSheets(design))
+        let files = AnyView(fileSheets(look))
+        let text = AnyView(textSheets(files))
+        return mapSheets(text)
+    }
+
+    // The header, stage, filmstrip and panel go in behind AnyView too, for the same reason.
+    private var screenContent: some View {
         ZStack {
             theme.background.ignoresSafeArea()
             if let deck {
                 VStack(spacing: 0) {
                     VStack(spacing: 0) {
-                        header(deck)
+                        AnyView(header(deck))
                         if let tabs { tabs }
                     }
-                    stage(deck).padding(.top, 8)
+                    AnyView(stage(deck)).padding(.top, 8)
                     fitNotice.padding(.top, 10)
-                    slideNavigation(deck)
-                    filmstrip(deck)
+                    AnyView(slideNavigation(deck))
+                    AnyView(filmstrip(deck))
                     if let banner { bannerView(banner).padding(.top, 8) }
-                    panel(deck).padding(.top, 10)
+                    AnyView(panel(deck)).padding(.top, 10)
                 }
                 .overlay(alignment: .bottom) {
                     if let toast {
@@ -137,6 +150,11 @@ struct DeckEditorView: View {
         .foregroundColor(MinorColor.textPrimary)
         .animation(.minorMenu, value: toast)
         .animation(.minorMenu, value: banner)
+    }
+
+    // Diagram, slide text, layouts, rewriting, notes and the deck's style.
+    private func designSheets(_ content: AnyView) -> some View {
+        content
         .sheet(isPresented: $editingDiagram) {
             if let slide, slide.layout == .diagram {
                 DiagramPanel(diagram: (slide.diagram ?? SlideDiagram(center: slide.title)).structured(slideID: slide.id),
@@ -201,6 +219,11 @@ struct DeckEditorView: View {
                 .presentationDetents([.height(EditorSheetHeight.deckStyle), .large])
             }
         }
+    }
+
+    // Own style, brand, slide design, AI design prompts and the element inspector.
+    private func lookSheets(_ content: AnyView) -> some View {
+        content
         .sheet(isPresented: $showLookEditor) {
             if let deck {
                 LookEditor(deck: deck, slideIndex: index, theme: theme, start: lookStart, forSlide: lookForSlide) { look in
@@ -249,6 +272,11 @@ struct DeckEditorView: View {
                 }, onDelete: { deleteElement(element.id) })
             }
         }
+    }
+
+    // Pictures, templates, new slides, export, the organizer and presenting.
+    private func fileSheets(_ content: AnyView) -> some View {
+        content
         .photosPicker(isPresented: $showElementPhotos, selection: $elementPhotoItem, matching: .images)
         .onChange(of: elementPhotoItem) { item in
             guard let item else { return }
@@ -311,6 +339,11 @@ struct DeckEditorView: View {
                 }
             }
         }
+    }
+
+    // Selection follows the slide; the selected text's panel.
+    private func textSheets(_ content: AnyView) -> some View {
+        content
         .onChange(of: index) { _ in
             selectedElement = nil
             selectedPart = nil
@@ -388,6 +421,11 @@ struct DeckEditorView: View {
             }
         }
         #endif
+    }
+
+    // Cover picture, rename, delete, and updating the slides from their map.
+    private func mapSheets(_ content: AnyView) -> some View {
+        content
         .photosPicker(isPresented: $showPhotos, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { item in
             guard let item, let id = slide?.id else { return }
@@ -584,7 +622,7 @@ struct DeckEditorView: View {
             .padding(.horizontal, 16)
             .frame(height: (UIScreen.main.bounds.width - 32) * 9 / 16 + 8)
         } else {
-            pager(deck)
+            AnyView(pager(deck))
         }
     }
 
@@ -746,16 +784,16 @@ struct DeckEditorView: View {
                         withAnimation(.minorMenu) { editingElements = value == .elements }
                     }), height: 32)
                     switch panelTab {
-                    case .design: designPanel(deck)
-                    case .text: textPanel
-                    case .elements: elementBar.padding(.horizontal, -12)
+                    case .design: AnyView(designPanel(deck))
+                    case .text: AnyView(textPanel)
+                    case .elements: AnyView(elementBar).padding(.horizontal, -12)
                     }
-                    notesRow
+                    AnyView(notesRow)
                 }
                 .padding(.top, 12)
             }
             .disabled(isApplying)
-            composer
+            AnyView(composer)
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
@@ -792,7 +830,7 @@ struct DeckEditorView: View {
                 .padding(.vertical, 1)
             }
             .padding(.horizontal, -12)
-            themeCards(deck)
+            AnyView(themeCards(deck))
         }
     }
 

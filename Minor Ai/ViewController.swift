@@ -1246,6 +1246,7 @@ struct ContentView: View {
     }
 
     private func withConsent(_ action: @escaping () -> Void) {
+        if GenerationCenter.demoGenerate { return action() }
         guard AuthService.shared.isSignedIn else {
             return AuthGate.shared.require { withConsent(action) }
         }

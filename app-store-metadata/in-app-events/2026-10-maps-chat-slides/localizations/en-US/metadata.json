@@ -1,0 +1,12 @@
+{
+  "locale": "en-US",
+  "language": "English",
+  "name": "Mind Maps: From Chat to Slides",
+  "short_description": "Updated AI chat, mind maps and presentations",
+  "long_description": "Explore updated AI chat, mind maps and slides. Shape an idea in conversation, map it out and build a presentation.",
+  "character_counts": {
+    "name": 30,
+    "short_description": 44,
+    "long_description": 114
+  }
+}

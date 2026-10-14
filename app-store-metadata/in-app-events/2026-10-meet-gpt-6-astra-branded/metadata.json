@@ -1,0 +1,77 @@
+{
+  "reference_name": "Minor AI — Meet GPT-6 Astra — Major Update",
+  "badge": "Major Update",
+  "purpose_recommendation": "Appropriate for all users",
+  "localizations": [
+    {
+      "locale": "en-US",
+      "language": "English",
+      "name": "Minor AI: Meet GPT-6 Astra",
+      "short_description": "AI chat, mind maps and presentations",
+      "long_description": "Meet GPT-6 Astra in Minor AI. Explore updated AI chat, mind maps and presentations, from first idea to slides.",
+      "character_counts": {
+        "name": 26,
+        "short_description": 36,
+        "long_description": 110
+      }
+    },
+    {
+      "locale": "fr-FR",
+      "language": "Français",
+      "name": "Minor AI accueille GPT-6 Astra",
+      "short_description": "Chat IA, cartes mentales et présentations",
+      "long_description": "GPT-6 Astra rejoint Minor AI. Découvrez le chat IA, les cartes mentales et les présentations repensés.",
+      "character_counts": {
+        "name": 30,
+        "short_description": 41,
+        "long_description": 102
+      }
+    },
+    {
+      "locale": "it",
+      "language": "Italiano",
+      "name": "GPT-6 Astra arriva su Minor AI",
+      "short_description": "Chat IA, mappe mentali e presentazioni",
+      "long_description": "GPT-6 Astra arriva su Minor AI. Scopri chat IA, mappe mentali e presentazioni rinnovate, dalle idee alle slide.",
+      "character_counts": {
+        "name": 30,
+        "short_description": 38,
+        "long_description": 111
+      }
+    },
+    {
+      "locale": "ru",
+      "language": "Русский",
+      "name": "Minor AI встречает GPT-6 Astra",
+      "short_description": "ИИ-чат, карты мыслей и презентации",
+      "long_description": "Встречайте GPT-6 Astra в Minor AI. Попробуйте обновлённые ИИ-чат, карты мыслей и презентации.",
+      "character_counts": {
+        "name": 30,
+        "short_description": 34,
+        "long_description": 93
+      }
+    },
+    {
+      "locale": "es-ES",
+      "language": "Español",
+      "name": "GPT-6 Astra llega a Minor AI",
+      "short_description": "Chat IA, mapas mentales y presentaciones",
+      "long_description": "GPT-6 Astra llega a Minor AI. Descubre el chat IA, los mapas mentales y las presentaciones renovados.",
+      "character_counts": {
+        "name": 28,
+        "short_description": 40,
+        "long_description": 101
+      }
+    }
+  ],
+  "shared_media": {
+    "event_card": "media/event-card.jpg",
+    "event_details": "media/event-details.jpg"
+  },
+  "dates": null,
+  "deep_link": null,
+  "publishing_status": "Prepared locally; not uploaded or submitted",
+  "alternative_media": {
+    "without_text": "alternatives/no-text/"
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "files": [
+    {
+      "path": "COPY.md",
+      "bytes": 2088,
+      "sha256": "84ac8caff48c5dbf8e5151dcdc08a59b8faf17b05174f7507c07966cc939d63a"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 11125,
+      "sha256": "c5bac7041ed73e4ead7cb69f1fffbda601ca4b1fc2f4b1bda54ac8255d5058d5"
+    },
+    {
+      "path": "alternatives/no-text/event-card.jpg",
+      "bytes": 174068,
+      "sha256": "ae1157008ad71cf0a47fdca90ecb5c478c4723b986cc0baf0bfe62f57c22a21e"
+    },
+    {
+      "path": "alternatives/no-text/event-details.jpg",
+      "bytes": 167910,
+      "sha256": "676fa3b72f38b25ee4f4d90d2f9dda8cbe0986ffd09712613d6d41df666ab927"
+    },
+    {
+      "path": "assets/minor-logo-original.png",
+      "bytes": 31720,
+      "sha256": "e0e2ad1ceb6381909b8df62a894704a554c83c8348f6c2b5bd8a1c6c7dcf0695"
+    },
+    {
+      "path": "assets/openai-blossom-reference.svg",
+      "bytes": 6789,
+      "sha256": "01485e70cea6df8422f5abc643fbbd3c153442cc41da0e7d8e7451801ebf26e2"
+    },
+    {
+      "path": "assets/openai-blossom-white.svg",
+      "bytes": 2614,
+      "sha256": "7802ae9666f92eae0b51fd73980df2527ce8bead0699baf1dff10efad7a5710f"
+    },
+    {
+      "path": "branded-prompts.json",
+      "bytes": 3185,
+      "sha256": "7593f4b38c07a030a92187b99687efcbcc82a821158f92ec1e410d3b3c6eb7f4"
+    },
+    {
+      "path": "localizations/en-US/long_description.txt",
+      "bytes": 110,
+      "sha256": "b4a9659cafea4b2f920bfb4f7bda94d0a893ccbab0662cf1374766d5c3aafc19"
+    },
+    {
+      "path": "localizations/en-US/metadata.json",
+      "bytes": 390,
+      "sha256": "50199d5af375012c2d31896c5fb3914e53ad829c173a0a93724c0f54acd71aa1"
+    },
+    {
+      "path": "localizations/en-US/name.txt",
+      "bytes": 26,
+      "sha256": "660b30b03804a8b922df6d57c85a6491c8dce5465f602e0783d82bbadbb76278"
+    },
+    {
+      "path": "localizations/en-US/short_description.txt",
+      "bytes": 36,
+      "sha256": "00c5adab5329005d20d19d7c874aa98fba8eb607b67268a29ab42d4ba6e8dc2c"
+    },
+    {
+      "path": "localizations/es-ES/long_description.txt",
+      "bytes": 101,
+      "sha256": "8eb1061119757232d896281173cb8aa41691334a49d1fa626acb08d0e2e783f8"
+    },
+    {
+      "path": "localizations/es-ES/metadata.json",
+      "bytes": 388,
+      "sha256": "e833141739c25e5f7964cf2babcf41bcb7dd5ccb6e3473b61bc16ccc22203047"
+    },
+    {
+      "path": "localizations/es-ES/name.txt",
+      "bytes": 28,
+      "sha256": "d88f6b10808063074e0182f8bc05bd0b2a2b48da69de75009a95ff3a95770e1c"
+    },
+    {
+      "path": "localizations/es-ES/short_description.txt",
+      "bytes": 40,
+      "sha256": "6cb42f6e665b6c3bf389bb96a3acf11d3f8907a30095ffc8cadd1e80b9676cf8"
+    },
+    {
+      "path": "localizations/fr-FR/long_description.txt",
+      "bytes": 105,
+      "sha256": "97282e7bdefcc182a4c1a4ae52d80cf0a0fca3f0c9339cfe819f6deac6f9d33f"
+    },
+    {
+      "path": "localizations/fr-FR/metadata.json",
+      "bytes": 397,
+      "sha256": "017f2d1991a5d5c41e142afd69f29f89fcd9333ca157ab80a8898cf8889dd14f"
+    },
+    {
+      "path": "localizations/fr-FR/name.txt",
+      "bytes": 30,
+      "sha256": "e582b8718416b5692a006632717110eef25d412e85e3c5b4d956495bd4ff144d"
+    },
+    {
+      "path": "localizations/fr-FR/short_description.txt",
+      "bytes": 42,
+      "sha256": "d6673faa3a704c9cd61d065a677d8db81ead8f6e3630d13ba2e93c72090ec6e7"
+    },
+    {
+      "path": "localizations/it/long_description.txt",
+      "bytes": 111,
+      "sha256": "607c56c2ce8eaf8dfac9225670e1e0419e4f2b18f82295173b023be2bffa7f18"
+    },
+    {
+      "path": "localizations/it/metadata.json",
+      "bytes": 395,
+      "sha256": "32c70ebd2022db684d7fc35e189f13e2b8e186f43cd83f59a324d7380bd37442"
+    },
+    {
+      "path": "localizations/it/name.txt",
+      "bytes": 30,
+      "sha256": "d0ecb9244a75fe9db598811473e3dfcd5c431295e0a1255ec6532f26c52cf740"
+    },
+    {
+      "path": "localizations/it/short_description.txt",
+      "bytes": 38,
+      "sha256": "7ceebe1864aefdd9b9b2fa9b453fd7d4708d199bb95e46c2bb3866194b7e28ea"
+    },
+    {
+      "path": "localizations/ru/long_description.txt",
+      "bytes": 153,
+      "sha256": "1a3c13a32b5fdf0d860fc0c1bc0b28704956b70bc2fab3b6804e091ff384ad3c"
+    },
+    {
+      "path": "localizations/ru/metadata.json",
+      "bytes": 475,
+      "sha256": "1a52a299ad0199a1263c6a600664ccd46b7b9d5570e50db378e2e88796e4987d"
+    },
+    {
+      "path": "localizations/ru/name.txt",
+      "bytes": 39,
+      "sha256": "dd479dc4f889acbd13a89767c837c02b9a5d19b5e90e7ce87bec6abbb25bedd3"
+    },
+    {
+      "path": "localizations/ru/short_description.txt",
+      "bytes": 62,
+      "sha256": "1593ebc66dd9933beef853fc3472ac0c1ee6ba60ed8282d1231efd82bddbf788"
+    },
+    {
+      "path": "media/event-card.jpg",
+      "bytes": 253997,
+      "sha256": "c9778bbc2873aa3c40bcb5465cddc465a4944afd2826d8c9306f1379251c8743"
+    },
+    {
+      "path": "media/event-details.jpg",
+      "bytes": 238668,
+      "sha256": "39cec7863d5aa6d706f55ad8e304655a7f34aae60ef1f7ecdb5527ce7d928782"
+    },
+    {
+      "path": "metadata.csv",
+      "bytes": 1066,
+      "sha256": "770c9833e958d0ecf8631f14e7f149cfeca8757393cc7bc62871b5ad77b213e0"
+    },
+    {
+      "path": "metadata.json",
+      "bytes": 2768,
+      "sha256": "ed9c070312f336740e96eb4b08bb8ffac4351f8ec9485a0421f6c1f170f45f2b"
+    },
+    {
+      "path": "preview/contact-sheet.jpg",
+      "bytes": 195278,
+      "sha256": "befb483f3ddcdafbb1ce86ddc5cdbe7389830902c53a4cad405fa3a21bd3a8bc"
+    },
+    {
+      "path": "prompts.json",
+      "bytes": 5657,
+      "sha256": "dae19f1d9005e7ba16b116e49408138fef28c23fcd2cb3aa044c9c0c56b0a97e"
+    },
+    {
+      "path": "scripts/compose.swift",
+      "bytes": 2782,
+      "sha256": "9f0069e076e15018dd502038fe9f83e98a7968ab0dfe3fdc6ceb443e51c71fcb"
+    },
+    {
+      "path": "sources/branded-card-background.png",
+      "bytes": 1298105,
+      "sha256": "5121b53b5be31a94c61d5f3edd4a986641f8b5fd8b36394916768dc313381d9c"
+    },
+    {
+      "path": "sources/branded-details-background.png",
+      "bytes": 1514167,
+      "sha256": "61cc431299e25e79eb1191dd3d0993441178045e8f772d75b28aecfb8ea674fa"
+    },
+    {
+      "path": "sources/event-card-original.png",
+      "bytes": 1339514,
+      "sha256": "09516b4e98d3011fe2e4aeb168cad6520ab3e5a1bf81fdcbfe2ce3833a5db32d"
+    },
+    {
+      "path": "sources/event-details-original.png",
+      "bytes": 1458091,
+      "sha256": "0aba2f4cb4daf3bbfade7a6bfd599661688b07c3d1fb9b28006823abb53d2281"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 2406,
+      "sha256": "4a533f3c88eefbfe81c2ecd3696cd7b4f2faa659cadfe75b60cc1f3c6161652e"
+    }
+  ]
+}

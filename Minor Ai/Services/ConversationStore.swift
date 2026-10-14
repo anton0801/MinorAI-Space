@@ -17,7 +17,7 @@ final class ConversationStore {
     private let io = DispatchQueue(label: "com.minorailifegroup.MinorAI.conversations", qos: .utility)
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.appSupportURL
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         file = base.appendingPathComponent("Conversations.json")
         migrateFromUserDefaults()

@@ -33,6 +33,12 @@ struct ProjectSlidesStart: View {
 
     private var map: MindMap? { maps.map(mapID) }
 
+    // The look the new slides will have (the template's, or the theme matching the map).
+    private var writingTheme: DeckTheme {
+        if let ready = template?.deck.theme.flatMap(DeckTheme.init(rawValue:)) { return ready }
+        return map.map { DeckTheme.matching($0.mapPalette) } ?? .midnight
+    }
+
     private var maxSlides: Int {
         switch account.effectivePlan {
         case .free: return 8
@@ -119,6 +125,14 @@ struct ProjectSlidesStart: View {
                 .padding(.bottom, 24)
             }
         }
+        // The slides being written, as when a presentation is made from New Presentation.
+        .overlay {
+            if working {
+                WritingSlidesView(theme: writingTheme, onStop: cancel)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.minorMenu, value: working)
         .foregroundColor(MinorColor.textPrimary)
         .background(theme.background.ignoresSafeArea())
         .sheet(isPresented: $showTemplates) {
@@ -283,8 +297,8 @@ struct ProjectSlidesStart: View {
 
     private func create() {
         guard !working, let map else { return }
-        guard AuthService.shared.isSignedIn else { return AuthGate.shared.require(create) }
-        guard AIConsent.isGiven else {
+        guard AuthService.shared.isSignedIn || GenerationCenter.demoGenerate else { return AuthGate.shared.require(create) }
+        guard AIConsent.isGiven || GenerationCenter.demoGenerate else {
             error = L("Allow AI in Settings → AI Data Sharing to create presentations.")
             errorIsLimit = false
             return

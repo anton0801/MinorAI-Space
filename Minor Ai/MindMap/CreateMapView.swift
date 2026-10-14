@@ -274,6 +274,18 @@ struct CreateMapView: View {
             text = ""
         }
         .onDisappear { voice.cancel() }
+        #if DEBUG
+        // -demoStory with -demoGenerate: the sample topic types itself in (App Store preview),
+        // without the keyboard covering the screen.
+        .task {
+            guard DemoStory.isOn, GenerationCenter.demoGenerate, text.isEmpty else { return }
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            for character in DemoStory.topic {
+                text.append(character)
+                try? await Task.sleep(nanoseconds: 55_000_000)
+            }
+        }
+        #endif
         // A map stopped or failed while being made: what was typed or picked comes back to edit.
         .onReceive(GenerationCenter.shared.$returnedInput) { input in
             guard let input else { return }
@@ -583,7 +595,8 @@ struct CreateMapView: View {
                 }
             }
             HStack(spacing: 10) {
-                if attachment == nil && canPaste && (text.isEmpty || text == "https://") {
+                // (Not while recording the App Store preview: the system button follows the device's language.)
+                if attachment == nil && canPaste && (text.isEmpty || text == "https://") && !GenerationCenter.demoGenerate {
                     // The system Paste button reads the clipboard without the "Allow Paste" prompt.
                     PasteButton(payloadType: String.self) { strings in
                         guard let pasted = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines), !pasted.isEmpty else { return }
@@ -640,12 +653,12 @@ struct CreateMapView: View {
     private func start() {
         guard canStart else { return }
         // Building a map needs an account; the topic, link or recording waits in place.
-        guard AuthService.shared.isSignedIn else {
+        guard AuthService.shared.isSignedIn || GenerationCenter.demoGenerate else {
             fieldFocused = false
             return AuthGate.shared.require { start() }
         }
         // Ask for AI consent here, so the topic, link or recording stays in place if it's declined.
-        guard AIConsent.isGiven else {
+        guard AIConsent.isGiven || GenerationCenter.demoGenerate else {
             fieldFocused = false
             showConsent = true
             return
