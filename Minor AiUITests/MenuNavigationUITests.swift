@@ -4,7 +4,8 @@
 //
 //  The Menu button on the assistant: it opens and closes quickly without leaving a layer behind
 //  or losing the typed message, each place opens and Back returns to the menu, and the
-//  assistant's "Create a Map" goes Back straight to the assistant.
+//  assistant's "Create a Map" goes Back straight to the assistant. A conversation goes back to the
+//  start screen with its Back button.
 //
 
 import XCTest
@@ -29,6 +30,16 @@ final class MenuNavigationUITests: XCTestCase {
     }
 
     private var closeMenu: (XCUIApplication) -> XCUIElement { { $0.buttons["Back to Assistant"].firstMatch } }
+
+    // A conversation's Back button returns to the start screen.
+    func testChatBackReturnsHome() {
+        let app = launch(["-isolatedStore", "uitest-chat-home", "-demoChat"])
+        let home = app.buttons["Home"]
+        XCTAssertTrue(home.waitForExistence(timeout: 10), "The conversation should show a way back")
+        home.tap()
+        XCTAssertTrue(app.staticTexts["What shall we think about?"].waitForExistence(timeout: 5), "Back should show the start screen")
+        XCTAssertFalse(home.exists)
+    }
 
     // Ten quick round trips: the draft stays, the menu always closes, the field still answers.
     func testOpenCloseKeepsDraft() {

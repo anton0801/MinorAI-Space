@@ -1,0 +1,21 @@
+Mach aus einer Vorlesung, einem PDF oder einer groben Idee eine Mindmap, mit der du weiterarbeiten kannst. Minor AI hilft dir, ein Thema zu ordnen, ein Projekt zu planen und etwas zum Teilen vorzubereiten.
+
+Starte mit dem, was du hast
+Gib ein Thema ein, füg einen Link ein, lade ein Dokument hoch oder nutze ein YouTube-Video. Du kannst auch eine Sprachnotiz aufnehmen oder deine Notizen scannen. Minor ordnet das Material als Karte, und du kannst jeden Teil bearbeiten.
+
+Arbeite mit einem Assistenten
+Frag zu einem Ast nach, lass dir ein Beispiel geben oder sag dem Assistenten, was er ändern soll. Häng eine Karte an den Chat, um sie zu besprechen, ohne alles in eine Nachricht zu kopieren.
+
+Mach Folien aus deiner Karte
+Mach aus einer Gliederung eine Präsentation. Bearbeite die Folien, wähle ein Design, füg Sprechernotizen hinzu und exportiere als PowerPoint, wenn du so weit bist.
+
+Behalte im Blick, was zu tun ist
+Gib einer Idee einen Termin und mach sie zur Aufgabe. Der Bildschirm „Today“ sammelt Aufgaben und Erinnerungen aus all deinen Karten.
+
+Lerne mit deinem eigenen Material
+Wiederhole eine Karte mit Karteikarten und verteilter Wiederholung und prüfe dann mit einem KI-Quiz, was du behalten hast.
+
+Arbeitet gemeinsam an einer Karte
+Lade jemanden per Link ein. Lass die Person mit dir bearbeiten oder gib ihr Lesezugriff.
+
+Hinweis: Die Oberfläche der App ist derzeit auf Englisch. Karten entstehen in der Sprache deines Materials – aus deutschen Texten also auf Deutsch.

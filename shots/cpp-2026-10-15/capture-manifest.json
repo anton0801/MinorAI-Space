@@ -1,0 +1,112 @@
+{
+  "device": "8A78051D-EF64-49A8-9D95-E143C5A849DD",
+  "language": "en",
+  "scenes": {
+    "map": [
+      "-campaign",
+      "travel",
+      "-demoMap",
+      "-demoFit"
+    ],
+    "create": [
+      "-campaign",
+      "travel",
+      "-mindMode"
+    ],
+    "assistant": [
+      "-campaign",
+      "podcast",
+      "-demoChatMap"
+    ],
+    "slides": [
+      "-campaign",
+      "podcast",
+      "-demoDeck"
+    ],
+    "today": [
+      "-campaign",
+      "podcast",
+      "-demoToday"
+    ],
+    "cards": [
+      "-campaign",
+      "study",
+      "-demoMap",
+      "-demoStudy",
+      "-demoCardBack"
+    ],
+    "quiz": [
+      "-campaign",
+      "study",
+      "-demoMap",
+      "-demoStudy",
+      "-demoQuiz"
+    ],
+    "sources": [
+      "-campaign",
+      "study",
+      "-demoMap",
+      "-demoSourcesSheet",
+      "-demoFit"
+    ],
+    "diagram": [
+      "-campaign",
+      "podcast",
+      "-demoDeck",
+      "-campaignSlide",
+      "2"
+    ],
+    "export": [
+      "-campaign",
+      "podcast",
+      "-demoDeck",
+      "-demoExportSheet"
+    ],
+    "presenter": [
+      "-campaign",
+      "podcast",
+      "-demoDeck",
+      "-demoPresentDeck",
+      "-demoPresenterView"
+    ],
+    "study-presenter": [
+      "-campaign",
+      "study",
+      "-demoDeck",
+      "-demoPresentDeck",
+      "-demoPresenterView"
+    ],
+    "study-map": [
+      "-campaign",
+      "study",
+      "-demoMap",
+      "-demoFit"
+    ],
+    "collaboration": [
+      "-campaign",
+      "travel",
+      "-demoMap",
+      "-demoFit",
+      "-demoCollab"
+    ],
+    "library": [
+      "-campaign",
+      "travel",
+      "-demoInstall",
+      "-sidebarMaps"
+    ],
+    "plan": [
+      "-campaign",
+      "podcast",
+      "-demoMap",
+      "-demoFit"
+    ],
+    "task": [
+      "-campaign",
+      "podcast",
+      "-demoMap",
+      "-demoFit",
+      "-demoTask"
+    ]
+  }
+}

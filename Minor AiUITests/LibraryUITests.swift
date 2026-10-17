@@ -154,8 +154,10 @@ final class LibraryUITests: XCTestCase {
         shot(app, "chats")
         chat.tap()
         XCTAssertTrue(app.staticTexts["Here is a plan with three focus blocks a day."].waitForExistence(timeout: 5), "The chat should open")
-        // Layers under the chat count in XCUITest's hit test, so the button is tapped where it is.
-        app.buttons["Library"].firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Layers under the chat count in XCUITest's hit test, so the button is tapped where it is:
+        // the chat's own one, right of its Back button (the start screen's sits under Back).
+        let library = app.buttons.matching(identifier: "Library").allElementsBoundByIndex.max { $0.frame.minX < $1.frame.minX }
+        library?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(row(app, "Plan my study week").waitForExistence(timeout: 5), "The Library should open on Chats")
         XCTAssertEqual(searchField(app).label, "Search chats")
         app.buttons["Back to Assistant"].tap()

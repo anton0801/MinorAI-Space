@@ -95,6 +95,11 @@ struct NextStepsSheet: View {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-demoNextSteps") {
                 let ru = AppLanguage.current.locale.identifier.hasPrefix("ru")
+                if CampaignDemo.isOn {
+                    choices = CampaignDemo.nextSteps.map { Choice(title: $0.0, detail: $0.1, chosen: $0.2) }
+                    loading = false
+                    return
+                }
                 choices = [
                     Choice(title: ru ? "Сравнить цены конкурентов" : "Compare competitors’ prices", detail: ru ? "Чтобы проверить Plus за $12.99" : "To check Plus at $12.99"),
                     Choice(title: ru ? "Написать текст для страницы тарифов" : "Write the pricing page copy", detail: ""),

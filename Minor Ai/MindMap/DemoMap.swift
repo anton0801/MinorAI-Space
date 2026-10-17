@@ -19,6 +19,7 @@ enum DemoMap {
     }
 
     static func make() -> MindMap {
+        if CampaignDemo.isOn { return CampaignDemo.map() }
         #if DEBUG
         // -demoStory: the real-life sample (photosynthesis exam prep) for the App Store preview.
         if DemoStory.isOn { return DemoStory.map() }
@@ -104,6 +105,10 @@ enum DemoMap {
     @MainActor
     static func install() -> MindMap {
         var map = make()
+        if CampaignDemo.isOn {
+            CampaignDemo.install(&map)
+            return map
+        }
         // A generated gradient stands in for a photo on the Positioning branch.
         let size = CGSize(width: 800, height: 520)
         let picture = UIGraphicsImageRenderer(size: size).image { context in
@@ -270,6 +275,7 @@ enum DemoMap {
 
     // A presentation with every layout (-demoDeck, -demoSlides).
     static func deck(theme: DeckTheme = .midnight) -> Deck {
+        if CampaignDemo.isOn { return CampaignDemo.deck() }
         #if DEBUG
         if DemoStory.isOn { return DemoStory.deck() }
         #endif

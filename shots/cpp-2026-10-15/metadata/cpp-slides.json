@@ -1,0 +1,16 @@
+{
+  "keywords_to_verify": [],
+  "requires_approved_keyword_update": [
+    "presentation",
+    "deck"
+  ],
+  "search_intent_hypotheses": [
+    "ai presentation maker",
+    "slide maker",
+    "presentation creator"
+  ],
+  "promotional_text": "Turn a mind map into a presentation. Customize your slides, add speaker notes and export to PowerPoint when you're ready to share.",
+  "locale": "en-US",
+  "status": "proposed_not_applied",
+  "note": "Verify against latest approved version in App Store Connect. Search volume not validated."
+}

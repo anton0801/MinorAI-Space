@@ -416,7 +416,7 @@ struct StudyView: View {
         let all = Flashcards.make(from: map)
         #if DEBUG
         // The App Store preview's sample goes through its cards in the map's order.
-        if DemoStory.isOn {
+        if DemoStory.isOn || CampaignDemo.isOn {
             deck = all
             return resetProgress()
         }
@@ -755,6 +755,13 @@ struct StudyView: View {
     private func applyDebugState() {
         let args = ProcessInfo.processInfo.arguments
         if args.contains("-demoCardBack"), !deck.isEmpty { flipped = true }
+        #if DEBUG
+        if CampaignDemo.isOn, args.contains("-demoQuiz") || args.contains("-demoQuizResult") {
+            mode = .quiz
+            quiz = CampaignDemo.quiz(map, finished: args.contains("-demoQuizResult"))
+            return
+        }
+        #endif
         guard args.contains("-demoQuiz") || args.contains("-demoQuizResult") else { return }
         mode = .quiz
         let branches = map.root.children

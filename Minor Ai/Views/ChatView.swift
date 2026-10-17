@@ -14,6 +14,8 @@ struct ChatView: View {
     let theme: AppTheme
     @Binding var model: AIModelOption
     var onLibrary: () -> Void
+    // Back to the start screen; the conversation stays in Chats.
+    var onHome: () -> Void = {}
     var onMapThis: (String) -> Void = { _ in }
     var onUpgrade: () -> Void = {}
     // A model the plan doesn't include was picked: show the plan that opens it.
@@ -76,7 +78,7 @@ struct ChatView: View {
         }
     }
 
-    // The assistant's own header, as on the start screen: history, the conversation, the model.
+    // The assistant's own header: back to the start screen, history, the conversation, the model.
     private var header: some View {
         ZStack {
             VStack(spacing: 1) {
@@ -93,6 +95,14 @@ struct ChatView: View {
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
             HStack(spacing: 0) {
+                Button(action: onHome) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Home")
                 Button(action: onLibrary) {
                     Image(systemName: "books.vertical")
                         .font(.system(size: 20, weight: .regular))

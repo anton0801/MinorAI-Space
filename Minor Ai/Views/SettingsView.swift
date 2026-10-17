@@ -331,7 +331,6 @@ struct SettingsView: View {
                     if auth.isSignedIn {
                         actionRow("gauge.with.dots.needle.33percent", "AI Limits", value: limitsValue) { showUsage = true }
                     }
-                    actionRow("creditcard", "Manage Subscription", subtitle: L("App Store subscriptions")) { manageSubscription() }
                     actionRow("arrow.clockwise", "Restore Purchases", value: isRestoring ? L("Checking…") : nil, last: true) { restore() }
                 }
                 Text("Bought Minor Plus before? Restore it here.")
@@ -758,19 +757,6 @@ struct SettingsView: View {
     }
 
     // MARK: - Actions
-
-    private func manageSubscription() {
-        Task {
-            if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-                do {
-                    try await AppStore.showManageSubscriptions(in: scene)
-                    await account.refresh()
-                    return
-                } catch {}
-            }
-            if let url = URL(string: "https://apps.apple.com/account/subscriptions") { await UIApplication.shared.open(url) }
-        }
-    }
 
     private func restore() {
         guard !isRestoring else { return }

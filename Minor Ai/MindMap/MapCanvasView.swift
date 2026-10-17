@@ -114,7 +114,16 @@ struct MapCanvasView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
+                // Taps on empty canvas: a double tap fits the map, a tap closes the idea's panel.
+                // They live on this layer behind the ideas, not on the canvas around them: iOS 17
+                // also gave a parent's tap gesture taps an idea had already taken, which closed the
+                // panel the idea had just opened. Only the layers that act on a tap take touches.
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) { fit(animated: true) }
+                    .onTapGesture { withAnimation(.minorMenu) { selection = nil } }
                 grid
+                    .allowsHitTesting(false)
                 content
                     .scaleEffect(scale, anchor: .topLeading)
                     .offset(offset)
@@ -122,10 +131,6 @@ struct MapCanvasView: View {
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
             .clipped()
             .contentShape(Rectangle())
-            // A double tap on empty canvas fits the map; on a node it renames instead (the node's
-            // own gestures win, so the two never fire together).
-            .onTapGesture(count: 2) { fit(animated: true) }
-            .onTapGesture { withAnimation(.minorMenu) { selection = nil } }
             .gesture(panGesture)
             .simultaneousGesture(pinchGesture)
             .onAppear {
@@ -204,12 +209,16 @@ struct MapCanvasView: View {
 
     private var content: some View {
         ZStack(alignment: .topLeading) {
-            if !layout.groups.isEmpty { MapGroupsLayer(layout: layout) }
-            connectors
-            if !links.isEmpty { MapLinksLayer(layout: layout, links: links, showLabels: !isLOD) }
+            Group {
+                if !layout.groups.isEmpty { MapGroupsLayer(layout: layout) }
+                connectors
+                if !links.isEmpty { MapLinksLayer(layout: layout, links: links, showLabels: !isLOD) }
+            }
+            .allowsHitTesting(false)
             if let pulse, layout.node(pulse.id) != nil {
                 BranchPulse(layout: layout, focus: pulse.id, start: pulse.start, lineStyle: lineStyle, lineScale: lineWeight.scale)
                     .id(pulse.start)
+                    .allowsHitTesting(false)
             }
             ForEach(layout.nodes) { node in
                 if isLOD && node.level >= 2 {
@@ -261,6 +270,7 @@ struct MapCanvasView: View {
             ForEach(layout.nodes.filter { generating.contains($0.id) }) { node in
                 ghosts(for: node)
             }
+            .allowsHitTesting(false)
             // A tap on a connection's middle (its label) edits or removes it.
             ForEach(links) { link in
                 if let mid = layout.linkGeometry(link)?.mid {

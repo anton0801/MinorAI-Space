@@ -1,0 +1,21 @@
+Convierte una clase, un PDF o una idea suelta en un mapa mental con el que seguir trabajando. Minor AI te ayuda a ordenar un tema, planificar un proyecto y preparar algo para compartir.
+
+Empieza con lo que tengas
+Escribe un tema, pega un enlace, añade un documento o usa un vídeo de YouTube. También puedes grabar una nota de voz o escanear tus apuntes. Minor organiza el material en un mapa y puedes editar cada parte.
+
+Trabaja con un asistente
+Pregunta por una rama, pide un ejemplo o dile al asistente qué cambiar. Adjunta un mapa al chat para comentarlo sin copiarlo todo en un mensaje.
+
+Crea diapositivas a partir de tu mapa
+Convierte un esquema en una presentación. Edita las diapositivas, elige un diseño, añade notas del presentador y exporta a PowerPoint cuando quieras.
+
+Ten claro lo que hay que hacer
+Ponle fecha a una idea y conviértela en tarea. La pantalla «Today» reúne las tareas y recordatorios de todos tus mapas.
+
+Estudia con tu propio material
+Repasa un mapa con tarjetas y repetición espaciada, y comprueba lo que recuerdas con un test creado por IA.
+
+Trabajad juntos en un mapa
+Invita a alguien con un enlace. Deja que edite contigo o dale acceso solo para ver el mapa.
+
+Nota: por ahora la interfaz de la app está en inglés. Los mapas se crean en el idioma de tu material, así que a partir de textos en español salen en español.

@@ -143,7 +143,7 @@ struct NodeChatView: View {
                 .padding(.leading, 40)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Text((try? AttributedString(markdown: message.text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(message.text))
+                MarkdownText(text: message.text)
                     .font(.system(size: 16))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)

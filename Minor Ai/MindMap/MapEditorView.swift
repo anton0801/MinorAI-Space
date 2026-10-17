@@ -746,7 +746,9 @@ struct MapEditorView: View {
     // Launch arguments for screenshots: -demoSearch <text>, -demoFocus, -demoCard, -demoSelect.
     private func applyDebugState() {
         let args = ProcessInfo.processInfo.arguments
-        let pricing = map.root.children.first { $0.link == "https://minorai.site/#pricing" }?.id
+        let pricing = CampaignDemo.isOn
+            ? CampaignDemo.focus(in: map)
+            : map.root.children.first { $0.link == "https://minorai.site/#pricing" }?.id
         if let i = args.firstIndex(of: "-demoSearch"), args.indices.contains(i + 1) {
             isSearching = true
             query = args[i + 1]
@@ -772,8 +774,13 @@ struct MapEditorView: View {
         if args.contains("-demoMapView") { showMapView = true }
         if args.contains("-demoProposal"), let id = pricing {
             var proposed = map.root
-            proposed.update(id) { $0.children += [MindNode(title: L("Student plan"), origin: .ai), MindNode(title: L("Team plan"), origin: .ai)] }
-            proposal = MapEditProposal(command: L("Add plans"), current: map.root, proposal: proposed)
+            if CampaignDemo.isOn, let campaign = CampaignDemo.proposal(map) {
+                proposed.update(id) { $0.isCollapsed = false; $0.children += campaign.ideas.map { MindNode(title: $0, origin: .ai) } }
+                proposal = MapEditProposal(command: campaign.command, current: map.root, proposal: proposed)
+            } else {
+                proposed.update(id) { $0.children += [MindNode(title: L("Student plan"), origin: .ai), MindNode(title: L("Team plan"), origin: .ai)] }
+                proposal = MapEditProposal(command: L("Add plans"), current: map.root, proposal: proposed)
+            }
         }
         if args.contains("-demoSourcesSheet") { openSources(for: nil) }
         if args.contains("-demoNodeSources") { selection = pricing; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { openSources(for: pricing) } }
@@ -797,6 +804,21 @@ struct MapEditorView: View {
         if args.contains("-demoFit") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 viewport = .fit(layout.size, in: UIScreen.main.bounds.size, insets: chromeInsets)
+            }
+        }
+        // -demoZoom <scale> [dx dy]: the whole map at this zoom, centered between the bars (or from
+        // the left edge when wider), moved by dx, dy points.
+        if let i = args.firstIndex(of: "-demoZoom"), args.indices.contains(i + 1), let value = Double(args[i + 1]) {
+            let dx = args.indices.contains(i + 2) ? Double(args[i + 2]) ?? 0 : 0
+            let dy = args.indices.contains(i + 3) ? Double(args[i + 3]) ?? 0 : 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                let scale = CGFloat(value)
+                let size = UIScreen.main.bounds.size
+                let width = size.width - chromeInsets.leading - chromeInsets.trailing
+                let height = size.height - chromeInsets.top - chromeInsets.bottom
+                let x = layout.size.width * scale <= width ? chromeInsets.leading + (width - layout.size.width * scale) / 2 : chromeInsets.leading + 4
+                let y = chromeInsets.top + (height - layout.size.height * scale) / 2
+                viewport = CanvasViewport(scale: scale, offset: CGSize(width: x + CGFloat(dx), height: y + CGFloat(dy)))
             }
         }
     }

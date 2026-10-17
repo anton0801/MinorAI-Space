@@ -1,0 +1,14 @@
+[main]
+El nuevo Minor AI: mapas mentales, diapositivas y estudio en un solo lugar. Pide un mapa, añade tus PDF y vídeos, y luego presenta, repasa o planifica.
+
+[mind-maps]
+Convierte cualquier idea, PDF, enlace o vídeo en un mapa mental claro. Pide más ideas a la IA, añade notas y tareas, y dale el estilo que quieras.
+
+[study]
+Convierte tus apuntes y PDF en mapas mentales, tarjetas y tests. Mira cómo se conecta todo y descubre qué repasar antes del examen.
+
+[presentations]
+Convierte un mapa mental en una presentación editable. Cambia el tema, presenta con tus notas y exporta a PowerPoint o PDF.
+
+[tasks]
+Convierte las ideas de tus mapas en tareas con fecha y recordatorio. Míralas todas en «Today» y deja que la IA planifique tu día.

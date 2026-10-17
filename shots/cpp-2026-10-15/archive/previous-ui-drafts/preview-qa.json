@@ -1,0 +1,213 @@
+{
+  "status": "design_preview_only",
+  "ready_for_app_store": false,
+  "checks": [
+    {
+      "file": "design-previews/main-hero.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/maps-hero.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/sources.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/assistant.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/slides-main.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/study-main.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/tasks-main.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/originals.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/together.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/study-hero.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/study-map.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/quiz.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/study-sources.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/study-present.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/slides-hero.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/slides-edit.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/export.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/presenter.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/slides-outline.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/tasks-hero.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/plan.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/next-steps.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    },
+    {
+      "file": "design-previews/plan-assistant.png",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB",
+      "fresh_capture": false
+    }
+  ]
+}

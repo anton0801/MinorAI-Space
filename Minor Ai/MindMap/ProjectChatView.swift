@@ -177,7 +177,10 @@ struct ProjectChatView: View {
     }
 
     private func bubble(_ text: String, user: Bool) -> some View {
-        Text(text)
+        // Minor answers in Markdown: bold, lists and headings show as such, not as ** and -.
+        Group {
+            if user { Text(text) } else { MarkdownText(text: text) }
+        }
             .minorFont(16, maxScale: 1.4)
             .textSelection(.enabled)
             .padding(.horizontal, 14)

@@ -1,0 +1,393 @@
+{
+  "app_version": "3.0.1",
+  "locale": "en-US",
+  "capture_date": "2026-10-15",
+  "export_date": "2026-10-16",
+  "git_base": "681b515",
+  "code_state": "local DEBUG fixtures; see build-final.log",
+  "pixel_size": [
+    1320,
+    2868
+  ],
+  "color": "RGB",
+  "publication_status": "not_published",
+  "test_status": "not_launched",
+  "simulators_created_for_task": [
+    "0728F6FC-8CCE-4F3A-9C5E-0CF8F403297D",
+    "8A78051D-EF64-49A8-9D95-E143C5A849DD"
+  ],
+  "simulator_cleanup": "Both UUIDs absent from simctl list on 2026-10-16",
+  "captures": [
+    {
+      "file": "raw/assistant.png",
+      "source": "dedicated simulator capture; capture.py scene assistant",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "fd41cf934261f0048ae3134158eff0845070b87ba987659546afd1e06ec7206c"
+    },
+    {
+      "file": "raw/cards.png",
+      "source": "dedicated simulator capture; capture.py scene cards",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "3175a81acd9109cf50a1a8b16cb4d0f26e2ae42f443f317af14e67f2d2c8b6aa"
+    },
+    {
+      "file": "raw/collaboration.png",
+      "source": "dedicated simulator capture; capture.py scene collaboration",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "ef778916ef3a210b445741bec569d9a9f8011c14780cbd82d27f57f8800b8420"
+    },
+    {
+      "file": "raw/create.png",
+      "source": "dedicated simulator capture; capture.py scene create",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "c492664a036e75d3026e3ea412eec8999c1a00f6ff1e1a90ee84c369e12e8009"
+    },
+    {
+      "file": "raw/diagram.png",
+      "source": "dedicated simulator capture; capture.py scene diagram",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "b5fc07810804760047317db76e15bc9b7dec362cf6ad4d07f1b7d919bd6aaecd"
+    },
+    {
+      "file": "raw/export.png",
+      "source": "dedicated simulator capture; capture.py scene export",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "81d675e43ed8fc3e485c7d965a81cf6d561d6e7f48685941f9fe6c49dec84ab3"
+    },
+    {
+      "file": "raw/library.png",
+      "source": "dedicated simulator capture; capture.py scene library",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "419987710afdb094c089d7c87585f48e1d7acaf7171efff4fad9b5d7849fb75c"
+    },
+    {
+      "file": "raw/map.png",
+      "source": "shots/appstore-en-3.0.1/raw/map-travel.png",
+      "size": [
+        1179,
+        2556
+      ],
+      "sha256": "7b81ee6a7728db99159d979a9572da4e1eb00fc6953f9c3f28785cbd6ae462a9"
+    },
+    {
+      "file": "raw/plan.png",
+      "source": "dedicated simulator capture; capture.py scene plan",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "4a551adbc854d1ae0214cd2f0a7089fc3ac4d26114989d55135e8b893b2ecbea"
+    },
+    {
+      "file": "raw/presenter.png",
+      "source": "dedicated simulator capture; capture.py scene presenter",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "831c8e1bb85098013cb277af0d038ef6b167b1fc6b9bf8032d97614d52bd6feb"
+    },
+    {
+      "file": "raw/quiz.png",
+      "source": "dedicated simulator capture; capture.py scene quiz",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "da8e34b314e8ba6ea5dae85aec9ac6686caaa1518307a81bbc2a5ead6577db4d"
+    },
+    {
+      "file": "raw/slides.png",
+      "source": "dedicated simulator capture; capture.py scene slides",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "79cde5c1c041ea2059bc66f23cf20090b931b07e39335d5c00320844cb22c5fe"
+    },
+    {
+      "file": "raw/sources.png",
+      "source": "dedicated simulator capture; capture.py scene sources",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "2be6451344859ebe712e8e3cb395e328fd80e9aa48c7de644d642fbdc477be0e"
+    },
+    {
+      "file": "raw/study-map.png",
+      "source": "dedicated simulator capture; capture.py scene study-map",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "5702b9685d6f745ffa269df28c7043879d99e6fc521089b63d7493d26ecb02e2"
+    },
+    {
+      "file": "raw/study-presenter.png",
+      "source": "dedicated simulator capture; capture.py scene study-presenter",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "908f21c88ccfc21b23950f425d72960fcd96ee341a35e3fc7692d5fdd69ab3fc"
+    },
+    {
+      "file": "raw/task.png",
+      "source": "shots/appstore-en-3.0.1/raw/task.png",
+      "size": [
+        1179,
+        2556
+      ],
+      "sha256": "e5ac8427e4c2fd6c24676588843175670a622fef849b7178824e2500f68e9169"
+    },
+    {
+      "file": "raw/today.png",
+      "source": "dedicated simulator capture; capture.py scene today",
+      "size": [
+        1320,
+        2868
+      ],
+      "sha256": "b4907c9e03882947a1d9fb63514f0d9bbb292ede13d301a192db3da2eced9d2e"
+    }
+  ],
+  "files": [
+    {
+      "file": "upload/en-US/default-a/01-main-hero.png",
+      "card": "main-hero",
+      "scene": "map",
+      "sha256": "432a04d88e6e8842ff1cecf07afe4fe0257e07b2a15a7d2a686202b9d42bafee"
+    },
+    {
+      "file": "upload/en-US/default-a/02-sources.png",
+      "card": "sources",
+      "scene": "create",
+      "sha256": "c6a12eca27cb8ddbcf3f6487b27ecdcf5611522bceeae1e3bfa14aef0425755a"
+    },
+    {
+      "file": "upload/en-US/default-a/03-slides-main.png",
+      "card": "slides-main",
+      "scene": "slides",
+      "sha256": "d7bf87bd9965af1261418412fc0eb97123a0e41e9b2749947805d5dbd43a1c9e"
+    },
+    {
+      "file": "upload/en-US/default-a/04-assistant.png",
+      "card": "assistant",
+      "scene": "assistant",
+      "sha256": "d48cd8266d69997b97f330cd796c89b35048681cb963f0ca8b7a2415a4120da1"
+    },
+    {
+      "file": "upload/en-US/default-a/05-study-main.png",
+      "card": "study-main",
+      "scene": "cards",
+      "sha256": "d1f2662e0deafdc992a57f819fbc80a6b97427cd93494d6e875a376bdcc4271b"
+    },
+    {
+      "file": "upload/en-US/default-a/06-tasks-main.png",
+      "card": "tasks-main",
+      "scene": "today",
+      "sha256": "524a4461adb32697afa60d55305b94f1910d3394b7f8188e1602e6a9c2fd9980"
+    },
+    {
+      "file": "upload/en-US/default-a/07-originals.png",
+      "card": "originals",
+      "scene": "sources",
+      "sha256": "15566765e1d9bccbfe167e7451e0f740e4ca3839110c89d507ef173e35f595d1"
+    },
+    {
+      "file": "upload/en-US/default-a/08-together.png",
+      "card": "together",
+      "scene": "collaboration",
+      "sha256": "a08e245ea2813d5e0acf48a632dfc20ddbe5b535a7b90013078e0f8349bc5660"
+    },
+    {
+      "file": "upload/en-US/default-b/01-maps-hero.png",
+      "card": "maps-hero",
+      "scene": "map",
+      "sha256": "8db2d7d3344f78cfabaafdc41f32723c50752d3bf732649e3b515b807d54003c"
+    },
+    {
+      "file": "upload/en-US/default-b/02-sources.png",
+      "card": "sources",
+      "scene": "create",
+      "sha256": "c6a12eca27cb8ddbcf3f6487b27ecdcf5611522bceeae1e3bfa14aef0425755a"
+    },
+    {
+      "file": "upload/en-US/default-b/03-slides-main.png",
+      "card": "slides-main",
+      "scene": "slides",
+      "sha256": "d7bf87bd9965af1261418412fc0eb97123a0e41e9b2749947805d5dbd43a1c9e"
+    },
+    {
+      "file": "upload/en-US/default-b/04-assistant.png",
+      "card": "assistant",
+      "scene": "assistant",
+      "sha256": "d48cd8266d69997b97f330cd796c89b35048681cb963f0ca8b7a2415a4120da1"
+    },
+    {
+      "file": "upload/en-US/default-b/05-study-main.png",
+      "card": "study-main",
+      "scene": "cards",
+      "sha256": "d1f2662e0deafdc992a57f819fbc80a6b97427cd93494d6e875a376bdcc4271b"
+    },
+    {
+      "file": "upload/en-US/default-b/06-tasks-main.png",
+      "card": "tasks-main",
+      "scene": "today",
+      "sha256": "524a4461adb32697afa60d55305b94f1910d3394b7f8188e1602e6a9c2fd9980"
+    },
+    {
+      "file": "upload/en-US/default-b/07-originals.png",
+      "card": "originals",
+      "scene": "sources",
+      "sha256": "15566765e1d9bccbfe167e7451e0f740e4ca3839110c89d507ef173e35f595d1"
+    },
+    {
+      "file": "upload/en-US/default-b/08-together.png",
+      "card": "together",
+      "scene": "collaboration",
+      "sha256": "a08e245ea2813d5e0acf48a632dfc20ddbe5b535a7b90013078e0f8349bc5660"
+    },
+    {
+      "file": "upload/en-US/cpp-mind-maps/01-maps-hero.png",
+      "card": "maps-hero",
+      "scene": "map",
+      "sha256": "8db2d7d3344f78cfabaafdc41f32723c50752d3bf732649e3b515b807d54003c"
+    },
+    {
+      "file": "upload/en-US/cpp-mind-maps/02-sources.png",
+      "card": "sources",
+      "scene": "create",
+      "sha256": "c6a12eca27cb8ddbcf3f6487b27ecdcf5611522bceeae1e3bfa14aef0425755a"
+    },
+    {
+      "file": "upload/en-US/cpp-mind-maps/03-assistant.png",
+      "card": "assistant",
+      "scene": "assistant",
+      "sha256": "d48cd8266d69997b97f330cd796c89b35048681cb963f0ca8b7a2415a4120da1"
+    },
+    {
+      "file": "upload/en-US/cpp-mind-maps/04-originals.png",
+      "card": "originals",
+      "scene": "sources",
+      "sha256": "15566765e1d9bccbfe167e7451e0f740e4ca3839110c89d507ef173e35f595d1"
+    },
+    {
+      "file": "upload/en-US/cpp-mind-maps/05-slides-main.png",
+      "card": "slides-main",
+      "scene": "slides",
+      "sha256": "d7bf87bd9965af1261418412fc0eb97123a0e41e9b2749947805d5dbd43a1c9e"
+    },
+    {
+      "file": "upload/en-US/cpp-study/01-study-hero.png",
+      "card": "study-hero",
+      "scene": "cards",
+      "sha256": "05a9f3e04a1e5e8dc09671526c4faf10195a60db2e1746e82301828f51273f55"
+    },
+    {
+      "file": "upload/en-US/cpp-study/02-study-map.png",
+      "card": "study-map",
+      "scene": "study-map",
+      "sha256": "8d91f42ce50010846fd96dd8165e180ed7a8efe470bd17b223d4602b21a6de52"
+    },
+    {
+      "file": "upload/en-US/cpp-study/03-quiz.png",
+      "card": "quiz",
+      "scene": "quiz",
+      "sha256": "71b6a84ba0e71c92710a6f02f5de43dfccba63901cb4d47d2c5586d26e61df17"
+    },
+    {
+      "file": "upload/en-US/cpp-study/04-study-sources.png",
+      "card": "study-sources",
+      "scene": "create",
+      "sha256": "c6fe01626f9d31df34be98d49382111d8c2a5b0f3f15cc38358dfdd26ce7d8a5"
+    },
+    {
+      "file": "upload/en-US/cpp-study/05-study-present.png",
+      "card": "study-present",
+      "scene": "study-presenter",
+      "sha256": "dc61b6bedd57a95feee2d0fc42c422f9e8e7c05999296b12e7f0be65c794d5f3"
+    },
+    {
+      "file": "upload/en-US/cpp-slides/01-slides-hero.png",
+      "card": "slides-hero",
+      "scene": "slides",
+      "sha256": "6c92cee81cefd8919bda154cc2886fa7a204563d44b1cd5fd235cc91839aff6f"
+    },
+    {
+      "file": "upload/en-US/cpp-slides/02-slides-edit.png",
+      "card": "slides-edit",
+      "scene": "diagram",
+      "sha256": "1ef7daa56d77c673f607ca46255654112feeabd0d08d47e2196673e36667b0bb"
+    },
+    {
+      "file": "upload/en-US/cpp-slides/03-export.png",
+      "card": "export",
+      "scene": "export",
+      "sha256": "4110217f83f790f5e47e6b86800c659843639db1e08cf06a6372c4006179acfd"
+    },
+    {
+      "file": "upload/en-US/cpp-slides/04-presenter.png",
+      "card": "presenter",
+      "scene": "presenter",
+      "sha256": "1c9e126649b898adc3184338fc991f1fef010a53d079bcb436db197a1f2fcb42"
+    },
+    {
+      "file": "upload/en-US/cpp-slides/05-slides-outline.png",
+      "card": "slides-outline",
+      "scene": "plan",
+      "sha256": "a1f60cefb07ef65c6b0d1e91261b2c7477f62fb02c39c8e64e20d972ef35f807"
+    },
+    {
+      "file": "upload/en-US/cpp-tasks/01-tasks-hero.png",
+      "card": "tasks-hero",
+      "scene": "today",
+      "sha256": "6836e672ce52c543d56220aeadbf402fd5af92849413061088987e02c285acbb"
+    },
+    {
+      "file": "upload/en-US/cpp-tasks/02-plan.png",
+      "card": "plan",
+      "scene": "plan",
+      "sha256": "7ff0841d70598001caf0b999a87fe6f04c5f1cb44b5d368c4017448f42af26f5"
+    },
+    {
+      "file": "upload/en-US/cpp-tasks/03-next-steps.png",
+      "card": "next-steps",
+      "scene": "task",
+      "sha256": "5f3b5a2e479eafb107d705bbf1e1ca3792c8eea61f5266f7f53e96310a392900"
+    },
+    {
+      "file": "upload/en-US/cpp-tasks/04-plan-assistant.png",
+      "card": "plan-assistant",
+      "scene": "assistant",
+      "sha256": "cbb22cd306273584d5a56b1eef55f7d05ec0a5e23ab486bfcff73d3f66576528"
+    },
+    {
+      "file": "upload/en-US/cpp-tasks/05-together.png",
+      "card": "together",
+      "scene": "collaboration",
+      "sha256": "a08e245ea2813d5e0acf48a632dfc20ddbe5b535a7b90013078e0f8349bc5660"
+    }
+  ]
+}

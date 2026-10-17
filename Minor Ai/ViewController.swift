@@ -156,6 +156,7 @@ struct ContentView: View {
                     theme: theme,
                     model: $selectedModel,
                     onLibrary: { openLibrary(.chats, from: .chat) },
+                    onHome: { chatVM.endSession() },
                     onMapThis: { answer in
                         let title = Conversation.makeTitle(from: chatVM.messages)
                         withConsent { chatVM.makeMap(from: answer, title: title) }
@@ -444,7 +445,7 @@ struct ContentView: View {
             // A conversation that made a map: the card with Open Map and Make Slides (-demoChatMap).
             if args.contains("-demoChatMap") {
                 let map = DemoMap.install()
-                chatVM.messages = [
+                chatVM.messages = CampaignDemo.isOn ? CampaignDemo.chat(map) : [
                     ChatMessage(role: .user, text: L("I want to launch an app. Help me plan it.")),
                     ChatMessage(role: .assistant, text: L("Let’s start with the audience, pricing and channels. I put the plan on a map."),
                                 action: ChatAction(kind: .mapCreated, mapID: map.id, mapTitle: map.title)),
@@ -496,7 +497,12 @@ struct ContentView: View {
             if args.contains("-demoNewDeck") { _ = DemoMap.install(); newDeck = NewDeckRequest(mapID: nil) }
             if args.contains("-demoAgent") {
                 let map = DemoMap.install()
-                chatVM.messages = DemoMap.agentChat(map)
+                chatVM.messages = CampaignDemo.isOn ? CampaignDemo.agentChat(map) : DemoMap.agentChat(map)
+            }
+            // Plan My Day with today's tasks attached, and Minor's plan (-campaignPlanDay).
+            if args.contains("-campaignPlanDay") {
+                _ = DemoMap.install()
+                chatVM.messages = CampaignDemo.planDay()
             }
             // Creating the Map at its third stage (-demoCreating, -demoStopAsk asks to stop) or failed
             // offline (-demoCreateFailed), from New Map.

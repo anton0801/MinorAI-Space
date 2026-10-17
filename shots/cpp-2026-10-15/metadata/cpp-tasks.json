@@ -1,0 +1,17 @@
+{
+  "keywords_to_verify": [
+    "planner",
+    "tasks",
+    "organizer"
+  ],
+  "search_intent_hypotheses": [
+    "task planner",
+    "project planner",
+    "daily planner",
+    "task organizer"
+  ],
+  "promotional_text": "Turn ideas into tasks with due dates. See what needs attention in Today and return to the map behind each task.",
+  "locale": "en-US",
+  "status": "proposed_not_applied",
+  "note": "Verify against latest approved version in App Store Connect. Search volume not validated."
+}

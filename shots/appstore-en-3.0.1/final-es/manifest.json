@@ -1,0 +1,236 @@
+{
+  "main-a": [
+    {
+      "file": "main-a/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Tus ideas, en un mapa."
+    },
+    {
+      "file": "main-a/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Pídelo. Y ya tienes mapa."
+    },
+    {
+      "file": "main-a/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Empieza con lo que tengas."
+    },
+    {
+      "file": "main-a/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "¿Sin ideas? La IA te ayuda."
+    },
+    {
+      "file": "main-a/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Del mapa a las diapositivas."
+    },
+    {
+      "file": "main-a/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Estudia lo que importa."
+    },
+    {
+      "file": "main-a/07-main-today.png",
+      "scene": "today",
+      "headline": "De la idea a la acción."
+    },
+    {
+      "file": "main-a/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Tus notas, siempre a mano."
+    }
+  ],
+  "main-b": [
+    {
+      "file": "main-b/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Tus ideas, en un mapa."
+    },
+    {
+      "file": "main-b/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Pídelo. Y ya tienes mapa."
+    },
+    {
+      "file": "main-b/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Empieza con lo que tengas."
+    },
+    {
+      "file": "main-b/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "¿Sin ideas? La IA te ayuda."
+    },
+    {
+      "file": "main-b/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Del mapa a las diapositivas."
+    },
+    {
+      "file": "main-b/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Estudia lo que importa."
+    },
+    {
+      "file": "main-b/07-main-today.png",
+      "scene": "today",
+      "headline": "De la idea a la acción."
+    },
+    {
+      "file": "main-b/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Tus notas, siempre a mano."
+    }
+  ],
+  "main-c": [
+    {
+      "file": "main-c/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Tus ideas, en un mapa."
+    },
+    {
+      "file": "main-c/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Pídelo. Y ya tienes mapa."
+    },
+    {
+      "file": "main-c/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Empieza con lo que tengas."
+    },
+    {
+      "file": "main-c/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "¿Sin ideas? La IA te ayuda."
+    },
+    {
+      "file": "main-c/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Del mapa a las diapositivas."
+    },
+    {
+      "file": "main-c/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Estudia lo que importa."
+    },
+    {
+      "file": "main-c/07-main-today.png",
+      "scene": "today",
+      "headline": "De la idea a la acción."
+    },
+    {
+      "file": "main-c/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Tus notas, siempre a mano."
+    }
+  ],
+  "cpp-mind-maps": [
+    {
+      "file": "cpp-mind-maps/01-maps-hero.png",
+      "scene": "map-travel",
+      "headline": "Mapas mentales. Hechos con IA."
+    },
+    {
+      "file": "cpp-mind-maps/02-maps-sources.png",
+      "scene": "newmap",
+      "headline": "Empieza con lo que tengas."
+    },
+    {
+      "file": "cpp-mind-maps/03-maps-improve.png",
+      "scene": "proposal-travel",
+      "headline": "¿Más ideas? Pídeselas a la IA."
+    },
+    {
+      "file": "cpp-mind-maps/04-maps-panel.png",
+      "scene": "selected-travel",
+      "headline": "Cada idea, a un toque."
+    },
+    {
+      "file": "cpp-mind-maps/05-maps-design.png",
+      "scene": "mapdesign-travel",
+      "headline": "Hazlo a tu estilo."
+    }
+  ],
+  "cpp-study": [
+    {
+      "file": "cpp-study/01-study-hero.png",
+      "scene": "card-back",
+      "headline": "De tus apuntes a tarjetas."
+    },
+    {
+      "file": "cpp-study/02-study-map.png",
+      "scene": "map-study",
+      "headline": "Mira cómo se conecta todo."
+    },
+    {
+      "file": "cpp-study/03-study-quiz.png",
+      "scene": "quiz",
+      "headline": "Ponte a prueba. Entiende el porqué."
+    },
+    {
+      "file": "cpp-study/04-study-pdf.png",
+      "scene": "sources-study",
+      "headline": "Sube el PDF de tu clase."
+    },
+    {
+      "file": "cpp-study/05-study-result.png",
+      "scene": "quiz-result",
+      "headline": "Descubre qué repasar."
+    }
+  ],
+  "cpp-presentations": [
+    {
+      "file": "cpp-presentations/01-slides-hero.png",
+      "scene": "deck-diagram",
+      "headline": "De la idea a la presentación."
+    },
+    {
+      "file": "cpp-presentations/02-slides-themes.png",
+      "scene": "themes",
+      "headline": "Un toque. Otro estilo."
+    },
+    {
+      "file": "cpp-presentations/03-slides-present.png",
+      "scene": "presenter",
+      "headline": "Tus notas, siempre a mano."
+    },
+    {
+      "file": "cpp-presentations/04-slides-export.png",
+      "scene": "export",
+      "headline": "Llévalo a PowerPoint."
+    },
+    {
+      "file": "cpp-presentations/05-slides-templates.png",
+      "scene": "templates-decks",
+      "headline": "Empieza con una plantilla."
+    }
+  ],
+  "cpp-tasks": [
+    {
+      "file": "cpp-tasks/01-tasks-hero.png",
+      "scene": "today",
+      "headline": "Convierte ideas en acciones."
+    },
+    {
+      "file": "cpp-tasks/02-tasks-plan.png",
+      "scene": "planday",
+      "headline": "Planifica tu día con IA."
+    },
+    {
+      "file": "cpp-tasks/03-tasks-next.png",
+      "scene": "nextsteps",
+      "headline": "Sabrás qué hacer después."
+    },
+    {
+      "file": "cpp-tasks/04-tasks-dates.png",
+      "scene": "task",
+      "headline": "Fechas y recordatorios."
+    },
+    {
+      "file": "cpp-tasks/05-tasks-map.png",
+      "scene": "selected-podcast",
+      "headline": "Ve el plan. Hazlo realidad."
+    }
+  ]
+}

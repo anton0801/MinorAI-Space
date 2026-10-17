@@ -1,0 +1,236 @@
+{
+  "main-a": [
+    {
+      "file": "main-a/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Deine Ideen. Als KI-Mindmap."
+    },
+    {
+      "file": "main-a/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Einfach fragen. Karte bekommen."
+    },
+    {
+      "file": "main-a/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Aus allem wird eine Karte."
+    },
+    {
+      "file": "main-a/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Keine Idee? Die KI hilft."
+    },
+    {
+      "file": "main-a/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Erst die Karte. Dann die Folien."
+    },
+    {
+      "file": "main-a/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Lerne, was wirklich zählt."
+    },
+    {
+      "file": "main-a/07-main-today.png",
+      "scene": "today",
+      "headline": "Von der Idee zur Aufgabe."
+    },
+    {
+      "file": "main-a/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Deine Notizen. Immer im Blick."
+    }
+  ],
+  "main-b": [
+    {
+      "file": "main-b/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Deine Ideen. Als KI-Mindmap."
+    },
+    {
+      "file": "main-b/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Einfach fragen. Karte bekommen."
+    },
+    {
+      "file": "main-b/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Aus allem wird eine Karte."
+    },
+    {
+      "file": "main-b/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Keine Idee? Die KI hilft."
+    },
+    {
+      "file": "main-b/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Erst die Karte. Dann die Folien."
+    },
+    {
+      "file": "main-b/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Lerne, was wirklich zählt."
+    },
+    {
+      "file": "main-b/07-main-today.png",
+      "scene": "today",
+      "headline": "Von der Idee zur Aufgabe."
+    },
+    {
+      "file": "main-b/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Deine Notizen. Immer im Blick."
+    }
+  ],
+  "main-c": [
+    {
+      "file": "main-c/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Deine Ideen. Als KI-Mindmap."
+    },
+    {
+      "file": "main-c/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Einfach fragen. Karte bekommen."
+    },
+    {
+      "file": "main-c/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Aus allem wird eine Karte."
+    },
+    {
+      "file": "main-c/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Keine Idee? Die KI hilft."
+    },
+    {
+      "file": "main-c/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Erst die Karte. Dann die Folien."
+    },
+    {
+      "file": "main-c/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Lerne, was wirklich zählt."
+    },
+    {
+      "file": "main-c/07-main-today.png",
+      "scene": "today",
+      "headline": "Von der Idee zur Aufgabe."
+    },
+    {
+      "file": "main-c/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Deine Notizen. Immer im Blick."
+    }
+  ],
+  "cpp-mind-maps": [
+    {
+      "file": "cpp-mind-maps/01-maps-hero.png",
+      "scene": "map-travel",
+      "headline": "Mindmaps. Mit KI erstellt."
+    },
+    {
+      "file": "cpp-mind-maps/02-maps-sources.png",
+      "scene": "newmap",
+      "headline": "Aus allem wird eine Karte."
+    },
+    {
+      "file": "cpp-mind-maps/03-maps-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Mehr Ideen? Frag die KI."
+    },
+    {
+      "file": "cpp-mind-maps/04-maps-panel.png",
+      "scene": "selected-travel",
+      "headline": "Jede Idee, ein Tipp entfernt."
+    },
+    {
+      "file": "cpp-mind-maps/05-maps-design.png",
+      "scene": "mapdesign-travel",
+      "headline": "Ganz nach deinem Stil."
+    }
+  ],
+  "cpp-study": [
+    {
+      "file": "cpp-study/01-study-hero.png",
+      "scene": "card-back",
+      "headline": "Aus Notizen werden Lernkarten."
+    },
+    {
+      "file": "cpp-study/02-study-map.png",
+      "scene": "map-study",
+      "headline": "Sieh, wie alles zusammenhängt."
+    },
+    {
+      "file": "cpp-study/03-study-quiz.png",
+      "scene": "quiz",
+      "headline": "Teste dich. Versteh, warum."
+    },
+    {
+      "file": "cpp-study/04-study-pdf.png",
+      "scene": "sources-study",
+      "headline": "Lade dein Skript als PDF."
+    },
+    {
+      "file": "cpp-study/05-study-result.png",
+      "scene": "quiz-result",
+      "headline": "Wisse, was du wiederholen musst."
+    }
+  ],
+  "cpp-presentations": [
+    {
+      "file": "cpp-presentations/01-slides-hero.png",
+      "scene": "deck-diagram",
+      "headline": "Von der Idee zur Präsentation."
+    },
+    {
+      "file": "cpp-presentations/02-slides-themes.png",
+      "scene": "themes",
+      "headline": "Ein Tipp. Ein neuer Look."
+    },
+    {
+      "file": "cpp-presentations/03-slides-present.png",
+      "scene": "presenter",
+      "headline": "Deine Notizen. Immer im Blick."
+    },
+    {
+      "file": "cpp-presentations/04-slides-export.png",
+      "scene": "export",
+      "headline": "Ab nach PowerPoint."
+    },
+    {
+      "file": "cpp-presentations/05-slides-templates.png",
+      "scene": "templates-decks",
+      "headline": "Starte mit einer Vorlage."
+    }
+  ],
+  "cpp-tasks": [
+    {
+      "file": "cpp-tasks/01-tasks-hero.png",
+      "scene": "today",
+      "headline": "Aus Ideen werden Taten."
+    },
+    {
+      "file": "cpp-tasks/02-tasks-plan.png",
+      "scene": "planday",
+      "headline": "Plane deinen Tag mit KI."
+    },
+    {
+      "file": "cpp-tasks/03-tasks-next.png",
+      "scene": "nextsteps",
+      "headline": "Wisse, was als Nächstes kommt."
+    },
+    {
+      "file": "cpp-tasks/04-tasks-dates.png",
+      "scene": "task",
+      "headline": "Termine und Erinnerungen."
+    },
+    {
+      "file": "cpp-tasks/05-tasks-map.png",
+      "scene": "selected-podcast",
+      "headline": "Plan sehen. Loslegen."
+    }
+  ]
+}

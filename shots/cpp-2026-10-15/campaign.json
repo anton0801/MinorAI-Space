@@ -1,0 +1,311 @@
+{
+  "locale": "en-US",
+  "dimensions": [
+    1320,
+    2868
+  ],
+  "status": "ready_for_upload_review",
+  "cards": {
+    "main-hero": {
+      "scene": "map",
+      "theme": "mint",
+      "eyebrow": "AI MIND MAPS & SLIDES",
+      "headline": [
+        "Think it.",
+        "Map it."
+      ],
+      "detail": "Turn your ideas into something you can use."
+    },
+    "maps-hero": {
+      "scene": "map",
+      "theme": "mint",
+      "eyebrow": "AI MIND MAPS & SLIDES",
+      "headline": [
+        "Mind maps.",
+        "Made with AI."
+      ],
+      "detail": "Turn your ideas into something you can use."
+    },
+    "sources": {
+      "scene": "create",
+      "theme": "dark",
+      "eyebrow": "START WITH WHAT YOU HAVE",
+      "headline": [
+        "Your sources.",
+        "One clear map."
+      ],
+      "detail": "A topic, PDF, link, video or voice note."
+    },
+    "assistant": {
+      "scene": "assistant",
+      "theme": "dark",
+      "eyebrow": "YOUR AI ASSISTANT",
+      "headline": [
+        "Ask. Refine.",
+        "Keep going."
+      ],
+      "detail": "Work through ideas with a map-aware assistant."
+    },
+    "slides-main": {
+      "scene": "slides",
+      "theme": "lilac",
+      "eyebrow": "MAPS BECOME PRESENTATIONS",
+      "headline": [
+        "A map today.",
+        "Slides next."
+      ],
+      "detail": "Build a presentation from your ideas."
+    },
+    "study-main": {
+      "scene": "cards",
+      "theme": "blue",
+      "eyebrow": "FLASHCARDS & SPACED REPETITION",
+      "headline": [
+        "Your material.",
+        "Ready to study."
+      ],
+      "detail": "Review the ideas in your own maps."
+    },
+    "tasks-main": {
+      "scene": "today",
+      "theme": "sand",
+      "eyebrow": "TASKS & REMINDERS",
+      "headline": [
+        "Ideas become",
+        "next steps."
+      ],
+      "detail": "Bring tasks from your maps into Today."
+    },
+    "originals": {
+      "scene": "sources",
+      "theme": "dark",
+      "eyebrow": "KEEP THE CONTEXT",
+      "headline": [
+        "Go back to",
+        "the source."
+      ],
+      "detail": "Keep original material connected to your map."
+    },
+    "together": {
+      "scene": "collaboration",
+      "theme": "dark",
+      "eyebrow": "SHARE YOUR MAP",
+      "headline": [
+        "Better ideas.",
+        "Together."
+      ],
+      "detail": "Invite others to view or edit."
+    },
+    "study-hero": {
+      "scene": "cards",
+      "theme": "blue",
+      "eyebrow": "FLASHCARDS FROM YOUR MAPS",
+      "headline": [
+        "Turn notes into",
+        "study cards."
+      ],
+      "detail": "Review your material with spaced repetition."
+    },
+    "study-map": {
+      "scene": "study-map",
+      "theme": "dark",
+      "eyebrow": "MAKE THE TOPIC CLEAR",
+      "headline": [
+        "See how ideas",
+        "connect."
+      ],
+      "detail": "Organize the subject into an editable map."
+    },
+    "quiz": {
+      "scene": "quiz",
+      "theme": "dark",
+      "eyebrow": "AI-GENERATED QUIZZES",
+      "headline": [
+        "Find what",
+        "needs review."
+      ],
+      "detail": "Check your answers and learn from mistakes."
+    },
+    "study-sources": {
+      "scene": "create",
+      "theme": "blue",
+      "eyebrow": "BRING YOUR OWN MATERIAL",
+      "headline": [
+        "Start with",
+        "your notes."
+      ],
+      "detail": "Add a PDF, link, video or voice note."
+    },
+    "study-present": {
+      "scene": "study-presenter",
+      "theme": "dark",
+      "eyebrow": "PRESENT WHAT YOU LEARN",
+      "headline": [
+        "From studying",
+        "to presenting."
+      ],
+      "detail": "Keep your slides and speaker notes together."
+    },
+    "slides-hero": {
+      "scene": "slides",
+      "theme": "lilac",
+      "eyebrow": "AI PRESENTATION MAKER",
+      "headline": [
+        "From idea",
+        "to slide deck."
+      ],
+      "detail": "Turn a mind map into a presentation."
+    },
+    "slides-edit": {
+      "scene": "diagram",
+      "theme": "dark",
+      "eyebrow": "EDITABLE SLIDES & DIAGRAMS",
+      "headline": [
+        "Make every",
+        "slide yours."
+      ],
+      "detail": "Shape the content, layout and diagrams."
+    },
+    "export": {
+      "scene": "export",
+      "theme": "dark",
+      "eyebrow": "POWERPOINT & PDF EXPORT",
+      "headline": [
+        "Take it to",
+        "PowerPoint."
+      ],
+      "detail": "Export your deck when you're ready to share."
+    },
+    "presenter": {
+      "scene": "presenter",
+      "theme": "lilac",
+      "eyebrow": "PRESENTER MODE",
+      "headline": [
+        "Your notes.",
+        "Right on cue."
+      ],
+      "detail": "See your slide, speaker notes and what is next."
+    },
+    "slides-outline": {
+      "scene": "plan",
+      "theme": "dark",
+      "eyebrow": "START WITH THE STRUCTURE",
+      "headline": [
+        "A clear story",
+        "starts here."
+      ],
+      "detail": "Organize your ideas before making slides."
+    },
+    "tasks-hero": {
+      "scene": "today",
+      "theme": "sand",
+      "eyebrow": "TASKS FROM YOUR MIND MAPS",
+      "headline": [
+        "Turn ideas",
+        "into action."
+      ],
+      "detail": "See tasks and reminders together in Today."
+    },
+    "plan": {
+      "scene": "plan",
+      "theme": "dark",
+      "eyebrow": "VISUAL PROJECT PLANNING",
+      "headline": [
+        "Plan the",
+        "whole project."
+      ],
+      "detail": "See ideas, tasks and connections in one map."
+    },
+    "next-steps": {
+      "scene": "task",
+      "theme": "dark",
+      "eyebrow": "DUE DATES & REMINDERS",
+      "headline": [
+        "Keep your",
+        "next steps clear."
+      ],
+      "detail": "Set a due date. Keep every task linked to its map."
+    },
+    "plan-assistant": {
+      "scene": "assistant",
+      "theme": "sand",
+      "eyebrow": "REFINE YOUR PLAN WITH AI",
+      "headline": [
+        "Work through",
+        "what comes next."
+      ],
+      "detail": "Ask the assistant to help develop your map."
+    }
+  },
+  "sets": {
+    "default-a": {
+      "name": "Default page — A",
+      "cards": [
+        "main-hero",
+        "sources",
+        "slides-main",
+        "assistant",
+        "study-main",
+        "tasks-main",
+        "originals",
+        "together"
+      ]
+    },
+    "default-b": {
+      "name": "PPO — B (headline only)",
+      "cards": [
+        "maps-hero",
+        "sources",
+        "slides-main",
+        "assistant",
+        "study-main",
+        "tasks-main",
+        "originals",
+        "together"
+      ]
+    },
+    "cpp-mind-maps": {
+      "name": "US · Mind Maps · A",
+      "cards": [
+        "maps-hero",
+        "sources",
+        "assistant",
+        "originals",
+        "slides-main"
+      ]
+    },
+    "cpp-study": {
+      "name": "US · Study · A",
+      "cards": [
+        "study-hero",
+        "study-map",
+        "quiz",
+        "study-sources",
+        "study-present"
+      ]
+    },
+    "cpp-slides": {
+      "name": "US · Slides · A",
+      "cards": [
+        "slides-hero",
+        "slides-edit",
+        "export",
+        "presenter",
+        "slides-outline"
+      ]
+    },
+    "cpp-tasks": {
+      "name": "US · Tasks · A",
+      "cards": [
+        "tasks-hero",
+        "plan",
+        "next-steps",
+        "plan-assistant",
+        "together"
+      ]
+    }
+  },
+  "app_version": "3.0.1",
+  "export_date": "2026-10-16",
+  "test_status": "prepared_not_launched"
+}

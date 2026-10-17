@@ -1,0 +1,18 @@
+{
+  "keywords_to_verify": [
+    "study",
+    "flashcards",
+    "lecture",
+    "quiz"
+  ],
+  "search_intent_hypotheses": [
+    "flashcards",
+    "study notes",
+    "ai study assistant",
+    "exam preparation"
+  ],
+  "promotional_text": "Turn your material into mind maps, review with flashcards and spaced repetition, and check your understanding with AI-generated quizzes.",
+  "locale": "en-US",
+  "status": "proposed_not_applied",
+  "note": "Verify against latest approved version in App Store Connect. Search volume not validated."
+}

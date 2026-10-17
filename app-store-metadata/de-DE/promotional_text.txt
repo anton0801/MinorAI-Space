@@ -1,0 +1,14 @@
+[main]
+Das neue Minor AI: Mindmaps, Folien und Lernen an einem Ort. Lass dir eine Karte bauen, füg PDFs und Videos hinzu – und präsentiere, lerne oder plane weiter.
+
+[mind-maps]
+Mach aus jeder Idee, jedem PDF, Link oder Video eine klare Mindmap. Hol dir neue Ideen von der KI, füg Notizen und Aufgaben hinzu und gestalte sie nach deinem Stil.
+
+[study]
+Mach aus Vorlesungsnotizen und PDFs Mindmaps, Karteikarten und Quiz. Sieh, wie alles zusammenhängt, und wisse vor der Prüfung, was du wiederholen musst.
+
+[presentations]
+Mach aus einer Mindmap eine Präsentation, die du bearbeiten kannst. Wechsle das Design, präsentiere mit deinen Notizen und exportiere als PowerPoint oder PDF.
+
+[tasks]
+Mach aus den Ideen in deinen Karten Aufgaben mit Termin und Erinnerung. Sieh alle in „Today“ und lass die KI deinen Tag rund um deine Aufgaben planen.

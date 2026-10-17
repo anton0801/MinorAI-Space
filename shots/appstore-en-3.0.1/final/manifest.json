@@ -1,0 +1,236 @@
+{
+  "main-a": [
+    {
+      "file": "main-a/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Your ideas, mapped by AI."
+    },
+    {
+      "file": "main-a/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Just ask. Get a map."
+    },
+    {
+      "file": "main-a/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Start from anything."
+    },
+    {
+      "file": "main-a/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Stuck? AI adds ideas."
+    },
+    {
+      "file": "main-a/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Map today. Slides next."
+    },
+    {
+      "file": "main-a/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Study what matters."
+    },
+    {
+      "file": "main-a/07-main-today.png",
+      "scene": "today",
+      "headline": "Ideas into action."
+    },
+    {
+      "file": "main-a/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Your notes. Right on cue."
+    }
+  ],
+  "main-b": [
+    {
+      "file": "main-b/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Your ideas, mapped by AI."
+    },
+    {
+      "file": "main-b/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Just ask. Get a map."
+    },
+    {
+      "file": "main-b/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Start from anything."
+    },
+    {
+      "file": "main-b/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Stuck? AI adds ideas."
+    },
+    {
+      "file": "main-b/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Map today. Slides next."
+    },
+    {
+      "file": "main-b/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Study what matters."
+    },
+    {
+      "file": "main-b/07-main-today.png",
+      "scene": "today",
+      "headline": "Ideas into action."
+    },
+    {
+      "file": "main-b/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Your notes. Right on cue."
+    }
+  ],
+  "main-c": [
+    {
+      "file": "main-c/01-main-map.png",
+      "scene": "map-travel",
+      "headline": "Your ideas, mapped by AI."
+    },
+    {
+      "file": "main-c/02-main-chat.png",
+      "scene": "chat-travel",
+      "headline": "Just ask. Get a map."
+    },
+    {
+      "file": "main-c/03-main-sources.png",
+      "scene": "newmap",
+      "headline": "Start from anything."
+    },
+    {
+      "file": "main-c/04-main-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Stuck? AI adds ideas."
+    },
+    {
+      "file": "main-c/05-main-slides.png",
+      "scene": "deck-diagram",
+      "headline": "Map today. Slides next."
+    },
+    {
+      "file": "main-c/06-main-study.png",
+      "scene": "card-back",
+      "headline": "Study what matters."
+    },
+    {
+      "file": "main-c/07-main-today.png",
+      "scene": "today",
+      "headline": "Ideas into action."
+    },
+    {
+      "file": "main-c/08-main-present.png",
+      "scene": "presenter",
+      "headline": "Your notes. Right on cue."
+    }
+  ],
+  "cpp-mind-maps": [
+    {
+      "file": "cpp-mind-maps/01-maps-hero.png",
+      "scene": "map-travel",
+      "headline": "Mind maps. Made with AI."
+    },
+    {
+      "file": "cpp-mind-maps/02-maps-sources.png",
+      "scene": "newmap",
+      "headline": "Start from anything."
+    },
+    {
+      "file": "cpp-mind-maps/03-maps-improve.png",
+      "scene": "proposal-travel",
+      "headline": "Ask AI for more ideas."
+    },
+    {
+      "file": "cpp-mind-maps/04-maps-panel.png",
+      "scene": "selected-travel",
+      "headline": "Every idea, one tap away."
+    },
+    {
+      "file": "cpp-mind-maps/05-maps-design.png",
+      "scene": "mapdesign-travel",
+      "headline": "Make it yours."
+    }
+  ],
+  "cpp-study": [
+    {
+      "file": "cpp-study/01-study-hero.png",
+      "scene": "card-back",
+      "headline": "Turn notes into study cards."
+    },
+    {
+      "file": "cpp-study/02-study-map.png",
+      "scene": "map-study",
+      "headline": "See how ideas connect."
+    },
+    {
+      "file": "cpp-study/03-study-quiz.png",
+      "scene": "quiz",
+      "headline": "Quiz yourself. Learn why."
+    },
+    {
+      "file": "cpp-study/04-study-pdf.png",
+      "scene": "sources-study",
+      "headline": "Drop in your lecture PDF."
+    },
+    {
+      "file": "cpp-study/05-study-result.png",
+      "scene": "quiz-result",
+      "headline": "Know what to review."
+    }
+  ],
+  "cpp-presentations": [
+    {
+      "file": "cpp-presentations/01-slides-hero.png",
+      "scene": "deck-diagram",
+      "headline": "From idea to slide deck."
+    },
+    {
+      "file": "cpp-presentations/02-slides-themes.png",
+      "scene": "themes",
+      "headline": "One tap. A new look."
+    },
+    {
+      "file": "cpp-presentations/03-slides-present.png",
+      "scene": "presenter",
+      "headline": "Your notes. Right on cue."
+    },
+    {
+      "file": "cpp-presentations/04-slides-export.png",
+      "scene": "export",
+      "headline": "Take it to PowerPoint."
+    },
+    {
+      "file": "cpp-presentations/05-slides-templates.png",
+      "scene": "templates-decks",
+      "headline": "Start from a template."
+    }
+  ],
+  "cpp-tasks": [
+    {
+      "file": "cpp-tasks/01-tasks-hero.png",
+      "scene": "today",
+      "headline": "Turn ideas into action."
+    },
+    {
+      "file": "cpp-tasks/02-tasks-plan.png",
+      "scene": "planday",
+      "headline": "Plan your day with AI."
+    },
+    {
+      "file": "cpp-tasks/03-tasks-next.png",
+      "scene": "nextsteps",
+      "headline": "Know what to do next."
+    },
+    {
+      "file": "cpp-tasks/04-tasks-dates.png",
+      "scene": "task",
+      "headline": "Dates and reminders."
+    },
+    {
+      "file": "cpp-tasks/05-tasks-map.png",
+      "scene": "selected-podcast",
+      "headline": "See the plan. Do the work."
+    }
+  ]
+}

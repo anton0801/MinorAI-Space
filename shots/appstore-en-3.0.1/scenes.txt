@@ -1,0 +1,34 @@
+# name|launch arguments (plus -appLanguage en -auditSignedOut -noResume -demoPlus -isolatedStore cap-<name>)
+map-travel|-campaign travel -demoMap -demoZoom 0.545 -36 0
+chat-travel|-campaign travel -demoChatMap
+newmap|-campaign travel -mindMode
+proposal-travel|-campaign travel -demoMap -demoProposal -demoZoom 0.6
+selected-travel|-campaign travel -demoMap -demoSelect
+mapdesign-travel|-campaign travel -demoMap -demoMapDesign -demoZoom 0.545 -36 0
+agent-travel|-campaign travel -demoAgent
+templates-maps|-campaign travel -demoTemplates
+slides-start-travel|-campaign travel -demoMap -projectSlides
+list-travel|-campaign travel -demoMap -demoList
+library|-campaign travel -campaignLibrary -demoLibrary
+today|-campaign travel -campaignLibrary -demoToday
+planday|-campaign travel -campaignLibrary -campaignPlanDay
+deck-cover|-campaign podcast -demoDeck
+deck-diagram|-campaign podcast -demoDeck -campaignSlide 2
+deck-timeline|-campaign podcast -demoDeck -campaignSlide 3
+themes|-campaign podcast -demoDeck -demoThemes
+presenter|-campaign podcast -demoDeck -demoPresentDeck -demoPresenterView
+export|-campaign podcast -demoDeck -demoExportSheet
+templates-decks|-campaign podcast -demoTemplates -decks
+organizer|-campaign podcast -demoDeck -demoOrganizer
+nextsteps|-campaign podcast -demoMap -demoNextSteps
+task|-campaign podcast -demoMap -demoTask
+selected-podcast|-campaign podcast -demoMap -demoSelect
+map-study|-campaign study -demoMap -demoZoom 0.58 -40 0
+card-front|-campaign study -demoMap -demoStudy
+card-back|-campaign study -demoMap -demoStudy -demoCardBack
+quiz|-campaign study -demoMap -demoStudy -demoQuiz
+quiz-result|-campaign study -demoMap -demoStudy -demoQuizResult
+sources-study|-campaign study -demoMap -demoSourcesSheet -demoZoom 0.58 -40 0
+deck-study|-campaign study -demoDeck -campaignSlide 2
+presenter-study|-campaign study -demoDeck -demoPresentDeck -demoPresenterView
+chat-study|-campaign study -demoChatMap

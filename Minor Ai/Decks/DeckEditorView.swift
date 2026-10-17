@@ -396,6 +396,10 @@ struct DeckEditorView: View {
         #if DEBUG
         .onAppear {
             let args = ProcessInfo.processInfo.arguments
+            if let flag = args.firstIndex(of: "-campaignSlide"), args.indices.contains(flag + 1),
+               let selected = Int(args[flag + 1]), let slides = deck?.slides, slides.indices.contains(selected) {
+                index = selected
+            }
             if args.contains("-demoThemes") { showThemes = true }
             if args.contains("-demoOwnStyle") { showLookEditor = true }
             if args.contains("-demoBrand") { showBrand = true }

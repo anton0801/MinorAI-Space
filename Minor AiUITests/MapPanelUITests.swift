@@ -30,6 +30,41 @@ final class MapPanelUITests: XCTestCase {
         element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
+    // A tap on an idea opens its panel, and the panel stays once the branch's pulse is over and a
+    // double tap is ruled out (iOS 17 closed it then: the canvas's own tap deselected the idea).
+    func testATappedIdeaKeepsItsPanel() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-didOnboard", "YES", "-appLanguage", "en", "-auditSignedOut", "-isolatedStore", "uitest-tap", "-demoMap"]
+        app.launch()
+        let idea = row(app, "💰 Pricing")
+        XCTAssertTrue(idea.waitForExistence(timeout: 10), "The map should open")
+        idea.tap()
+        let panel = app.buttons["Add Branch"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 3), "The idea's panel should open")
+        Thread.sleep(forTimeInterval: 2.5)
+        XCTAssertTrue(panel.exists, "The idea's panel should stay open")
+        // And a second idea, while the first one's panel is open.
+        let other = row(app, "🎯 Audience")
+        if other.exists {
+            other.tap()
+            Thread.sleep(forTimeInterval: 2.5)
+            XCTAssertTrue(app.buttons["Add Branch"].exists, "The second idea's panel should stay open")
+        }
+        // A tap on empty canvas still closes the panel.
+        let ideas = app.buttons.matching(NSPredicate(format: "label CONTAINS ', topic' OR label CONTAINS ', branch' OR label CONTAINS ', idea' OR label CONTAINS 'hidden ideas' OR label BEGINSWITH 'Connection'")).allElementsBoundByIndex.map(\.frame)
+        let window = app.windows.firstMatch.frame
+        let empty = stride(from: 0.22, through: 0.48, by: 0.03).flatMap { y in stride(from: 0.08, through: 0.92, by: 0.06).map { CGPoint(x: window.width * $0, y: window.height * y) } }
+            .first { point in !ideas.contains { $0.insetBy(dx: -40, dy: -24).contains(point) } }
+        XCTAssertNotNil(empty, "There should be empty canvas to tap")
+        if let empty {
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: empty.x, dy: empty.y)).tap()
+            XCTAssertTrue(app.buttons["Add Branch"].waitForNonExistence(timeout: 3), "A tap on empty canvas should close the panel")
+        }
+        // A double tap on an idea renames it.
+        idea.doubleTap()
+        XCTAssertTrue(app.textFields.firstMatch.waitForExistence(timeout: 3) || app.textViews.firstMatch.waitForExistence(timeout: 1), "A double tap should rename the idea")
+    }
+
     private func row(_ app: XCUIApplication, _ title: String) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
     }

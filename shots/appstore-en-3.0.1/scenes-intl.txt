@@ -1,0 +1,22 @@
+# German and Spanish captures (add -campaignLang de|es): the frames' scenes, the trip map at 0.5 for longer words
+map-travel|-campaign travel -demoMap -demoZoom 0.5 -36 0
+chat-travel|-campaign travel -demoChatMap
+newmap|-campaign travel -mindMode
+proposal-travel|-campaign travel -demoMap -demoProposal -demoZoom 0.6
+selected-travel|-campaign travel -demoMap -demoSelect
+mapdesign-travel|-campaign travel -demoMap -demoMapDesign -demoZoom 0.5 -36 0
+today|-campaign travel -campaignLibrary -demoToday
+planday|-campaign travel -campaignLibrary -campaignPlanDay
+deck-diagram|-campaign podcast -demoDeck -campaignSlide 2
+themes|-campaign podcast -demoDeck -demoThemes
+presenter|-campaign podcast -demoDeck -demoPresentDeck -demoPresenterView
+export|-campaign podcast -demoDeck -demoExportSheet
+templates-decks|-campaign podcast -demoTemplates -decks
+nextsteps|-campaign podcast -demoMap -demoNextSteps
+task|-campaign podcast -demoMap -demoTask
+selected-podcast|-campaign podcast -demoMap -demoSelect
+map-study|-campaign study -demoMap -demoZoom 0.58 -40 0
+card-back|-campaign study -demoMap -demoStudy -demoCardBack
+quiz|-campaign study -demoMap -demoStudy -demoQuiz
+quiz-result|-campaign study -demoMap -demoStudy -demoQuizResult
+sources-study|-campaign study -demoMap -demoSourcesSheet -demoZoom 0.58 -40 0

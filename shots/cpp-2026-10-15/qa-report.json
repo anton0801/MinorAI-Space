@@ -1,0 +1,283 @@
+{
+  "geometry": [
+    {
+      "card": "main-hero",
+      "errors": []
+    },
+    {
+      "card": "maps-hero",
+      "errors": []
+    },
+    {
+      "card": "sources",
+      "errors": []
+    },
+    {
+      "card": "assistant",
+      "errors": []
+    },
+    {
+      "card": "slides-main",
+      "errors": []
+    },
+    {
+      "card": "study-main",
+      "errors": []
+    },
+    {
+      "card": "tasks-main",
+      "errors": []
+    },
+    {
+      "card": "originals",
+      "errors": []
+    },
+    {
+      "card": "together",
+      "errors": []
+    },
+    {
+      "card": "study-hero",
+      "errors": []
+    },
+    {
+      "card": "study-map",
+      "errors": []
+    },
+    {
+      "card": "quiz",
+      "errors": []
+    },
+    {
+      "card": "study-sources",
+      "errors": []
+    },
+    {
+      "card": "study-present",
+      "errors": []
+    },
+    {
+      "card": "slides-hero",
+      "errors": []
+    },
+    {
+      "card": "slides-edit",
+      "errors": []
+    },
+    {
+      "card": "export",
+      "errors": []
+    },
+    {
+      "card": "presenter",
+      "errors": []
+    },
+    {
+      "card": "slides-outline",
+      "errors": []
+    },
+    {
+      "card": "tasks-hero",
+      "errors": []
+    },
+    {
+      "card": "plan",
+      "errors": []
+    },
+    {
+      "card": "next-steps",
+      "errors": []
+    },
+    {
+      "card": "plan-assistant",
+      "errors": []
+    }
+  ],
+  "files": [
+    {
+      "card": "main-hero",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "maps-hero",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "sources",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "assistant",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "slides-main",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "study-main",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "tasks-main",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "originals",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "together",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "study-hero",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "study-map",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "quiz",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "study-sources",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "study-present",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "slides-hero",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "slides-edit",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "export",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "presenter",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "slides-outline",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "tasks-hero",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "plan",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "next-steps",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    },
+    {
+      "card": "plan-assistant",
+      "size": [
+        1320,
+        2868
+      ],
+      "mode": "RGB"
+    }
+  ],
+  "pass": true
+}
